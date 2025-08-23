@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Config Test - Neberku</title>
+</head>
+<body>
+    <h1>Config Test</h1>
+    <div id="configInfo"></div>
+    <div id="apiEndpoints"></div>
+    
+    <script src="js/config.js"></script>
+    <script>
+        // Test if config is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            const configInfo = document.getElementById('configInfo');
+            const apiEndpoints = document.getElementById('apiEndpoints');
+            
+            if (typeof API_CONFIG !== 'undefined') {
+                configInfo.innerHTML = `
+                    <h2>✅ Configuration Loaded Successfully!</h2>
+                    <p><strong>Base URL:</strong> ${API_CONFIG.BASE_URL}</p>
+                    <p><strong>Environment:</strong> ${window.location.hostname === 'localhost' ? 'Development' : 'Production'}</p>
+                `;
+                
+                apiEndpoints.innerHTML = `
+                    <h3>Available API Endpoints:</h3>
+                    <ul>
+                        <li><strong>Login:</strong> ${API_CONFIG.ENDPOINTS.LOGIN}</li>
+                        <li><strong>Register:</strong> ${API_CONFIG.ENDPOINTS.REGISTER}</li>
+                        <li><strong>Events:</strong> ${API_CONFIG.ENDPOINTS.EVENTS}</li>
+                        <li><strong>Guest Posts:</strong> ${API_CONFIG.ENDPOINTS.GUEST_POSTS}</li>
+                    </ul>
+                    <div class="mt-3">
+                        <button id="testApiBtn" class="btn btn-primary">Test API Connection</button>
+                        <div id="apiTestResults" class="mt-2"></div>
+                    </div>
+                `;
+                
+                console.log('✅ API_CONFIG loaded successfully:', API_CONFIG);
+                console.log('✅ API_UTILS available:', API_UTILS);
+                
+                // Add test button functionality
+                document.getElementById('testApiBtn').addEventListener('click', testApiConnection);
+            } else {
+                configInfo.innerHTML = `
+                    <h2>❌ Configuration Failed to Load!</h2>
+                    <p>API_CONFIG is not defined. Check the browser console for errors.</p>
+                `;
+                console.error('❌ API_CONFIG is not defined!');
+            }
+        });
+        
+        async function testApiConnection() {
+            const resultsDiv = document.getElementById('apiTestResults');
+            resultsDiv.innerHTML = '<div class="alert alert-info">Testing API connection...</div>';
+            
+            try {
+                // Test events endpoint
+                const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.EVENTS}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    const events = await response.json();
+                    resultsDiv.innerHTML = `
+                        <div class="alert alert-success">
+                            ✅ API Connection Successful!<br>
+                            Events endpoint returned ${events.length} events.
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML = `
+                        <div class="alert alert-warning">
+                            ⚠️ API responded with status ${response.status}<br>
+                            This might indicate authentication is required or the endpoint has different behavior.
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        ❌ API Connection Failed!<br>
+                        Error: ${error.message}<br>
+                        Make sure the Django backend is running on ${API_CONFIG.BASE_URL}
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html> 

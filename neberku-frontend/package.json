@@ -1,0 +1,25 @@
+{
+  "name": "neberku-frontend",
+  "version": "1.0.0",
+  "description": "Frontend for Neberku Event Photo/Video Collection Platform",
+  "main": "index.js",
+  "scripts": {
+    "start": "live-server --port=3000 --open=/",
+    "build": "echo 'No build step needed for static HTML'",
+    "dev": "live-server --port=3000 --open=/ --watch=.",
+    "test": "echo 'No tests specified'"
+  },
+  "keywords": [
+    "neberku",
+    "events",
+    "photos",
+    "videos",
+    "bootstrap",
+    "frontend"
+  ],
+  "author": "Neberku Team",
+  "license": "MIT",
+  "devDependencies": {
+    "live-server": "^1.2.0"
+  }
+}

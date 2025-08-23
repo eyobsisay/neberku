@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Dashboard - Neberku</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container-fluid">
+        <!-- Navigation -->
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="#">
+                    <i class="bi bi-calendar-event"></i> Neberku Debug Dashboard
+                </a>
+                <div class="navbar-nav ms-auto">
+                    <span class="navbar-text me-3">
+                        Welcome, <span id="userDisplayName">User</span>
+                    </span>
+                    <button class="btn btn-outline-light btn-sm" onclick="logoutUser()">
+                        <i class="bi bi-box-arrow-right"></i> Logout
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Debug Info Panel -->
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="card border-warning">
+                    <div class="card-header bg-warning text-dark">
+                        <h5><i class="bi bi-exclamation-triangle"></i> Debug Mode - No Auto-Redirect</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="debugInfo"></div>
+                        <hr>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <button id="testAuthBtn" class="btn btn-primary">Test Authentication</button>
+                                <button id="testEventsBtn" class="btn btn-info">Test Events API</button>
+                                <button id="clearStorageBtn" class="btn btn-danger">Clear Storage</button>
+                            </div>
+                            <div class="col-md-6">
+                                <a href="dashboard.html" class="btn btn-success">Go to Real Dashboard</a>
+                                <a href="debug-auth.html" class="btn btn-secondary">Go to Auth Debug</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="row mt-3">
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title text-primary">Total Events</h5>
+                        <h2 id="totalEvents">0</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title text-success">Total Photos</h5>
+                        <h2 id="totalPhotos">0</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title text-info">Total Videos</h5>
+                        <h2 id="totalVideos">0</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title text-warning">Total Guests</h5>
+                        <h2 id="totalGuests">0</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Create Event Form -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-plus-circle"></i> Create New Event</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="createEventForm">
+                                                         <div class="row">
+                                 <div class="col-md-6">
+                                     <div class="mb-3">
+                                         <label for="eventTitle" class="form-label">Event Title</label>
+                                         <input type="text" class="form-control" id="eventTitle" required>
+                                     </div>
+                                 </div>
+                                 <div class="col-md-6">
+                                     <div class="mb-3">
+                                         <label for="eventDate" class="form-label">Event Date</label>
+                                         <input type="date" class="form-control" id="eventDate" required>
+                                     </div>
+                                 </div>
+                             </div>
+                             <div class="row">
+                                 <div class="col-md-6">
+                                     <div class="mb-3">
+                                         <label for="eventLocation" class="form-label">Location</label>
+                                         <input type="text" class="form-control" id="eventLocation" required>
+                                     </div>
+                                 </div>
+                                 <div class="col-md-6">
+                                     <div class="mb-3">
+                                         <label for="eventDescription" class="form-label">Description</label>
+                                         <textarea class="form-control" id="eventDescription" rows="3" required></textarea>
+                                     </div>
+                                 </div>
+                             </div>
+                             <div class="row">
+                                 <div class="col-md-6">
+                                     <div class="mb-3">
+                                         <label for="eventPackage" class="form-label">Package</label>
+                                         <select class="form-control" id="eventPackage" required>
+                                             <option value="">Select a package</option>
+                                             <option value="1">Basic Package</option>
+                                             <option value="2">Premium Package</option>
+                                             <option value="3">VIP Package</option>
+                                         </select>
+                                     </div>
+                                 </div>
+                                 <div class="col-md-6">
+                                     <div class="mb-3">
+                                         <label for="eventType" class="form-label">Event Type</label>
+                                         <select class="form-control" id="eventType" required>
+                                             <option value="">Select event type</option>
+                                             <option value="1">Wedding</option>
+                                             <option value="2">Birthday</option>
+                                             <option value="3">Corporate Event</option>
+                                             <option value="4">Other</option>
+                                         </select>
+                                     </div>
+                                 </div>
+                             </div>
+                             <div class="row">
+                                 <div class="col-md-6">
+                                     <div class="mb-3">
+                                         <label for="allowPhotos" class="form-label">Allow Photos</label>
+                                         <select class="form-control" id="allowPhotos" required>
+                                             <option value="true">Yes</option>
+                                             <option value="false">No</option>
+                                         </select>
+                                     </div>
+                                 </div>
+                                 <div class="col-md-6">
+                                     <div class="mb-3">
+                                         <label for="allowVideos" class="form-label">Allow Videos</label>
+                                         <select class="form-control" id="allowVideos" required>
+                                             <option value="true">Yes</option>
+                                             <option value="false">No</option>
+                                         </select>
+                                     </div>
+                                 </div>
+                             </div>
+                             <div class="row">
+                                 <div class="col-md-6">
+                                     <div class="mb-3">
+                                         <label for="allowWishes" class="form-label">Allow Wishes</label>
+                                         <select class="form-control" id="allowWishes" required>
+                                             <option value="true">Yes</option>
+                                             <option value="false">No</option>
+                                         </select>
+                                     </div>
+                                 </div>
+                                 <div class="col-md-6">
+                                     <div class="mb-3">
+                                         <label for="autoApprovePosts" class="form-label">Auto-approve Posts</label>
+                                         <select class="form-control" id="autoApprovePosts" required>
+                                             <option value="false">No (Manual approval)</option>
+                                             <option value="true">Yes (Auto-approve)</option>
+                                         </select>
+                                     </div>
+                                 </div>
+                             </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-plus-circle"></i> Create Event
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Events List -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-calendar3"></i> Your Events</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="eventsList" class="row">
+                            <!-- Events will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Container -->
+    <div id="alertContainer" style="position: fixed; top: 20px; right: 20px; z-index: 9999;"></div>
+
+    <!-- Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+        // Debug Dashboard - No Auto-Redirect Version
+        class DebugDashboard {
+            constructor() {
+                this.events = [];
+                this.init();
+            }
+
+            init() {
+                this.checkAuth();
+                this.bindEvents();
+                this.updateDebugInfo();
+                this.loadDashboardData();
+            }
+
+            checkAuth() {
+                console.log('🔍 [DEBUG] Checking authentication status...');
+                
+                const userData = localStorage.getItem('neberku_user');
+                console.log('📦 [DEBUG] localStorage user data:', userData);
+                
+                if (!isAuthenticated()) {
+                    console.log('🔒 [DEBUG] User not authenticated - NOT redirecting in debug mode');
+                    this.showAlert('⚠️ User not authenticated - Debug mode: No redirect', 'warning');
+                    return;
+                }
+                
+                const user = getCurrentUser();
+                if (user) {
+                    document.getElementById('userDisplayName').textContent = user.username;
+                    console.log('✅ [DEBUG] User authenticated:', user.username);
+                } else {
+                    console.log('❌ [DEBUG] User data not found - NOT redirecting in debug mode');
+                    this.showAlert('⚠️ User data not found - Debug mode: No redirect', 'warning');
+                    return;
+                }
+            }
+
+            bindEvents() {
+                // Create event form submission
+                document.getElementById('createEventForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.createEvent();
+                });
+
+                // Debug buttons
+                document.getElementById('testAuthBtn').addEventListener('click', () => this.testAuthentication());
+                document.getElementById('testEventsBtn').addEventListener('click', () => this.testEventsAPI());
+                document.getElementById('clearStorageBtn').addEventListener('click', () => this.clearStorage());
+            }
+
+            updateDebugInfo() {
+                const debugInfo = document.getElementById('debugInfo');
+                const user = getCurrentUser();
+                const cookies = document.cookie;
+                
+                debugInfo.innerHTML = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Authentication Status:</h6>
+                            <ul>
+                                <li><strong>isAuthenticated():</strong> ${isAuthenticated() ? '✅ True' : '❌ False'}</li>
+                                <li><strong>User Data:</strong> ${user ? `✅ ${user.username} (ID: ${user.id})` : '❌ None'}</li>
+                                <li><strong>localStorage Keys:</strong> ${Object.keys(localStorage).join(', ') || 'None'}</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Session & Cookies:</h6>
+                            <ul>
+                                <li><strong>Cookies:</strong> ${cookies || 'None'}</li>
+                                <li><strong>CSRF Token:</strong> ${this.getCSRFToken() || 'Not found'}</li>
+                                <li><strong>Current Page:</strong> ${window.location.pathname}</li>
+                            </ul>
+                        </div>
+                    </div>
+                `;
+            }
+
+            getCSRFToken() {
+                try {
+                    const cookies = document.cookie.split(';');
+                    for (let cookie of cookies) {
+                        const [name, value] = cookie.trim().split('=');
+                        if (name === 'csrftoken') {
+                            return value;
+                        }
+                    }
+                } catch (e) {
+                    console.log('⚠️ Could not get CSRF token');
+                }
+                return null;
+            }
+
+            async testAuthentication() {
+                console.log('🧪 [DEBUG] Testing authentication...');
+                this.showAlert('Testing authentication...', 'info');
+                
+                try {
+                    const response = await fetch(`${API_CONFIG.BASE_URL}/api/`, {
+                        method: 'GET',
+                        credentials: 'include'
+                    });
+                    
+                    console.log('📡 [DEBUG] Auth test response:', response.status, response.statusText);
+                    this.showAlert(`Auth test: ${response.status} ${response.statusText}`, response.ok ? 'success' : 'warning');
+                } catch (error) {
+                    console.error('❌ [DEBUG] Auth test error:', error);
+                    this.showAlert(`Auth test error: ${error.message}`, 'danger');
+                }
+            }
+
+            async testEventsAPI() {
+                console.log('🧪 [DEBUG] Testing events API...');
+                this.showAlert('Testing events API...', 'info');
+                
+                try {
+                    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.EVENTS}`, {
+                        method: 'GET',
+                        credentials: 'include'
+                    });
+                    
+                    console.log('📡 [DEBUG] Events API test response:', response.status, response.statusText);
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        const eventCount = data.results ? data.results.length : (Array.isArray(data) ? data.length : 0);
+                        this.showAlert(`Events API: ${response.status} - Found ${eventCount} events`, 'success');
+                    } else {
+                        const errorText = await response.text();
+                        this.showAlert(`Events API: ${response.status} - ${errorText}`, 'warning');
+                    }
+                } catch (error) {
+                    console.error('❌ [DEBUG] Events API test error:', error);
+                    this.showAlert(`Events API error: ${error.message}`, 'danger');
+                }
+            }
+
+            clearStorage() {
+                localStorage.clear();
+                this.showAlert('localStorage cleared!', 'info');
+                this.updateDebugInfo();
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            }
+
+            async loadDashboardData() {
+                try {
+                    await this.loadEvents();
+                    this.updateStatistics();
+                } catch (error) {
+                    console.error('[DEBUG] Error loading dashboard data:', error);
+                    this.showAlert(`Error loading dashboard data: ${error.message}`, 'danger');
+                }
+            }
+
+            async loadEvents() {
+                try {
+                    console.log('🔍 [DEBUG] Attempting to fetch events...');
+                    
+                    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.EVENTS}`, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        credentials: 'include'
+                    });
+
+                    console.log('📡 [DEBUG] Response status:', response.status);
+                    console.log('📡 [DEBUG] Response headers:', response.headers);
+
+                    if (response.ok) {
+                        const eventsData = await response.json();
+                        console.log('✅ [DEBUG] Events fetched successfully:', eventsData);
+                        
+                        // Handle paginated response from Django REST Framework
+                        if (eventsData.results && Array.isArray(eventsData.results)) {
+                            this.events = eventsData.results;
+                            console.log('📊 [DEBUG] Extracted events from paginated response:', this.events.length);
+                        } else if (Array.isArray(eventsData)) {
+                            // Direct array response
+                            this.events = eventsData;
+                            console.log('📊 [DEBUG] Direct events array response:', this.events.length);
+                        } else {
+                            console.warn('⚠️ [DEBUG] Unexpected response format:', eventsData);
+                            this.events = [];
+                        }
+                        
+                        this.renderEvents();
+                    } else {
+                        const errorText = await response.text();
+                        console.error('❌ [DEBUG] API Error Response:', errorText);
+                        this.showAlert(`API Error ${response.status}: ${errorText}`, 'warning');
+                        
+                        // In debug mode, don't redirect - just show the error
+                        this.events = [];
+                        this.renderEvents();
+                    }
+                } catch (error) {
+                    console.error('❌ [DEBUG] Error loading events:', error);
+                    this.showAlert(`Error loading events: ${error.message}`, 'danger');
+                    
+                    // In debug mode, don't redirect - just show the error
+                    this.events = [];
+                    this.renderEvents();
+                }
+            }
+
+            renderEvents() {
+                const eventsList = document.getElementById('eventsList');
+                if (!eventsList) return;
+
+                if (this.events.length === 0) {
+                    eventsList.innerHTML = `
+                        <div class="col-12 text-center py-5">
+                            <i class="bi bi-calendar-x display-1 text-muted"></i>
+                            <h4 class="text-muted mt-3">No events yet</h4>
+                            <p class="text-muted mb-3">Create your first event to get started!</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                eventsList.innerHTML = this.events.map(event => `
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-body">
+                                <h5 class="card-title text-primary">${event.title}</h5>
+                                                                 <p class="card-text text-muted">
+                                     <i class="bi bi-calendar3"></i> ${this.formatDate(event.event_date)}
+                                 </p>
+                                <p class="card-text text-muted">
+                                    <i class="bi bi-geo-alt"></i> ${event.location}
+                                </p>
+                                <p class="card-text">${event.description}</p>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            async createEvent() {
+                const formData = {
+                    title: document.getElementById('eventTitle').value,
+                    event_date: document.getElementById('eventDate').value,
+                    location: document.getElementById('eventLocation').value,
+                    description: document.getElementById('eventDescription').value,
+                    package_id: parseInt(document.getElementById('eventPackage').value),
+                    event_type_id: parseInt(document.getElementById('eventType').value),
+                    allow_photos: document.getElementById('allowPhotos').value === 'true',
+                    allow_videos: document.getElementById('allowVideos').value === 'true',
+                    allow_wishes: document.getElementById('allowWishes').value === 'true',
+                    auto_approve_posts: document.getElementById('autoApprovePosts').value === 'true'
+                };
+
+                try {
+                    console.log('🔍 [DEBUG] Creating event with data:', formData);
+                    
+                    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.EVENTS}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        credentials: 'include',
+                        body: JSON.stringify(formData)
+                    });
+
+                    console.log('📡 [DEBUG] Create event response status:', response.status);
+
+                    if (response.ok) {
+                        const newEvent = await response.json();
+                        console.log('✅ [DEBUG] Event created successfully:', newEvent);
+                        this.events.push(newEvent);
+                        this.renderEvents();
+                        this.updateStatistics();
+                        this.resetForm();
+                        this.showAlert('Event created successfully!', 'success');
+                    } else {
+                        const errorText = await response.text();
+                        console.error('❌ [DEBUG] Create event error response:', errorText);
+                        this.showAlert(`Error creating event: ${errorText}`, 'danger');
+                    }
+                } catch (error) {
+                    console.error('❌ [DEBUG] Error creating event:', error);
+                    this.showAlert(`Error creating event: ${error.message}`, 'danger');
+                }
+            }
+
+            resetForm() {
+                document.getElementById('createEventForm').reset();
+            }
+
+            updateStatistics() {
+                const totalEvents = this.events.length;
+                const totalPhotos = this.events.reduce((sum, event) => sum + (event.photo_count || 0), 0);
+                const totalVideos = this.events.reduce((sum, event) => sum + (event.video_count || 0), 0);
+                const totalGuests = this.events.reduce((sum, event) => sum + (event.total_guest_posts || 0), 0);
+
+                document.getElementById('totalEvents').textContent = totalEvents;
+                document.getElementById('totalPhotos').textContent = totalPhotos;
+                document.getElementById('totalVideos').textContent = totalVideos;
+                document.getElementById('totalGuests').textContent = totalGuests;
+            }
+
+            formatDate(dateString) {
+                const date = new Date(dateString);
+                return date.toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+            }
+
+            showAlert(message, type = 'info') {
+                const alertDiv = document.createElement('div');
+                alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+                alertDiv.innerHTML = `
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                
+                document.getElementById('alertContainer').appendChild(alertDiv);
+                
+                // Auto-remove after 10 seconds in debug mode
+                setTimeout(() => {
+                    if (alertDiv.parentNode) {
+                        alertDiv.remove();
+                    }
+                }, 10000);
+            }
+        }
+
+        // Initialize debug dashboard when page loads
+        let debugDashboard;
+        document.addEventListener('DOMContentLoaded', () => {
+            debugDashboard = new DebugDashboard();
+        });
+    </script>
+</body>
+</html> 

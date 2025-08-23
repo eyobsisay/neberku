@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Post Detail - Neberku</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .media-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        .media-item {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            overflow: hidden;
+            transition: transform 0.2s;
+        }
+        .media-item:hover {
+            transform: scale(1.05);
+        }
+        .media-item img, .media-item video {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+        }
+        .media-item .media-info {
+            padding: 0.5rem;
+            background: #f8f9fa;
+        }
+        .back-button {
+            position: sticky;
+            top: 1rem;
+            z-index: 1000;
+        }
+        .post-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+        .status-badge {
+            font-size: 0.8rem;
+            padding: 0.25rem 0.5rem;
+        }
+        .guest-info {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .media-section {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="dashboard.html">
+                <i class="bi bi-calendar-event"></i> Neberku
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="dashboard.html">
+                    <i class="bi bi-house"></i> Dashboard
+                </a>
+                <a class="nav-link" href="#" onclick="logout()">
+                    <i class="bi bi-box-arrow-right"></i> Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Back Button -->
+    <div class="container mt-3">
+        <button class="btn btn-outline-secondary back-button" onclick="goBack()">
+            <i class="bi bi-arrow-left"></i> Back to Dashboard
+        </button>
+    </div>
+
+    <!-- Post Header -->
+    <div class="post-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 id="postTitle" class="mb-2">Loading...</h1>
+                    <p id="postDate" class="mb-0 opacity-75">Loading...</p>
+                </div>
+                <div class="col-md-4 text-md-end">
+                    <span id="postStatus" class="badge bg-success status-badge">Loading...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container">
+        <div class="row">
+            <!-- Post Details -->
+            <div class="col-lg-8">
+                <!-- Guest Information -->
+                <div class="guest-info">
+                    <h4><i class="bi bi-person-circle"></i> Guest Information</h4>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Name:</strong> <span id="guestName">Loading...</span></p>
+                            <p><strong>Phone:</strong> <span id="guestPhone">Loading...</span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Posts Made:</strong> <span id="totalPosts">Loading...</span></p>
+                            <p><strong>Total Media:</strong> <span id="totalMedia">Loading...</span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Post Content -->
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="bi bi-chat-quote"></i> Post Content</h5>
+                        <div id="wishText" class="card-text">Loading...</div>
+                    </div>
+                </div>
+
+                <!-- Media Files -->
+                <div class="media-section">
+                    <h4><i class="bi bi-images"></i> Media Files</h4>
+                    <div id="mediaCount" class="mb-3">
+                        <span class="badge bg-primary me-2">Photos: <span id="photoCount">0</span></span>
+                        <span class="badge bg-success">Videos: <span id="videoCount">0</span></span>
+                    </div>
+                    <div id="mediaGallery" class="media-gallery">
+                        <div class="text-center text-muted">
+                            <i class="bi bi-hourglass-split" style="font-size: 2rem;"></i>
+                            <p>Loading media files...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="col-lg-4">
+                <!-- Event Information -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-calendar-event"></i> Event Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Event:</strong> <span id="eventTitle">Loading...</span></p>
+                        <p><strong>Date:</strong> <span id="eventDate">Loading...</span></p>
+                        <p><strong>Location:</strong> <span id="eventLocation">Loading...</span></p>
+                        <p><strong>Type:</strong> <span id="eventType">Loading...</span></p>
+                    </div>
+                </div>
+
+                <!-- Post Statistics -->
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-graph-up"></i> Post Statistics</h5>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Created:</strong> <span id="createdAt">Loading...</span></p>
+                        <p><strong>Approved:</strong> <span id="approvedAt">Loading...</span></p>
+                        <p><strong>File Size:</strong> <span id="totalFileSize">Loading...</span></p>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-gear"></i> Actions</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <button id="approveBtn" class="btn btn-success" onclick="approvePost()" style="display: none;">
+                                <i class="bi bi-check-circle"></i> Approve Post
+                            </button>
+                            <button id="rejectBtn" class="btn btn-danger" onclick="rejectPost()" style="display: none;">
+                                <i class="bi bi-x-circle"></i> Reject Post
+                            </button>
+                            <button class="btn btn-outline-primary" onclick="downloadMedia()">
+                                <i class="bi bi-download"></i> Download All Media
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/post-detail.js"></script>
+</body>
+</html> 

@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Owner Dashboard - Neberku</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="css/custom.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="index.html">
+                <i class="bi bi-camera-video"></i> Neberku
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="index.html">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="dashboard.html">Dashboard</a>
+                    </li>
+                </ul>
+                <div class="navbar-nav">
+                    <span class="navbar-text me-3">
+                        <i class="bi bi-person-circle"></i> <span id="userDisplayName">Event Owner</span>
+                    </span>
+                    <button class="btn btn-outline-light" onclick="logoutUser()">
+                        <i class="bi bi-box-arrow-right"></i> Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container mt-5 pt-5">
+        <!-- Dashboard Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <h1 class="display-4 text-primary">
+                    <i class="bi bi-speedometer2"></i> Event Dashboard
+                </h1>
+                <p class="lead">Manage your events and view guest contributions</p>
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3 mb-3">
+                <div class="card bg-primary text-white h-100">
+                    <div class="card-body text-center">
+                        <i class="bi bi-calendar-event display-4"></i>
+                        <h3 class="card-title" id="totalEvents">0</h3>
+                        <p class="card-text">Total Events</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card bg-success text-white h-100">
+                    <div class="card-body text-center">
+                        <i class="bi bi-image display-4"></i>
+                        <h3 class="card-title" id="totalPhotos">0</h3>
+                        <p class="card-text">Photos Collected</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card bg-info text-white h-100">
+                    <div class="card-body text-center">
+                        <i class="bi bi-camera-video display-4"></i>
+                        <h3 class="card-title" id="totalVideos">0</h3>
+                        <p class="card-text">Videos Collected</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card bg-warning text-white h-100">
+                    <div class="card-body text-center">
+                        <i class="bi bi-people display-4"></i>
+                        <h3 class="card-title" id="totalGuests">0</h3>
+                        <p class="card-text">Guest Contributors</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Create New Event -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-plus-circle"></i> Create New Event
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="createEventForm" novalidate>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="eventTitle" class="form-label">Event Title <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="eventTitle" required>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="eventDate" class="form-label">Event Date <span class="text-danger">*</span></label>
+                                    <input type="date" class="form-control" id="eventDate" required>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="eventLocation" class="form-label">Location <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="eventLocation" required>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="eventDescription" class="form-label">Description <span class="text-danger">*</span></label>
+                                    <textarea class="form-control" id="eventDescription" rows="3" required></textarea>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="eventPackage" class="form-label">Package <span class="text-danger">*</span></label>
+                                    <select class="form-control" id="eventPackage" required>
+                                        <option value="">Select a package</option>
+                                        <option value="1">Basic Package</option>
+                                        <option value="2">Standard Package</option>
+                                        <option value="3">Premium Package</option>
+                                        <option value="4">Enterprise Package</option>
+                                    </select>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="eventType" class="form-label">Event Type <span class="text-danger">*</span></label>
+                                    <select class="form-control" id="eventType" required>
+                                        <option value="">Select event type</option>
+                                        <option value="1">Wedding</option>
+                                        <option value="2">Birthday</option>
+                                        <option value="3">Anniversary</option>
+                                        <option value="4">Corporate Event</option>
+                                        <option value="5">Party</option>
+                                        <option value="6">Graduation</option>
+                                        <option value="7">Baby Shower</option>
+                                        <option value="8">Vacation</option>
+                                        <option value="9">Holiday</option>
+                                        <option value="10">Other</option>
+                                    </select>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="allowPhotos" class="form-label">Allow Photos</label>
+                                    <select class="form-control" id="allowPhotos">
+                                        <option value="true">Yes</option>
+                                        <option value="false">No</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="allowVideos" class="form-label">Allow Videos</label>
+                                    <select class="form-control" id="allowVideos">
+                                        <option value="true">Yes</option>
+                                        <option value="false">No</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="allowWishes" class="form-label">Allow Wishes</label>
+                                    <select class="form-control" id="allowWishes">
+                                        <option value="true">Yes</option>
+                                        <option value="false">No</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="autoApprovePosts" class="form-label">Auto-approve Posts</label>
+                                    <select class="form-control" id="autoApprovePosts">
+                                        <option value="false">No (Manual approval)</option>
+                                        <option value="true">Yes (Auto-approve)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-plus-circle"></i> Create Event
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Events List -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-list-ul"></i> Your Events
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="eventsList" class="row">
+                            <!-- Events will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-light py-4 mt-5">
+        <div class="container text-center">
+            <p>&copy; 2024 Neberku. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/dashboard.js"></script>
+</body>
+</html> 

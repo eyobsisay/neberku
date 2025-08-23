@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Guest Post Creation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .file-input {
+            border: 2px dashed #ddd;
+            padding: 20px;
+            text-align: center;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        .file-input.dragover {
+            border-color: #007bff;
+            background-color: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Guest Post Creation API</h1>
+    <p>This page tests the guest post creation API with multiple media files.</p>
+    
+    <form id="guestPostForm">
+        <div class="form-group">
+            <label for="eventId">Event ID:</label>
+            <input type="text" id="eventId" name="eventId" required placeholder="Enter event UUID">
+        </div>
+        
+        <div class="form-group">
+            <label for="guestName">Guest Name:</label>
+            <input type="text" id="guestName" name="guestName" required placeholder="Enter guest name">
+        </div>
+        
+        <div class="form-group">
+            <label for="guestPhone">Guest Phone:</label>
+            <input type="tel" id="guestPhone" name="guestPhone" required placeholder="Enter phone number">
+        </div>
+        
+        <div class="form-group">
+            <label for="wishText">Wish Text:</label>
+            <textarea id="wishText" name="wishText" rows="4" required placeholder="Enter your wish or message"></textarea>
+        </div>
+        
+        <div class="form-group">
+            <label for="photos">Photos:</label>
+            <div class="file-input" id="photoInput">
+                <p>Drag and drop photos here or click to select</p>
+                <input type="file" id="photos" name="photos" multiple accept="image/*" style="display: none;">
+                <button type="button" onclick="document.getElementById('photos').click()">Select Photos</button>
+            </div>
+            <div id="photoList"></div>
+        </div>
+        
+        <div class="form-group">
+            <label for="videos">Videos:</label>
+            <div class="file-input" id="videoInput">
+                <p>Drag and drop videos here or click to select</p>
+                <input type="file" id="videos" name="videos" multiple accept="video/*" style="display: none;">
+                <button type="button" onclick="document.getElementById('videos').click()">Select Videos</button>
+            </div>
+            <div id="videoList"></div>
+        </div>
+        
+        <button type="submit">Create Guest Post</button>
+    </form>
+    
+    <div id="result"></div>
+    
+    <script>
+        const photoInput = document.getElementById('photoInput');
+        const videoInput = document.getElementById('videoInput');
+        const photosInput = document.getElementById('photos');
+        const videosInput = document.getElementById('videos');
+        const photoList = document.getElementById('photoList');
+        const videoList = document.getElementById('videoList');
+        const form = document.getElementById('guestPostForm');
+        const result = document.getElementById('result');
+        
+        // Drag and drop functionality
+        photoInput.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            photoInput.classList.add('dragover');
+        });
+        
+        photoInput.addEventListener('dragleave', () => {
+            photoInput.classList.remove('dragover');
+        });
+        
+        photoInput.addEventListener('drop', (e) => {
+            e.preventDefault();
+            photoInput.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            photosInput.files = files;
+            updatePhotoList();
+        });
+        
+        photosInput.addEventListener('change', updatePhotoList);
+        
+        videoInput.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            videoInput.classList.add('dragover');
+        });
+        
+        videoInput.addEventListener('dragleave', () => {
+            videoInput.classList.remove('dragover');
+        });
+        
+        videoInput.addEventListener('drop', (e) => {
+            e.preventDefault();
+            videoInput.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            videosInput.files = files;
+            updateVideoList();
+        });
+        
+        videosInput.addEventListener('change', updateVideoList);
+        
+        function updatePhotoList() {
+            const files = photosInput.files;
+            if (files.length > 0) {
+                photoList.innerHTML = '<h4>Selected Photos:</h4><ul>' + 
+                    Array.from(files).map(file => 
+                        `<li>${file.name} (${file.type}, ${(file.size / 1024).toFixed(1)} KB)</li>`
+                    ).join('') + '</ul>';
+            } else {
+                photoList.innerHTML = '';
+            }
+        }
+        
+        function updateVideoList() {
+            const files = videosInput.files;
+            if (files.length > 0) {
+                videoList.innerHTML = '<h4>Selected Videos:</h4><ul>' + 
+                    Array.from(files).map(file => 
+                        `<li>${file.name} (${file.type}, ${(file.size / 1024).toFixed(1)} KB)</li>`
+                    ).join('') + '</ul>';
+            } else {
+                videoList.innerHTML = '';
+            }
+        }
+        
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            formData.append('event', document.getElementById('eventId').value);
+            formData.append('guest_name', document.getElementById('guestName').value);
+            formData.append('guest_phone', document.getElementById('guestPhone').value);
+            formData.append('wish_text', document.getElementById('wishText').value);
+            
+            // Add each file with the same key name
+            const photos = photosInput.files;
+            for (let file of photos) {
+                formData.append('photos', file);
+            }
+
+            const videos = videosInput.files;
+            for (let file of videos) {
+                formData.append('videos', file);
+            }
+            
+            try {
+                result.innerHTML = 'Creating guest post...';
+                result.className = 'result';
+                
+                const response = await fetch('/api/guest-post-create/', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    result.innerHTML = '✅ Guest post created successfully!\n\n' + 
+                        'Response:\n' + JSON.stringify(data, null, 2);
+                    result.className = 'result success';
+                } else {
+                    result.innerHTML = '❌ Error creating guest post\n\n' + 
+                        'Status: ' + response.status + '\n' +
+                        'Response:\n' + JSON.stringify(data, null, 2);
+                    result.className = 'result error';
+                }
+            } catch (error) {
+                result.innerHTML = '❌ Network error: ' + error.message;
+                result.className = 'result error';
+            }
+        });
+        
+        // Add some sample data for testing
+        document.getElementById('eventId').value = 'Enter your event UUID here';
+        document.getElementById('guestName').value = 'John Doe';
+        document.getElementById('guestPhone').value = '+1234567890';
+        document.getElementById('wishText').value = 'Happy birthday! Here are some photos and videos from the celebration!';
+    </script>
+</body>
+</html> 
