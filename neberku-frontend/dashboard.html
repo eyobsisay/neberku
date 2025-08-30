@@ -222,12 +222,12 @@
         <!-- Event Status Overview -->
         <div class="row mb-4">
             <div class="col-12">
-                <div class="card">
+                <div class="card event-status-overview">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h5 class="mb-0">
                             <i class="bi bi-activity"></i> Event Status Overview
                         </h5>
-                        <div class="btn-group" role="group">
+                        <div class="btn-group status-filter-buttons" role="group">
                             <button type="button" class="btn btn-outline-primary btn-sm" onclick="dashboard.refreshEventStatus()">
                                 <i class="bi bi-arrow-clockwise"></i> Refresh
                             </button>
@@ -238,63 +238,49 @@
                     </div>
                     <div class="card-body">
                         <div class="row">
-                            <div class="col-md-3 mb-3">
-                                <div class="d-flex align-items-center p-3 bg-primary bg-opacity-10 rounded">
-                                    <div class="flex-shrink-0">
-                                        <i class="bi bi-calendar-check text-primary fs-1"></i>
+                            <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+                                <div class="status-card active text-center">
+                                    <div class="status-icon">
+                                        <i class="bi bi-calendar-check"></i>
                                     </div>
-                                    <div class="flex-grow-1 ms-3">
-                                        <h4 class="mb-0 text-primary" id="activeEvents">0</h4>
-                                        <p class="mb-0 text-muted">Active Events</p>
-                                    </div>
+                                    <div class="status-count" id="activeEvents">0</div>
+                                    <div class="status-label">Active Events</div>
                                 </div>
                             </div>
-                            <div class="col-md-3 mb-3">
-                                <div class="d-flex align-items-center p-3 bg-warning bg-opacity-10 rounded">
-                                    <div class="flex-shrink-0">
-                                        <i class="bi bi-clock text-warning fs-1"></i>
+                            <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+                                <div class="status-card pending text-center">
+                                    <div class="status-icon">
+                                        <i class="bi bi-clock"></i>
                                     </div>
-                                    <div class="flex-grow-1 ms-3">
-                                        <h4 class="mb-0 text-warning" id="pendingEvents">0</h4>
-                                        <p class="mb-0 text-muted">Pending Events</p>
-                                    </div>
+                                    <div class="status-count" id="pendingEvents">0</div>
+                                    <div class="status-label">Pending Events</div>
                                 </div>
                             </div>
-                            <div class="col-md-3 mb-3">
-                                <div class="d-flex align-items-center p-3 bg-success bg-opacity-10 rounded">
-                                    <div class="flex-shrink-0">
-                                        <i class="bi bi-check-circle text-success fs-1"></i>
+                            <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+                                <div class="status-card completed text-center">
+                                    <div class="status-icon">
+                                        <i class="bi bi-check-circle"></i>
                                     </div>
-                                    <div class="flex-grow-1 ms-3">
-                                        <h4 class="mb-0 text-success" id="completedEvents">0</h4>
-                                        <p class="mb-0 text-muted">Completed Events</p>
-                                    </div>
+                                    <div class="status-count" id="completedEvents">0</div>
+                                    <div class="status-label">Completed Events</div>
                                 </div>
                             </div>
-                            <div class="col-md-3 mb-3">
-                                <div class="d-flex align-items-center p-3 bg-info bg-opacity-10 rounded">
-                                    <div class="flex-shrink-0">
-                                        <i class="bi bi-calendar-plus text-info fs-1"></i>
+                            <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+                                <div class="status-card draft text-center">
+                                    <div class="status-icon">
+                                        <i class="bi bi-calendar-plus"></i>
                                     </div>
-                                    <div class="flex-grow-1 ms-3">
-                                        <h4 class="mb-0 text-info" id="draftEvents">0</h4>
-                                        <p class="mb-0 text-muted">Draft Events</p>
-                                    </div>
+                                    <div class="status-count" id="draftEvents">0</div>
+                                    <div class="status-label">Draft Events</div>
                                 </div>
                             </div>
-                        </div>
-                        
-                        <!-- Second row for cancelled events -->
-                        <div class="row mt-3">
-                            <div class="col-md-3 mb-3">
-                                <div class="d-flex align-items-center p-3 bg-danger bg-opacity-10 rounded">
-                                    <div class="flex-shrink-0">
-                                        <i class="bi bi-exclamation-triangle text-danger fs-1"></i>
+                            <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+                                <div class="status-card cancelled text-center">
+                                    <div class="status-icon">
+                                        <i class="bi bi-exclamation-triangle"></i>
                                     </div>
-                                    <div class="flex-grow-1 ms-3">
-                                        <h4 class="mb-0 text-danger" id="cancelledEvents">0</h4>
-                                        <p class="mb-0 text-muted">Cancelled Events</p>
-                                    </div>
+                                    <div class="status-count" id="cancelledEvents">0</div>
+                                    <div class="status-label">Cancelled Events</div>
                                 </div>
                             </div>
                         </div>
@@ -305,7 +291,7 @@
                                 <h6 class="text-muted mb-3">
                                     <i class="bi bi-clock-history"></i> Recent Event Activity
                                 </h6>
-                                <div id="eventStatusTimeline" class="border-start border-2 border-primary ps-3">
+                                <div id="eventStatusTimeline" class="event-status-timeline">
                                     <!-- Timeline items will be loaded here -->
                                     <p class="text-muted text-center py-3">No recent activity</p>
                                 </div>
