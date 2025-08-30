@@ -14,6 +14,10 @@ const API_CONFIG = {
         EVENTS: '/api/events/',
         EVENT_DETAIL: '/api/events/{id}/',
         
+        // Packages and Event Types
+        PACKAGES: '/api/packages/',
+        EVENT_TYPES: '/api/event-types/',
+        
         // Guest contributions
         GUEST_POSTS: '/api/guest-posts/',
         GUEST_POST_DETAIL: '/api/guest-posts/{id}/',

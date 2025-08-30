@@ -101,7 +101,16 @@
                         </h5>
                     </div>
                     <div class="card-body">
-                        <form id="createEventForm" novalidate>
+                        <!-- Show button by default -->
+                        <div id="createEventButton" class="text-center">
+                            <button type="button" class="btn btn-primary btn-lg" onclick="dashboard.showCreateEventForm()">
+                                <i class="bi bi-plus-circle"></i> Create New Event
+                            </button>
+                            <p class="text-muted mt-2">Click to start creating your next amazing event</p>
+                        </div>
+                        
+                        <!-- Hide form by default -->
+                        <form id="createEventForm" novalidate style="display: none;">
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label for="eventTitle" class="form-label">Event Title <span class="text-danger">*</span></label>
@@ -130,30 +139,28 @@
                                 <div class="col-md-6 mb-3">
                                     <label for="eventPackage" class="form-label">Package <span class="text-danger">*</span></label>
                                     <select class="form-control" id="eventPackage" required>
-                                        <option value="">Select a package</option>
-                                        <option value="1">Basic Package</option>
-                                        <option value="2">Standard Package</option>
-                                        <option value="3">Premium Package</option>
-                                        <option value="4">Enterprise Package</option>
+                                        <option value="">Loading packages...</option>
                                     </select>
                                     <div class="invalid-feedback"></div>
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label for="eventType" class="form-label">Event Type <span class="text-danger">*</span></label>
                                     <select class="form-control" id="eventType" required>
-                                        <option value="">Select event type</option>
-                                        <option value="1">Wedding</option>
-                                        <option value="2">Birthday</option>
-                                        <option value="3">Anniversary</option>
-                                        <option value="4">Corporate Event</option>
-                                        <option value="5">Party</option>
-                                        <option value="6">Graduation</option>
-                                        <option value="7">Baby Shower</option>
-                                        <option value="8">Vacation</option>
-                                        <option value="9">Holiday</option>
-                                        <option value="10">Other</option>
+                                        <option value="">Loading event types...</option>
                                     </select>
                                     <div class="invalid-feedback"></div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="eventThumbnail" class="form-label">Event Thumbnail (Optional)</label>
+                                    <input type="file" class="form-control" id="eventThumbnail" accept="image/*">
+                                    <div class="form-text">Upload an image for your event (JPG, PNG, GIF, WebP)</div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="eventVideo" class="form-label">Event Video (Optional)</label>
+                                    <input type="file" class="form-control" id="eventVideo" accept="video/*">
+                                    <div class="form-text">Upload a video for your event (MP4, MOV, AVI, WebM)</div>
                                 </div>
                             </div>
                             <div class="row">
@@ -188,10 +195,112 @@
                                     </select>
                                 </div>
                             </div>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-plus-circle"></i> Create Event
-                            </button>
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-plus-circle"></i> Create Event
+                                </button>
+                                <button type="button" class="btn btn-secondary" onclick="dashboard.hideCreateEventForm()">
+                                    <i class="bi bi-x-circle"></i> Cancel
+                                </button>
+                            </div>
                         </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Event Status Overview -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="bi bi-activity"></i> Event Status Overview
+                        </h5>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="dashboard.refreshEventStatus()">
+                                <i class="bi bi-arrow-clockwise"></i> Refresh
+                            </button>
+                            <button type="button" class="btn btn-outline-warning btn-sm" onclick="dashboard.debugEventData()">
+                                <i class="bi bi-bug"></i> Debug
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <div class="d-flex align-items-center p-3 bg-primary bg-opacity-10 rounded">
+                                    <div class="flex-shrink-0">
+                                        <i class="bi bi-calendar-check text-primary fs-1"></i>
+                                    </div>
+                                    <div class="flex-grow-1 ms-3">
+                                        <h4 class="mb-0 text-primary" id="activeEvents">0</h4>
+                                        <p class="mb-0 text-muted">Active Events</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="d-flex align-items-center p-3 bg-warning bg-opacity-10 rounded">
+                                    <div class="flex-shrink-0">
+                                        <i class="bi bi-clock text-warning fs-1"></i>
+                                    </div>
+                                    <div class="flex-grow-1 ms-3">
+                                        <h4 class="mb-0 text-warning" id="pendingEvents">0</h4>
+                                        <p class="mb-0 text-muted">Pending Events</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="d-flex align-items-center p-3 bg-success bg-opacity-10 rounded">
+                                    <div class="flex-shrink-0">
+                                        <i class="bi bi-check-circle text-success fs-1"></i>
+                                    </div>
+                                    <div class="flex-grow-1 ms-3">
+                                        <h4 class="mb-0 text-success" id="completedEvents">0</h4>
+                                        <p class="mb-0 text-muted">Completed Events</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="d-flex align-items-center p-3 bg-info bg-opacity-10 rounded">
+                                    <div class="flex-shrink-0">
+                                        <i class="bi bi-calendar-plus text-info fs-1"></i>
+                                    </div>
+                                    <div class="flex-grow-1 ms-3">
+                                        <h4 class="mb-0 text-info" id="draftEvents">0</h4>
+                                        <p class="mb-0 text-muted">Draft Events</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Second row for cancelled events -->
+                        <div class="row mt-3">
+                            <div class="col-md-3 mb-3">
+                                <div class="d-flex align-items-center p-3 bg-danger bg-opacity-10 rounded">
+                                    <div class="flex-shrink-0">
+                                        <i class="bi bi-exclamation-triangle text-danger fs-1"></i>
+                                    </div>
+                                    <div class="flex-grow-1 ms-3">
+                                        <h4 class="mb-0 text-danger" id="cancelledEvents">0</h4>
+                                        <p class="mb-0 text-muted">Cancelled Events</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Event Status Timeline -->
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <h6 class="text-muted mb-3">
+                                    <i class="bi bi-clock-history"></i> Recent Event Activity
+                                </h6>
+                                <div id="eventStatusTimeline" class="border-start border-2 border-primary ps-3">
+                                    <!-- Timeline items will be loaded here -->
+                                    <p class="text-muted text-center py-3">No recent activity</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -201,10 +310,27 @@
         <div class="row">
             <div class="col-12">
                 <div class="card">
-                    <div class="card-header">
+                    <div class="card-header d-flex justify-content-between align-items-center">
                         <h5 class="mb-0">
                             <i class="bi bi-list-ul"></i> Your Events
                         </h5>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="dashboard.filterEvents('all')">
+                                All Events
+                            </button>
+                            <button type="button" class="btn btn-outline-success btn-sm" onclick="dashboard.filterEvents('active')">
+                                Active
+                            </button>
+                            <button type="button" class="btn btn-outline-warning btn-sm" onclick="dashboard.filterEvents('pending')">
+                                Pending
+                            </button>
+                            <button type="button" class="btn btn-outline-success btn-sm" onclick="dashboard.filterEvents('completed')">
+                                Completed
+                            </button>
+                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="dashboard.filterEvents('cancelled')">
+                                Cancelled
+                            </button>
+                        </div>
                     </div>
                     <div class="card-body">
                         <div id="eventsList" class="row">

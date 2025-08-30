@@ -123,7 +123,7 @@ class EventViewSet(viewsets.ModelViewSet):
     Allows event hosts to create, manage, and publish events.
     Events can be in different states: draft, pending payment, active, completed, or cancelled.
     """
-    queryset = Event.objects.all()
+    queryset = Event.objects.all().order_by('-created_at')
     serializer_class = EventSerializer
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser]
