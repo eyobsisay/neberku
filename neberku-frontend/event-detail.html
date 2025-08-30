@@ -209,195 +209,166 @@
         </div>
     </div>
 
-    <!-- Main Content -->
-    <div class="container">
-        <div class="row">
-            <!-- Event Information -->
-            <div class="col-lg-4">
-                <div class="event-info-card mb-4">
-                    <div class="event-info-header">
-                        <h4 class="mb-0"><i class="bi bi-info-circle"></i> Event Details</h4>
-                    </div>
-                    <div class="card-body">
-                        <div class="mb-3">
-                            <strong>Event Type:</strong>
-                            <p id="eventType" class="mb-2">Loading...</p>
-                        </div>
-                        <div class="mb-3">
-                            <strong>Package:</strong>
-                            <p id="eventPackage" class="mb-2">Loading...</p>
-                        </div>
-                        <div class="mb-3">
-                            <strong>Settings:</strong>
-                            <ul class="list-unstyled">
-                                <li><i class="bi bi-check-circle text-success"></i> <span id="photosAllowed">Photos: Loading...</span></li>
-                                <li><i class="bi bi-check-circle text-success"></i> <span id="videosAllowed">Videos: Loading...</span></li>
-                                <li><i class="bi bi-check-circle text-success"></i> <span id="wishesAllowed">Wishes: Loading...</span></li>
-                                <li><i class="bi bi-check-circle text-success"></i> <span id="autoApprove">Auto-approve: Loading...</span></li>
-                            </ul>
-                        </div>
-                        <div class="mb-3">
-                            <strong>Created:</strong>
-                            <p id="createdAt" class="mb-0">Loading...</p>
-                        </div>
-                    </div>
-                </div>
+         <!-- Main Content -->
+     <div class="container">
+         <!-- Simplified Share Section -->
+         <div class="row mb-4">
+             <div class="col-12">
+                 <div class="card share-access-card">
+                     <div class="card-header share-access-header">
+                         <h5 class="mb-0"><i class="bi bi-share-alt"></i> Share Event with Guests</h5>
+                     </div>
+                     <div class="card-body">
+                         <div class="row align-items-center">
+                             <!-- QR Code -->
+                             <div class="col-lg-3 col-md-6 mb-3">
+                                 <div class="text-center">
+                                     <h6 class="mb-3"><i class="bi bi-qr-code me-2"></i>QR Code</h6>
+                                     <div id="qrCodeContainer" class="mb-3 p-3 bg-light rounded">
+                                         <div class="spinner-border text-primary" role="status">
+                                             <span class="visually-hidden">Loading QR Code...</span>
+                                         </div>
+                                     </div>
+                                     <button class="btn btn-sm btn-outline-primary" onclick="downloadQRCode()">
+                                         <i class="bi bi-download"></i> Download
+                                     </button>
+                                 </div>
+                             </div>
+                             
+                             <!-- Share Link -->
+                             <div class="col-lg-4 col-md-6 mb-3">
+                                 <div class="text-center">
+                                     <h6 class="mb-3"><i class="bi bi-link-45deg me-2"></i>Share Link</h6>
+                                     <div class="input-group mb-2">
+                                         <input type="text" class="form-control share-link-input" id="shareLinkInput" readonly 
+                                                placeholder="Share link will appear here">
+                                         <button class="btn btn-outline-primary" type="button" onclick="copyShareLink()">
+                                             <i class="bi bi-copy"></i>
+                                         </button>
+                                     </div>
+                                     <button class="btn btn-sm btn-outline-success" onclick="shareViaSocial()">
+                                         <i class="bi bi-share"></i> Share
+                                     </button>
+                                 </div>
+                             </div>
+                             
+                             <!-- Contributor Code -->
+                             <div class="col-lg-3 col-md-6 mb-3">
+                                 <div class="text-center">
+                                     <h6 class="mb-3"><i class="bi bi-key me-2"></i>Access Code</h6>
+                                     <div class="input-group mb-2 justify-content-center">
+                                         <input type="text" class="form-control text-center contributor-code-input" 
+                                                id="contributorCodeDisplay" readonly>
+                                         <button class="btn btn-outline-primary" type="button" onclick="copyContributorCode()">
+                                             <i class="bi bi-copy"></i>
+                                         </button>
+                                     </div>
+                                     <small class="text-muted">Guests need this code</small>
+                                 </div>
+                             </div>
+                             
+                             <!-- Quick Share -->
+                             <div class="col-lg-2 col-md-6 mb-3">
+                                 <div class="text-center">
+                                     <h6 class="mb-3"><i class="bi bi-lightning me-2"></i>Quick Share</h6>
+                                     <button class="btn btn-primary w-100 mb-2" onclick="shareEvent()">
+                                         <i class="bi bi-share"></i> Share Event
+                                     </button>
+                                     <small class="text-muted">Copy link to clipboard</small>
+                                 </div>
+                             </div>
+                         </div>
+                     </div>
+                 </div>
+             </div>
+         </div>
 
-                <!-- Quick Actions -->
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h5 class="mb-0"><i class="bi bi-gear"></i> Quick Actions</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="d-grid gap-2">
-                            <button class="btn btn-outline-primary" onclick="shareEvent()">
-                                <i class="bi bi-share"></i> Share Event
-                            </button>
-                            <button class="btn btn-outline-success" onclick="viewAllPosts()">
-                                <i class="bi bi-chat-dots"></i> View All Posts
-                            </button>
-                            <button class="btn btn-outline-info" onclick="downloadEventMedia()">
-                                <i class="bi bi-download"></i> Download All Media
-                            </button>
-                            <button class="btn btn-outline-warning" onclick="debugGuestPosts()">
-                                <i class="bi bi-bug"></i> Debug Posts
-                            </button>
-                        </div>
-                    </div>
-                </div>
+         <div class="row">
+             <!-- Event Information -->
+             <div class="col-lg-4">
+                 <div class="event-info-card mb-4">
+                     <div class="event-info-header">
+                         <h4 class="mb-0"><i class="bi bi-info-circle"></i> Event Details</h4>
+                     </div>
+                     <div class="card-body">
+                         <div class="mb-3">
+                             <strong>Event Type:</strong>
+                             <p id="eventType" class="mb-2">Loading...</p>
+                         </div>
+                         <div class="mb-3">
+                             <strong>Package:</strong>
+                             <p id="eventPackage" class="mb-2">Loading...</p>
+                         </div>
+                         <div class="mb-3">
+                             <strong>Settings:</strong>
+                             <ul class="list-unstyled">
+                                 <li><i class="bi bi-check-circle text-success"></i> <span id="photosAllowed">Photos: Loading...</span></li>
+                                 <li><i class="bi bi-check-circle text-success"></i> <span id="videosAllowed">Videos: Loading...</span></li>
+                                 <li><i class="bi bi-check-circle text-success"></i> <span id="wishesAllowed">Wishes: Loading...</span></li>
+                                 <li><i class="bi bi-check-circle text-success"></i> <span id="autoApprove">Auto-approve: Loading...</span></li>
+                             </ul>
+                         </div>
+                         <div class="mb-3">
+                             <strong>Created:</strong>
+                             <p id="createdAt" class="mb-0">Loading...</p>
+                         </div>
+                     </div>
+                 </div>
 
-                <!-- Share & Access Section -->
-                <div class="card share-access-card">
-                    <div class="card-header share-access-header">
-                        <h5 class="mb-0"><i class="bi bi-share-alt"></i> Share & Guest Access</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <!-- QR Code -->
-                            <div class="col-md-6 mb-3">
-                                <div class="text-center qr-code-container">
-                                    <h6 class="mb-3">
-                                        <i class="bi bi-qr-code me-2"></i>QR Code
-                                    </h6>
-                                    <div id="qrCodeContainer" class="mb-3 p-3 bg-light rounded">
-                                        <div class="spinner-border text-primary" role="status">
-                                            <span class="visually-hidden">Loading QR Code...</span>
-                                        </div>
-                                    </div>
-                                    <small class="text-muted d-block">
-                                        Scan with your phone to access this event
-                                    </small>
-                                    <button class="btn btn-sm btn-outline-primary mt-2" onclick="downloadQRCode()">
-                                        <i class="bi bi-download"></i> Download QR
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <!-- Share Link -->
-                            <div class="col-md-6 mb-3">
-                                <div class="text-center share-link-container">
-                                    <h6 class="mb-3">
-                                        <i class="bi bi-link-45deg me-2"></i>Share Link
-                                    </h6>
-                                    <div class="input-group mb-2">
-                                        <input type="text" class="form-control share-link-input" id="shareLinkInput" readonly 
-                                               placeholder="Share link will appear here">
-                                        <button class="btn btn-outline-primary" type="button" onclick="copyShareLink()">
-                                            <i class="bi bi-copy"></i>
-                                        </button>
-                                    </div>
-                                    <small class="text-muted d-block">
-                                        Share this link with guests
-                                    </small>
-                                    <button class="btn btn-sm btn-outline-success mt-2" onclick="shareViaSocial()">
-                                        <i class="bi bi-share"></i> Share
-                                    </button>
-                                    
-                                    <!-- Frontend URL Info -->
-                                    <div class="qr-code-info mt-3">
-                                        <small class="text-info">
-                                            <i class="bi bi-info-circle me-1"></i>
-                                            <strong>Direct Access:</strong> This link takes guests directly to the contribution form for this event. 
-                                            No contributor code needed for public events!
-                                        </small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Contributor Code -->
-                        <div class="row mt-3">
-                            <div class="col-12">
-                                <div class="card contributor-code-card text-white">
-                                    <div class="card-body text-center">
-                                        <h6 class="card-title">
-                                            <i class="bi bi-key me-2"></i>Contributor Code
-                                        </h6>
-                                        <div class="input-group mb-2 justify-content-center">
-                                            <input type="text" class="form-control form-control-lg text-center contributor-code-input" 
-                                                   id="contributorCodeDisplay" readonly 
-                                                   style="max-width: 300px;">
-                                            <button class="btn btn-outline-light" type="button" onclick="copyContributorCode()">
-                                                <i class="bi bi-copy"></i>
-                                            </button>
-                                        </div>
-                                        <small class="text-muted">
-                                            Guests need this code to contribute
-                                        </small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                 <!-- Quick Actions -->
+                 <div class="card mb-4">
+                     <div class="card-header">
+                         <h5 class="mb-0"><i class="bi bi-gear"></i> Quick Actions</h5>
+                     </div>
+                     <div class="card-body">
+                         <div class="d-grid gap-2">
+                             <button class="btn btn-outline-success" onclick="viewAllPosts()">
+                                 <i class="bi bi-chat-dots"></i> View All Posts
+                             </button>
+                             <button class="btn btn-outline-info" onclick="downloadEventMedia()">
+                                 <i class="bi bi-download"></i> Download All Media
+                             </button>
+                             <button class="btn btn-outline-warning" onclick="debugGuestPosts()">
+                                 <i class="bi bi-bug"></i> Debug Posts
+                             </button>
+                         </div>
+                     </div>
+                 </div>
+             </div>
 
-                        <!-- Guest Access Instructions -->
-                        <div class="mt-3 p-3 instructions-box">
-                            <h6 class="mb-2">
-                                <i class="bi bi-info-circle me-2"></i>How Guests Can Contribute
-                            </h6>
-                            <ol class="mb-0 small">
-                                <li>Share the QR code or link with your guests</li>
-                                <li>Guests can scan the QR code or visit the link</li>
-                                <li>They'll need the contributor code above to access</li>
-                                <li>Guests can then submit photos, videos, and wishes</li>
-                            </ol>
-                        </div>
-                    </div>
-                </div>
-            </div>
+             <!-- Guest Posts -->
+             <div class="col-lg-8">
+                 <div class="guest-posts-section">
+                     <div class="d-flex justify-content-between align-items-center mb-4">
+                         <h3><i class="bi bi-chat-dots"></i> Guest Posts</h3>
+                         <div class="d-flex gap-2">
+                             <select class="form-select form-select-sm" id="statusFilter" style="width: auto;">
+                                 <option value="">All Statuses</option>
+                                 <option value="approved">Approved Only</option>
+                                 <option value="pending">Pending Only</option>
+                             </select>
+                             <input type="text" class="form-control form-control-sm" id="searchFilter" placeholder="Search posts..." style="width: 200px;">
+                         </div>
+                     </div>
 
-            <!-- Guest Posts -->
-            <div class="col-lg-8">
-                <div class="guest-posts-section">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h3><i class="bi bi-chat-dots"></i> Guest Posts</h3>
-                        <div class="d-flex gap-2">
-                            <select class="form-select form-select-sm" id="statusFilter" style="width: auto;">
-                                <option value="">All Statuses</option>
-                                <option value="approved">Approved Only</option>
-                                <option value="pending">Pending Only</option>
-                            </select>
-                            <input type="text" class="form-control form-control-sm" id="searchFilter" placeholder="Search posts..." style="width: 200px;">
-                        </div>
-                    </div>
+                     <div id="guestPostsList">
+                         <div class="empty-state">
+                             <i class="bi bi-hourglass-split display-1"></i>
+                             <h4 class="mt-3">Loading guest posts...</h4>
+                             <p>Please wait while we fetch the posts for this event.</p>
+                         </div>
+                     </div>
 
-                    <div id="guestPostsList">
-                        <div class="empty-state">
-                            <i class="bi bi-hourglass-split display-1"></i>
-                            <h4 class="mt-3">Loading guest posts...</h4>
-                            <p>Please wait while we fetch the posts for this event.</p>
-                        </div>
-                    </div>
-
-                    <!-- Pagination -->
-                    <nav aria-label="Posts pagination" class="mt-4">
-                        <ul class="pagination justify-content-center" id="pagination">
-                            <!-- Pagination will be generated here -->
-                        </ul>
-                    </nav>
-                </div>
-            </div>
-        </div>
-    </div>
+                     <!-- Pagination -->
+                     <nav aria-label="Posts pagination" class="mt-4">
+                         <ul class="pagination justify-content-center" id="pagination">
+                             <!-- Pagination will be generated here -->
+                         </ul>
+                     </nav>
+                 </div>
+             </div>
+         </div>
+     </div>
 
     <!-- Scripts -->
     <script src="js/config.js"></script>
