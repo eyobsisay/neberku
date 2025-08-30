@@ -494,17 +494,11 @@ class EventDetail {
             contributorCodeDisplay.value = this.event.contributor_code;
         }
 
-        // Set share link - use backend share_link if available, otherwise generate one
+        // Set share link - always use frontend URL format
         const shareLinkInput = document.getElementById('shareLinkInput');
         if (shareLinkInput) {
-            let shareUrl;
-            if (this.event.share_link) {
-                // Use backend-generated share link
-                shareUrl = this.event.share_link;
-            } else {
-                // Fallback to frontend-generated link
-                shareUrl = `${window.location.origin}/guest-contribution.html?event=${this.event.id}`;
-            }
+            // Always generate frontend URL for consistency
+            const shareUrl = `${window.location.origin}/guest-contribution.html?event=${this.event.id}`;
             shareLinkInput.value = shareUrl;
         }
 
@@ -517,22 +511,13 @@ class EventDetail {
             const qrContainer = document.getElementById('qrCodeContainer');
             if (!qrContainer) return;
 
-            let qrCodeUrl;
+            // Always generate QR code using frontend URL for consistency
+            const shareUrl = document.getElementById('shareLinkInput')?.value || 
+                           `${window.location.origin}/guest-contribution.html?event=${this.event.id}`;
             
-            // Check if backend has generated a QR code
-            if (this.event.qr_code) {
-                // Use backend-generated QR code
-                qrCodeUrl = this.event.qr_code;
-                console.log('✅ Using backend-generated QR code');
-            } else {
-                // Fallback to generating QR code using external service
-                const shareUrl = document.getElementById('shareLinkInput')?.value || 
-                               `${window.location.origin}/guest-contribution.html?event=${this.event.id}`;
-                
-                // Use QRServer API as fallback
-                qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(shareUrl)}`;
-                console.log('✅ Generated QR code using external service');
-            }
+            // Use QRServer API to generate QR code
+            const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(shareUrl)}`;
+            console.log('✅ Generated QR code using frontend URL:', shareUrl);
             
             // Create QR code image
             const qrImage = document.createElement('img');
@@ -568,6 +553,7 @@ function goBack() {
 
 function shareEvent() {
     if (window.eventDetail && window.eventDetail.event) {
+        // Always use frontend URL format for consistency
         const shareUrl = `${window.location.origin}/guest-contribution.html?event=${window.eventDetail.event.id}`;
         navigator.clipboard.writeText(shareUrl).then(() => {
             window.eventDetail.showSuccess('Event link copied to clipboard!');

@@ -7,12 +7,181 @@ class GuestContributionManager {
     constructor() {
         this.currentEvent = null;
         this.API_BASE_URL = 'http://localhost:8000/api';
+        this.wasDirectAccess = false;
         this.init();
     }
 
     init() {
         this.bindEvents();
         this.loadPublicEvents();
+        
+        // Check if user accessed via share link or QR code
+        this.checkDirectAccess();
+    }
+
+    checkDirectAccess() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const eventId = urlParams.get('event');
+        
+        console.log('🔍 Checking for direct access...');
+        console.log('🔍 URL parameters:', Object.fromEntries(urlParams.entries()));
+        
+        if (eventId) {
+            console.log('🔗 Direct access detected for event:', eventId);
+            this.handleDirectAccess(eventId);
+        } else {
+            console.log('🔍 No direct access detected - showing normal access form');
+        }
+    }
+
+    async handleDirectAccess(eventId) {
+        try {
+            this.showLoading(true);
+            this.showAlert('Loading event details...', 'info');
+            
+            // Try to get event details using the event ID
+            const response = await fetch(`${this.API_BASE_URL}/guest/event-by-id/${eventId}/`);
+            
+            if (response.ok) {
+                const eventData = await response.json();
+                this.currentEvent = eventData;
+                this.showEventDetails(eventData);
+                this.showAlert('Event loaded successfully! You can now contribute.', 'success');
+                
+                // Hide the access form since we already have the event
+                this.hideAccessForm();
+                this.wasDirectAccess = true;
+            } else {
+                const errorData = await response.json();
+                
+                if (response.status === 403 && errorData.error?.includes('private event')) {
+                    // Private event - show access form with explanation
+                    this.showAlert('This is a private event. Please enter the contributor code to access.', 'info');
+                    this.showAccessForm();
+                    
+                    // Update the access form message
+                    this.updateAccessFormMessage('This is a private event. Please enter the contributor code provided by the event host.');
+                } else {
+                    // Other errors - show access form with generic message
+                    this.showAlert('Please enter the contributor code to access this event.', 'warning');
+                    this.showAccessForm();
+                }
+            }
+        } catch (error) {
+            console.error('Error with direct access:', error);
+            this.showAlert('Unable to load event directly. Please enter the contributor code.', 'warning');
+            this.showAccessForm();
+        } finally {
+            this.showLoading(false);
+        }
+    }
+
+    updateAccessFormMessage(message) {
+        const accessForm = document.getElementById('accessEventForm');
+        if (accessForm) {
+            // Add or update the message below the form
+            let messageDiv = accessForm.querySelector('.access-message');
+            if (!messageDiv) {
+                messageDiv = document.createElement('div');
+                messageDiv.className = 'alert alert-info mt-3 access-message';
+                accessForm.appendChild(messageDiv);
+            }
+            messageDiv.innerHTML = `<i class="fas fa-info-circle me-2"></i>${message}`;
+        }
+    }
+
+    hideAccessForm() {
+        const accessSection = document.querySelector('.row.mb-5');
+        if (accessSection) {
+            accessSection.style.display = 'none';
+        }
+        
+        // Add a back button to return to the access form
+        this.addBackToAccessButton();
+    }
+
+    showAccessForm() {
+        const accessSection = document.querySelector('.row.mb-5');
+        if (accessSection) {
+            accessSection.style.display = 'block';
+        }
+        
+        // Remove the back button if it exists
+        this.removeBackToAccessButton();
+        
+        // Reset page to original state
+        this.resetPage();
+    }
+
+    resetPage() {
+        // Reset page header to original state
+        const pageTitle = document.querySelector('.display-4');
+        const pageSubtitle = document.querySelector('.lead');
+        
+        if (pageTitle) {
+            pageTitle.innerHTML = `
+                <i class="fas fa-gift text-primary me-3"></i>
+                Guest Contribution
+            `;
+        }
+        
+        if (pageSubtitle) {
+            pageSubtitle.innerHTML = `
+                Share your memories, wishes, and media with event hosts
+            `;
+        }
+        
+        // Remove event thumbnail
+        const existingThumbnail = document.querySelector('.event-thumbnail');
+        if (existingThumbnail) {
+            existingThumbnail.remove();
+        }
+        
+        // Clear access form message
+        const accessForm = document.getElementById('accessEventForm');
+        if (accessForm) {
+            const messageDiv = accessForm.querySelector('.access-message');
+            if (messageDiv) {
+                messageDiv.remove();
+            }
+        }
+        
+        // Reset current event and direct access flag
+        this.currentEvent = null;
+        this.wasDirectAccess = false;
+    }
+
+    addBackToAccessButton() {
+        // Remove existing back button if any
+        this.removeBackToAccessButton();
+        
+        // Add back button after the page header
+        const pageHeader = document.querySelector('.row.mb-4');
+        if (pageHeader) {
+            const backButton = document.createElement('div');
+            backButton.className = 'row mb-3';
+            backButton.innerHTML = `
+                <div class="col-12 text-center">
+                    <button class="btn btn-outline-secondary" onclick="guestManager.showAccessForm()">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Access Form
+                    </button>
+                    <small class="text-muted d-block mt-2">
+                        Or continue with the current event below
+                    </small>
+                </div>
+            `;
+            pageHeader.parentNode.insertBefore(backButton, pageHeader.nextSibling);
+        }
+    }
+
+    removeBackToAccessButton() {
+        const existingBackButton = document.querySelector('.row.mb-3 .btn-outline-secondary');
+        if (existingBackButton) {
+            const backButtonRow = existingBackButton.closest('.row.mb-3');
+            if (backButtonRow) {
+                backButtonRow.remove();
+            }
+        }
     }
 
     bindEvents() {
@@ -71,6 +240,17 @@ class GuestContributionManager {
                 this.clearModalErrors();
             });
         });
+
+        // Handle contribution modal close
+        const contributionModal = document.getElementById('contributionModal');
+        if (contributionModal) {
+            contributionModal.addEventListener('hidden.bs.modal', () => {
+                // If user accessed via direct link and closes modal, show access form
+                if (this.currentEvent && this.wasDirectAccess) {
+                    this.showAccessForm();
+                }
+            });
+        }
     }
 
     async accessEvent() {
@@ -204,78 +384,81 @@ class GuestContributionManager {
     }
 
     showEventDetails(event) {
-        const modalTitle = document.getElementById('eventModalTitle');
-        const modalBody = document.getElementById('eventModalBody');
+        this.currentEvent = event;
         
-        if (modalTitle) modalTitle.textContent = event.title;
+        // Update page header with event information
+        this.updatePageHeader(event);
         
-        if (modalBody) {
-            modalBody.innerHTML = `
-                <div class="row">
-                    <div class="col-md-6">
-                        <img src="${event.event_thumbnail || 'https://via.placeholder.com/400x300?text=Event'}" 
-                             class="img-fluid rounded" alt="${event.title}">
-                    </div>
-                    <div class="col-md-6">
-                        <h4>${event.title}</h4>
-                        <p class="text-muted">${event.description}</p>
-                        
-                        <div class="row mb-3">
-                            <div class="col-6">
-                                <strong><i class="fas fa-calendar me-1"></i> Date:</strong><br>
-                                <span class="text-muted">${new Date(event.event_date).toLocaleDateString()}</span>
-                            </div>
-                            <div class="col-6">
-                                <strong><i class="fas fa-map-marker-alt me-1"></i> Location:</strong><br>
-                                <span class="text-muted">${event.location || 'Not specified'}</span>
-                            </div>
-                        </div>
-                        
-                        <div class="row mb-3">
-                            <div class="col-6">
-                                <strong><i class="fas fa-tag me-1"></i> Type:</strong><br>
-                                <span class="badge bg-primary">${event.event_type.name}</span>
-                            </div>
-                            <div class="col-6">
-                                <strong><i class="fas fa-box me-1"></i> Package:</strong><br>
-                                <span class="text-muted">${event.package_name}</span>
-                            </div>
-                        </div>
-                        
-                        <div class="row mb-3">
-                            <div class="col-6">
-                                <strong><i class="fas fa-comments me-1"></i> Posts:</strong><br>
-                                <span class="text-muted">${event.total_guest_posts}</span>
-                            </div>
-                            <div class="col-6">
-                                <strong><i class="fas fa-images me-1"></i> Media:</strong><br>
-                                <span class="text-muted">${event.total_media_files}</span>
-                            </div>
-                        </div>
-                        
-                        <div class="row mb-3">
-                            <div class="col-6">
-                                <strong><i class="fas fa-user me-1"></i> Per Guest Limit:</strong><br>
-                                <span class="text-muted">${event.guest_max_media_per_post || 3} media files per post</span>
-                            </div>
-                            <div class="col-6">
-                                <strong><i class="fas fa-images me-1"></i> Event Total:</strong><br>
-                                <span class="text-muted">${event.package_max_photos || 3} photos + ${event.package_max_videos || 3} videos</span>
-                            </div>
-                        </div>
-                        
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle me-2"></i>
-                            <strong>Access:</strong> ${event.is_public ? 'Public Event' : 'Private Event (Code Required)'}
-                        </div>
-                    </div>
-                </div>
+        // Show the contribution modal
+        const modal = new bootstrap.Modal(document.getElementById('contributionModal'));
+        modal.show();
+        
+        // Update package limits display
+        this.updatePackageLimits(event);
+    }
+
+    updatePageHeader(event) {
+        // Update the main page header to show event information
+        const pageTitle = document.querySelector('.display-4');
+        const pageSubtitle = document.querySelector('.lead');
+        
+        if (pageTitle) {
+            pageTitle.innerHTML = `
+                <i class="fas fa-gift text-primary me-3"></i>
+                ${event.title}
             `;
         }
         
-        // Show the modal
-        const eventModal = new bootstrap.Modal(document.getElementById('eventModal'));
-        eventModal.show();
+        if (pageSubtitle) {
+            pageSubtitle.innerHTML = `
+                <i class="fas fa-calendar me-2"></i>
+                ${new Date(event.event_date).toLocaleDateString()} • ${event.location}
+                <br>
+                <small class="text-muted">
+                    ${event.description.substring(0, 100)}${event.description.length > 100 ? '...' : ''}
+                </small>
+            `;
+        }
+        
+        // Add event thumbnail if available
+        this.addEventThumbnail(event);
+    }
+
+    addEventThumbnail(event) {
+        if (!event.event_thumbnail) return;
+        
+        // Remove existing thumbnail if any
+        const existingThumbnail = document.querySelector('.event-thumbnail');
+        if (existingThumbnail) {
+            existingThumbnail.remove();
+        }
+        
+        // Add thumbnail after the page header
+        const pageHeader = document.querySelector('.row.mb-4');
+        if (pageHeader) {
+            const thumbnailDiv = document.createElement('div');
+            thumbnailDiv.className = 'row mb-4 event-thumbnail';
+            thumbnailDiv.innerHTML = `
+                <div class="col-12 text-center">
+                    <img src="${event.event_thumbnail}" alt="${event.title}" 
+                         class="img-fluid rounded shadow-sm" style="max-height: 200px;">
+                </div>
+            `;
+            pageHeader.parentNode.insertBefore(thumbnailDiv, pageHeader.nextSibling);
+        }
+    }
+
+    updatePackageLimits(event) {
+        const packageLimitsElement = document.getElementById('packageLimits');
+        if (packageLimitsElement) {
+            const maxPhotos = event.package_max_photos || 3;
+            const maxVideos = event.package_max_videos || 3;
+            const perGuestLimit = event.guest_max_media_per_post || 3;
+            
+            packageLimitsElement.innerHTML = `
+                ${maxPhotos} photos + ${maxVideos} videos total • ${perGuestLimit} files per guest post
+            `;
+        }
     }
 
     contributeToEvent() {

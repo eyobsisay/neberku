@@ -30,6 +30,9 @@ ALLOWED_HOSTS = []
 # Site URL for generating QR codes and share links
 SITE_URL = 'http://localhost:8000' if DEBUG else 'https://yourdomain.com'
 
+# Frontend URL for guest contribution links
+FRONTEND_URL = 'http://localhost:3000' if DEBUG else 'https://yourdomain.com'
+
 
 # Application definition
 

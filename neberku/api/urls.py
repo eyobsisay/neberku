@@ -24,5 +24,6 @@ urlpatterns = [
     
     # Guest access endpoints
     path('guest/event/', views.guest_event_access, name='guest_event_access'),
+    path('guest/event-by-id/<uuid:event_id>/', views.guest_event_by_id, name='guest_event_by_id'),
     path('guest/public-events/', views.list_public_events, name='list_public_events'),
 ] 

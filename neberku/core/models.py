@@ -104,12 +104,17 @@ class Event(models.Model):
     def __str__(self):
         return f"{self.title} - {self.host.username}"
     
+    @property
+    def frontend_share_url(self):
+        """Get the frontend share URL for guest contribution"""
+        return f"{settings.FRONTEND_URL}/guest-contribution.html?event={self.id}"
+    
     def generate_qr_code(self):
         """Generate QR code for the event"""
         try:
             if not self.qr_code and self.id:
-                # Create QR code data
-                qr_data = f"{settings.SITE_URL}/event/{self.id}/"
+                # Create QR code data - use frontend URL for guest contribution
+                qr_data = f"{settings.FRONTEND_URL}/guest-contribution.html?event={self.id}"
                 
                 # Generate QR code
                 qr = qrcode.QRCode(
@@ -143,8 +148,8 @@ class Event(models.Model):
         """Generate share link for the event"""
         try:
             if not self.share_link and self.id:
-                # Create share link
-                share_url = f"{settings.SITE_URL}/event/{self.id}/"
+                # Create share link - use frontend URL for guest contribution
+                share_url = f"{settings.FRONTEND_URL}/guest-contribution.html?event={self.id}"
                 self.share_link = share_url
         except Exception as e:
             # Log error but don't fail event creation

@@ -956,6 +956,39 @@ def guest_event_access(request):
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
+def guest_event_by_id(request, event_id):
+    """API endpoint for guests to access events directly by event ID (for share links/QR codes)"""
+    try:
+        # Find event by ID
+        event = Event.objects.get(pk=event_id)
+    except Event.DoesNotExist:
+        return Response(
+            {'error': 'Event not found'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    
+    # Check if event is live
+    if not event.is_live:
+        return Response(
+            {'error': 'Event is not live or accessible'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    
+    # For public events, allow direct access
+    # For private events, require contributor code validation
+    if not event.is_public:
+        return Response(
+            {'error': 'This is a private event. Please use the contributor code to access.'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    # Serialize the event for guest access
+    serializer = EventGuestAccessSerializer(event, context={'request': request})
+    return Response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
 def list_public_events(request):
     """API endpoint to list all public events that guests can access without a code"""
     # Only show live public events
