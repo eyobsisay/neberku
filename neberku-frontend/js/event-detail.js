@@ -158,6 +158,9 @@ class EventDetail {
         document.getElementById('wishesAllowed').textContent = `Wishes: ${this.event.allow_wishes ? 'Allowed' : 'Not Allowed'}`;
         document.getElementById('autoApprove').textContent = `Auto-approve: ${this.event.auto_approve_posts ? 'Yes' : 'No'}`;
 
+        // Setup QR code and share functionality
+        this.setupQRCodeAndShare();
+
         // Update page title
         document.title = `${this.event.title} - Event Detail - Neberku`;
     }
@@ -483,6 +486,79 @@ class EventDetail {
             }
         }, 5000);
     }
+
+    setupQRCodeAndShare() {
+        // Set contributor code
+        const contributorCodeDisplay = document.getElementById('contributorCodeDisplay');
+        if (contributorCodeDisplay && this.event.contributor_code) {
+            contributorCodeDisplay.value = this.event.contributor_code;
+        }
+
+        // Set share link - use backend share_link if available, otherwise generate one
+        const shareLinkInput = document.getElementById('shareLinkInput');
+        if (shareLinkInput) {
+            let shareUrl;
+            if (this.event.share_link) {
+                // Use backend-generated share link
+                shareUrl = this.event.share_link;
+            } else {
+                // Fallback to frontend-generated link
+                shareUrl = `${window.location.origin}/guest-contribution.html?event=${this.event.id}`;
+            }
+            shareLinkInput.value = shareUrl;
+        }
+
+        // Generate QR code
+        this.generateQRCode();
+    }
+
+    async generateQRCode() {
+        try {
+            const qrContainer = document.getElementById('qrCodeContainer');
+            if (!qrContainer) return;
+
+            let qrCodeUrl;
+            
+            // Check if backend has generated a QR code
+            if (this.event.qr_code) {
+                // Use backend-generated QR code
+                qrCodeUrl = this.event.qr_code;
+                console.log('✅ Using backend-generated QR code');
+            } else {
+                // Fallback to generating QR code using external service
+                const shareUrl = document.getElementById('shareLinkInput')?.value || 
+                               `${window.location.origin}/guest-contribution.html?event=${this.event.id}`;
+                
+                // Use QRServer API as fallback
+                qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(shareUrl)}`;
+                console.log('✅ Generated QR code using external service');
+            }
+            
+            // Create QR code image
+            const qrImage = document.createElement('img');
+            qrImage.src = qrCodeUrl;
+            qrImage.alt = 'Event QR Code';
+            qrImage.className = 'img-fluid';
+            qrImage.style.maxWidth = '200px';
+            
+            // Clear loading spinner and add QR code
+            qrContainer.innerHTML = '';
+            qrContainer.appendChild(qrImage);
+            
+            console.log('✅ QR code displayed successfully');
+        } catch (error) {
+            console.error('❌ Error generating QR code:', error);
+            const qrContainer = document.getElementById('qrCodeContainer');
+            if (qrContainer) {
+                qrContainer.innerHTML = `
+                    <div class="text-danger">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <small>Failed to generate QR code</small>
+                    </div>
+                `;
+            }
+        }
+    }
 }
 
 // Global functions
@@ -547,6 +623,70 @@ function debugGuestPosts() {
         });
         
         window.eventDetail.showAlert('Debug info logged to console. Press F12 to view.', 'info');
+    }
+}
+
+// QR Code and Share Functions
+function copyContributorCode() {
+    const contributorCodeInput = document.getElementById('contributorCodeDisplay');
+    if (contributorCodeInput && contributorCodeInput.value) {
+        navigator.clipboard.writeText(contributorCodeInput.value).then(() => {
+            window.eventDetail.showSuccess('Contributor code copied to clipboard!');
+        }).catch(() => {
+            window.eventDetail.showError('Failed to copy contributor code');
+        });
+    }
+}
+
+function copyShareLink() {
+    const shareLinkInput = document.getElementById('shareLinkInput');
+    if (shareLinkInput && shareLinkInput.value) {
+        navigator.clipboard.writeText(shareLinkInput.value).then(() => {
+            window.eventDetail.showSuccess('Share link copied to clipboard!');
+        }).catch(() => {
+            window.eventDetail.showError('Failed to copy share link');
+        });
+    }
+}
+
+function downloadQRCode() {
+    const qrImage = document.querySelector('#qrCodeContainer img');
+    if (qrImage && qrImage.src) {
+        // Create a temporary link to download the QR code
+        const link = document.createElement('a');
+        link.href = qrImage.src;
+        link.download = `event-qr-${window.eventDetail.eventId}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        window.eventDetail.showSuccess('QR code download started!');
+    } else {
+        window.eventDetail.showError('QR code not available for download');
+    }
+}
+
+function shareViaSocial() {
+    const shareLinkInput = document.getElementById('shareLinkInput');
+    if (shareLinkInput && shareLinkInput.value) {
+        const shareUrl = shareLinkInput.value;
+        const eventTitle = window.eventDetail.event?.title || 'Event';
+        
+        // Use Web Share API if available
+        if (navigator.share) {
+            navigator.share({
+                title: `Join ${eventTitle}`,
+                text: `Check out this event: ${eventTitle}`,
+                url: shareUrl
+            }).then(() => {
+                window.eventDetail.showSuccess('Event shared successfully!');
+            }).catch((error) => {
+                console.log('Share cancelled or failed:', error);
+            });
+        } else {
+            // Fallback: copy to clipboard
+            copyShareLink();
+        }
     }
 }
 

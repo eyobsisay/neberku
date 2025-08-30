@@ -62,6 +62,59 @@
             padding: 3rem;
             color: #6c757d;
         }
+        
+        /* QR Code and Share Section Styling */
+        .share-access-card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border-radius: 15px;
+            overflow: hidden;
+        }
+        
+        .share-access-header {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+            padding: 1.5rem;
+        }
+        
+        .qr-code-container {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .share-link-container {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .contributor-code-card {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            border: none;
+            border-radius: 15px;
+        }
+        
+        .contributor-code-input {
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
+        
+        .contributor-code-input:focus {
+            background: white;
+            border-color: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.25);
+        }
+        
+        .instructions-box {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+        }
     </style>
 </head>
 <body>
@@ -169,7 +222,7 @@
                 </div>
 
                 <!-- Quick Actions -->
-                <div class="card">
+                <div class="card mb-4">
                     <div class="card-header">
                         <h5 class="mb-0"><i class="bi bi-gear"></i> Quick Actions</h5>
                     </div>
@@ -187,6 +240,95 @@
                             <button class="btn btn-outline-warning" onclick="debugGuestPosts()">
                                 <i class="bi bi-bug"></i> Debug Posts
                             </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Share & Access Section -->
+                <div class="card share-access-card">
+                    <div class="card-header share-access-header">
+                        <h5 class="mb-0"><i class="bi bi-share-alt"></i> Share & Guest Access</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <!-- QR Code -->
+                            <div class="col-md-6 mb-3">
+                                <div class="text-center qr-code-container">
+                                    <h6 class="mb-3">
+                                        <i class="bi bi-qr-code me-2"></i>QR Code
+                                    </h6>
+                                    <div id="qrCodeContainer" class="mb-3 p-3 bg-light rounded">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Loading QR Code...</span>
+                                        </div>
+                                    </div>
+                                    <small class="text-muted d-block">
+                                        Scan with your phone to access this event
+                                    </small>
+                                    <button class="btn btn-sm btn-outline-primary mt-2" onclick="downloadQRCode()">
+                                        <i class="bi bi-download"></i> Download QR
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Share Link -->
+                            <div class="col-md-6 mb-3">
+                                <div class="text-center share-link-container">
+                                    <h6 class="mb-3">
+                                        <i class="bi bi-link-45deg me-2"></i>Share Link
+                                    </h6>
+                                    <div class="input-group mb-2">
+                                        <input type="text" class="form-control" id="shareLinkInput" readonly 
+                                               placeholder="Share link will appear here">
+                                        <button class="btn btn-outline-primary" type="button" onclick="copyShareLink()">
+                                            <i class="bi bi-copy"></i>
+                                        </button>
+                                    </div>
+                                    <small class="text-muted d-block">
+                                        Share this link with guests
+                                    </small>
+                                    <button class="btn btn-sm btn-outline-success mt-2" onclick="shareViaSocial()">
+                                        <i class="bi bi-share"></i> Share
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Contributor Code -->
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <div class="card contributor-code-card text-white">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title">
+                                            <i class="bi bi-key me-2"></i>Contributor Code
+                                        </h6>
+                                        <div class="input-group mb-2 justify-content-center">
+                                            <input type="text" class="form-control form-control-lg text-center contributor-code-input" 
+                                                   id="contributorCodeDisplay" readonly 
+                                                   style="max-width: 300px;">
+                                            <button class="btn btn-outline-light" type="button" onclick="copyContributorCode()">
+                                                <i class="bi bi-copy"></i>
+                                            </button>
+                                        </div>
+                                        <small class="text-muted">
+                                            Guests need this code to contribute
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Guest Access Instructions -->
+                        <div class="mt-3 p-3 instructions-box">
+                            <h6 class="mb-2">
+                                <i class="bi bi-info-circle me-2"></i>How Guests Can Contribute
+                            </h6>
+                            <ol class="mb-0 small">
+                                <li>Share the QR code or link with your guests</li>
+                                <li>Guests can scan the QR code or visit the link</li>
+                                <li>They'll need the contributor code above to access</li>
+                                <li>Guests can then submit photos, videos, and wishes</li>
+                            </ol>
                         </div>
                     </div>
                 </div>
