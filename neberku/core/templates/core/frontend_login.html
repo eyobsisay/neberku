@@ -1,0 +1,338 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Login - Neberku{% endblock %}
+
+{% block extra_css %}
+<style>
+    .login-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    .login-card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+    }
+    .login-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px 15px 0 0;
+        padding: 2rem;
+        text-align: center;
+    }
+    .form-control {
+        border-radius: 10px;
+        border: 2px solid #e9ecef;
+        padding: 12px 15px;
+        transition: all 0.3s ease;
+    }
+    .form-control:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    }
+    .btn-login {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        border-radius: 10px;
+        padding: 12px 30px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    .btn-login:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+    .alert {
+        border-radius: 10px;
+        border: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-6 col-lg-5">
+                <div class="card login-card">
+                    <div class="login-header">
+                        <h1 class="display-6 mb-2">
+                            <i class="bi bi-camera-video"></i> Neberku
+                        </h1>
+                        <p class="mb-0">Welcome back! Please sign in to your account.</p>
+                    </div>
+                    
+                    <div class="card-body p-4">
+                        <!-- Alert Container -->
+                        <div id="alertContainer"></div>
+                        
+                        <form id="loginForm">
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Username</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="bi bi-person"></i>
+                                    </span>
+                                    <input type="text" class="form-control" id="username" name="username" required>
+                                </div>
+                                <div class="invalid-feedback" id="usernameError"></div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Password</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="bi bi-lock"></i>
+                                    </span>
+                                    <input type="password" class="form-control" id="password" name="password" required>
+                                </div>
+                                <div class="invalid-feedback" id="passwordError"></div>
+                            </div>
+                            
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" class="form-check-input" id="rememberMe" name="rememberMe">
+                                <label class="form-check-label" for="rememberMe">
+                                    Remember me
+                                </label>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-login btn-lg w-100" id="loginBtn">
+                                <i class="bi bi-box-arrow-in-right"></i> Sign In
+                            </button>
+                        </form>
+                        
+                        <hr class="my-4">
+                        
+                        <div class="text-center">
+                            <p class="mb-2">Don't have an account?</p>
+                            <a href="/frontend/register/" class="btn btn-outline-primary">
+                                <i class="bi bi-person-plus"></i> Create Account
+                            </a>
+                        </div>
+                        
+                        <div class="text-center mt-3">
+                            <a href="/" class="text-muted text-decoration-none">
+                                <i class="bi bi-arrow-left"></i> Back to Home
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Login functionality
+    class Login {
+        constructor() {
+            this.isLoggingIn = false;
+            this.init();
+        }
+
+        init() {
+            this.setupEventListeners();
+            this.checkAuthStatus();
+        }
+
+        setupEventListeners() {
+            document.getElementById('loginForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.handleLogin();
+            });
+        }
+
+        checkAuthStatus() {
+            const user = localStorage.getItem('neberku_user');
+            if (user) {
+                try {
+                    const userData = JSON.parse(user);
+                    console.log('✅ User already logged in:', userData.username);
+                    this.showAlert('Already logged in! Redirecting to dashboard...', 'info');
+                    setTimeout(() => {
+                        window.location.href = '/frontend/dashboard/';
+                    }, 1500);
+                } catch (e) {
+                    console.error('❌ Error parsing stored user data:', e);
+                    localStorage.removeItem('neberku_user');
+                }
+            }
+        }
+
+        async handleLogin() {
+            if (this.isLoggingIn) return;
+            
+            const form = document.getElementById('loginForm');
+            const formData = new FormData(form);
+            const username = formData.get('username');
+            const password = formData.get('password');
+            const rememberMe = formData.get('rememberMe');
+            
+            // Clear previous errors
+            this.clearFormErrors();
+            
+            // Validate form
+            if (!this.validateForm(username, password)) {
+                return;
+            }
+            
+            // Set login flag
+            this.isLoggingIn = true;
+            
+            // Show loading state
+            const loginBtn = document.getElementById('loginBtn');
+            const originalText = loginBtn.innerHTML;
+            loginBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Signing In...';
+            loginBtn.disabled = true;
+            
+            try {
+                const response = await this.loginUser(username, password, rememberMe);
+                console.log('✅ Login successful, response:', response);
+                
+                if (response.user) {
+                    localStorage.setItem('neberku_user', JSON.stringify(response.user));
+                    console.log('💾 User data stored in localStorage');
+                    
+                    this.showAlert('Login successful! Redirecting to dashboard...', 'success');
+                    
+                    setTimeout(() => {
+                        console.log('🚀 Redirecting to dashboard...');
+                        window.location.href = '/frontend/dashboard/';
+                    }, 1500);
+                } else {
+                    throw new Error('No user data received');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                const errorMessage = error.message || 'Login failed. Please check your credentials.';
+                this.showAlert(errorMessage, 'danger');
+            } finally {
+                // Restore button
+                loginBtn.innerHTML = originalText;
+                loginBtn.disabled = false;
+                this.isLoggingIn = false;
+            }
+        }
+
+        validateForm(username, password) {
+            let isValid = true;
+            
+            if (!username || username.trim() === '') {
+                this.showFieldError('username', 'Username is required');
+                isValid = false;
+            }
+            
+            if (!password || password.trim() === '') {
+                this.showFieldError('password', 'Password is required');
+                isValid = false;
+            }
+            
+            return isValid;
+        }
+
+        showFieldError(fieldName, message) {
+            const field = document.getElementById(fieldName);
+            const errorDiv = document.getElementById(fieldName + 'Error');
+            
+            field.classList.add('is-invalid');
+            errorDiv.textContent = message;
+        }
+
+        clearFormErrors() {
+            const fields = ['username', 'password'];
+            fields.forEach(fieldName => {
+                const field = document.getElementById(fieldName);
+                const errorDiv = document.getElementById(fieldName + 'Error');
+                
+                field.classList.remove('is-invalid');
+                errorDiv.textContent = '';
+            });
+        }
+
+        async loginUser(username, password, rememberMe) {
+            try {
+                console.log('🔐 Attempting login...');
+                
+                const response = await fetch('/api/login/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': this.getCSRFToken()
+                    },
+                    body: JSON.stringify({ username, password }),
+                    credentials: 'include'
+                });
+                
+                console.log('📡 Login response status:', response.status);
+                
+                if (response.ok) {
+                    const userData = await response.json();
+                    console.log('✅ Login response data:', userData);
+                    
+                    if (userData.success && userData.user) {
+                        return {
+                            success: true,
+                            user: userData.user
+                        };
+                    } else {
+                        throw new Error(userData.error || 'Login failed - no user data');
+                    }
+                } else {
+                    const errorData = await response.json();
+                    console.error('❌ Login failed:', errorData);
+                    throw new Error(errorData.error || errorData.message || `Login failed: ${response.status}`);
+                }
+            } catch (error) {
+                console.error('❌ API call error:', error);
+                if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+                    throw new Error('Unable to connect to the server. Please check your connection and try again.');
+                }
+                throw error;
+            }
+        }
+
+        getCSRFToken() {
+            const cookies = document.cookie.split(';');
+            for (let cookie of cookies) {
+                const [name, value] = cookie.trim().split('=');
+                if (name === 'csrftoken') {
+                    return value;
+                }
+            }
+            return '';
+        }
+
+        showAlert(message, type = 'info') {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertId = 'alert-' + Date.now();
+            
+            const alertHtml = `
+                <div id="${alertId}" class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            
+            alertContainer.innerHTML = alertHtml;
+            
+            // Auto-dismiss after 5 seconds
+            setTimeout(() => {
+                const alert = document.getElementById(alertId);
+                if (alert) {
+                    alert.remove();
+                }
+            }, 5000);
+        }
+    }
+
+    // Initialize login when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        window.login = new Login();
+    });
+</script>
+{% endblock %}

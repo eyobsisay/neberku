@@ -17,6 +17,7 @@ urlpatterns = [
     path('', include(router.urls)),
     
     # Authentication endpoints
+    path('debug-auth/', views.api_debug_auth, name='api_debug_auth'),
     path('login/', views.api_login, name='api_login'),
     path('register/', views.api_register, name='api_register'),
     path('logout/', views.api_logout, name='api_logout'),

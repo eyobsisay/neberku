@@ -717,22 +717,63 @@ class PublicEventViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 # Authentication API Views
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def api_debug_auth(request):
+    """Debug endpoint to check authentication status"""
+    print(f"🔍 Debug auth request - Method: {request.method}")
+    print(f"🔍 Request user: {request.user}")
+    print(f"🔍 User authenticated: {request.user.is_authenticated}")
+    print(f"🔍 Session key: {request.session.session_key}")
+    print(f"🔍 Session data: {dict(request.session)}")
+    print(f"🔍 Cookies: {request.COOKIES}")
+    print(f"🔍 Headers: {dict(request.headers)}")
+    
+    return Response({
+        'authenticated': request.user.is_authenticated,
+        'user': str(request.user) if request.user.is_authenticated else None,
+        'session_id': request.session.session_key,
+        'cookies': dict(request.COOKIES),
+        'headers': dict(request.headers),
+        'method': request.method,
+        'path': request.path,
+    })
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def api_login(request):
     """API endpoint for user login"""
+    print(f"🔐 Login attempt - Method: {request.method}")
+    print(f"🔐 Request data: {request.data}")
+    print(f"🔐 Request user: {request.user}")
+    print(f"🔐 Session key: {request.session.session_key}")
+    print(f"🔐 Cookies: {request.COOKIES}")
+    
     username = request.data.get('username')
     password = request.data.get('password')
     
     if not username or not password:
+        print(f"❌ Missing credentials - username: {username}, password: {'*' * len(password) if password else 'None'}")
         return Response(
             {'error': 'Username and password are required'},
             status=status.HTTP_400_BAD_REQUEST
         )
     
+    print(f"🔍 Attempting to authenticate user: {username}")
     user = authenticate(username=username, password=password)
+    
     if user is not None:
+        print(f"✅ User authenticated successfully: {user.username}")
+        print(f"🔐 User is active: {user.is_active}")
+        print(f"🔐 User is staff: {user.is_staff}")
+        
+        # Login the user
         login(request, user)
+        
+        print(f"🔐 User logged in: {request.user}")
+        print(f"🔐 Session key after login: {request.session.session_key}")
+        print(f"🔐 Session data: {dict(request.session)}")
+        
         return Response({
             'success': True,
             'user': {
@@ -745,6 +786,7 @@ def api_login(request):
             'message': 'Login successful'
         })
     else:
+        print(f"❌ Authentication failed for user: {username}")
         return Response(
             {'error': 'Invalid credentials'},
             status=status.HTTP_401_UNAUTHORIZED

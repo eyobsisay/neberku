@@ -43,6 +43,12 @@ urlpatterns = [
     # Contact form API
     path('contact/', views.contact_form, name='contact_form'),
     
+    # Frontend routes (to avoid CORS issues)
+    path('frontend/dashboard/', views.frontend_dashboard, name='frontend_dashboard'),
+    path('frontend/login/', views.frontend_login, name='frontend_login'),
+    path('frontend/register/', views.frontend_register, name='frontend_register'),
+    path('frontend/debug/', views.frontend_debug, name='frontend_debug'),
+    
     # Swagger documentation
     path('swagger<format>/', schema_view.without_ui(cache_timeout=0), name='schema-json'),
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),

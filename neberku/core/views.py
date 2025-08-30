@@ -1,11 +1,16 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib import messages
-from django.http import JsonResponse
+from django.http import JsonResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
+from django.utils import timezone
+from django.db.models import Q, Count
+from django.core.paginator import Paginator
+from django.conf import settings
+import os
 import json
 
 def landing_page(request):
@@ -103,3 +108,19 @@ def contact_form(request):
         return JsonResponse({'status': 'success', 'message': 'Thank you for your message!'})
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+def frontend_dashboard(request):
+    """Serve the frontend dashboard from Django to avoid CORS issues"""
+    return render(request, 'core/frontend_dashboard.html')
+
+def frontend_login(request):
+    """Serve the frontend login from Django to avoid CORS issues"""
+    return render(request, 'core/frontend_login.html')
+
+def frontend_debug(request):
+    """Serve the frontend debug page from Django to avoid CORS issues"""
+    return render(request, 'core/frontend_debug.html')
+
+def frontend_register(request):
+    """Serve the frontend register page from Django to avoid CORS issues"""
+    return render(request, 'core/frontend_register.html')

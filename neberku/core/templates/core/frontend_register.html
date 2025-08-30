@@ -1,0 +1,360 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Register - Neberku{% endblock %}
+
+{% block extra_css %}
+<style>
+    .register-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    .register-card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+    }
+    .register-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px 15px 0 0;
+        padding: 2rem;
+        text-align: center;
+    }
+    .form-control {
+        border-radius: 10px;
+        border: 2px solid #e9ecef;
+        padding: 12px 15px;
+        transition: all 0.3s ease;
+    }
+    .form-control:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    }
+    .btn-register {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        border-radius: 10px;
+        padding: 12px 30px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    .btn-register:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+    .alert {
+        border-radius: 10px;
+        border: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="register-container">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-6 col-lg-5">
+                <div class="card register-card">
+                    <div class="register-header">
+                        <h1 class="display-6 mb-2">
+                            <i class="bi bi-camera-video"></i> Neberku
+                        </h1>
+                        <p class="mb-0">Create your account to get started</p>
+                    </div>
+                    
+                    <div class="card-body p-4">
+                        <!-- Alert Container -->
+                        <div id="alertContainer"></div>
+                        
+                        <form id="registerForm">
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Username *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="bi bi-person"></i>
+                                    </span>
+                                    <input type="text" class="form-control" id="username" name="username" required>
+                                </div>
+                                <div class="invalid-feedback" id="usernameError"></div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="bi bi-envelope"></i>
+                                    </span>
+                                    <input type="email" class="form-control" id="email" name="email" required>
+                                </div>
+                                <div class="invalid-feedback" id="emailError"></div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Password *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="bi bi-lock"></i>
+                                    </span>
+                                    <input type="password" class="form-control" id="password" name="password" required>
+                                </div>
+                                <div class="invalid-feedback" id="passwordError"></div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="password2" class="form-label">Confirm Password *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="bi bi-lock-fill"></i>
+                                    </span>
+                                    <input type="password" class="form-control" id="password2" name="password2" required>
+                                </div>
+                                <div class="invalid-feedback" id="password2Error"></div>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-register btn-lg w-100" id="registerBtn">
+                                <i class="bi bi-person-plus"></i> Create Account
+                            </button>
+                        </form>
+                        
+                        <hr class="my-4">
+                        
+                        <div class="text-center">
+                            <p class="mb-2">Already have an account?</p>
+                            <a href="/frontend/login/" class="btn btn-outline-primary">
+                                <i class="bi bi-box-arrow-in-right"></i> Sign In
+                            </a>
+                        </div>
+                        
+                        <div class="text-center mt-3">
+                            <a href="/" class="text-muted text-decoration-none">
+                                <i class="bi bi-arrow-left"></i> Back to Home
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Registration functionality
+    class Register {
+        constructor() {
+            this.isRegistering = false;
+            this.init();
+        }
+
+        init() {
+            this.setupEventListeners();
+        }
+
+        setupEventListeners() {
+            document.getElementById('registerForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.handleRegister();
+            });
+        }
+
+        async handleRegister() {
+            if (this.isRegistering) return;
+            
+            const form = document.getElementById('registerForm');
+            const formData = new FormData(form);
+            const username = formData.get('username');
+            const email = formData.get('email');
+            const password = formData.get('password');
+            const password2 = formData.get('password2');
+            
+            // Clear previous errors
+            this.clearFormErrors();
+            
+            // Validate form
+            if (!this.validateForm(username, email, password, password2)) {
+                return;
+            }
+            
+            // Set registering flag
+            this.isRegistering = true;
+            
+            // Show loading state
+            const registerBtn = document.getElementById('registerBtn');
+            const originalText = registerBtn.innerHTML;
+            registerBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Creating Account...';
+            registerBtn.disabled = true;
+            
+            try {
+                const response = await this.registerUser(username, email, password, password2);
+                console.log('✅ Registration successful, response:', response);
+                
+                if (response.user) {
+                    this.showAlert('Account created successfully! Redirecting to login...', 'success');
+                    
+                    setTimeout(() => {
+                        console.log('🚀 Redirecting to login...');
+                        window.location.href = '/frontend/login/';
+                    }, 2000);
+                } else {
+                    throw new Error('No user data received');
+                }
+            } catch (error) {
+                console.error('Registration error:', error);
+                const errorMessage = error.message || 'Registration failed. Please try again.';
+                this.showAlert(errorMessage, 'danger');
+            } finally {
+                // Restore button
+                registerBtn.innerHTML = originalText;
+                registerBtn.disabled = false;
+                this.isRegistering = false;
+            }
+        }
+
+        validateForm(username, email, password, password2) {
+            let isValid = true;
+            
+            if (!username || username.trim() === '') {
+                this.showFieldError('username', 'Username is required');
+                isValid = false;
+            } else if (username.length < 3) {
+                this.showFieldError('username', 'Username must be at least 3 characters');
+                isValid = false;
+            }
+            
+            if (!email || email.trim() === '') {
+                this.showFieldError('email', 'Email is required');
+                isValid = false;
+            } else if (!this.isValidEmail(email)) {
+                this.showFieldError('email', 'Please enter a valid email address');
+                isValid = false;
+            }
+            
+            if (!password || password.trim() === '') {
+                this.showFieldError('password', 'Password is required');
+                isValid = false;
+            } else if (password.length < 8) {
+                this.showFieldError('password', 'Password must be at least 8 characters');
+                isValid = false;
+            }
+            
+            if (!password2 || password2.trim() === '') {
+                this.showFieldError('password2', 'Please confirm your password');
+                isValid = false;
+            } else if (password !== password2) {
+                this.showFieldError('password2', 'Passwords do not match');
+                isValid = false;
+            }
+            
+            return isValid;
+        }
+
+        isValidEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
+        }
+
+        showFieldError(fieldName, message) {
+            const field = document.getElementById(fieldName);
+            const errorDiv = document.getElementById(fieldName + 'Error');
+            
+            field.classList.add('is-invalid');
+            errorDiv.textContent = message;
+        }
+
+        clearFormErrors() {
+            const fields = ['username', 'email', 'password', 'password2'];
+            fields.forEach(fieldName => {
+                const field = document.getElementById(fieldName);
+                const errorDiv = document.getElementById(fieldName + 'Error');
+                
+                field.classList.remove('is-invalid');
+                errorDiv.textContent = '';
+            });
+        }
+
+        async registerUser(username, email, password, password2) {
+            try {
+                console.log('📝 Attempting registration...');
+                
+                const response = await fetch('/api/register/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': this.getCSRFToken()
+                    },
+                    body: JSON.stringify({ username, email, password, password2 }),
+                    credentials: 'include'
+                });
+                
+                console.log('📡 Registration response status:', response.status);
+                
+                if (response.ok) {
+                    const userData = await response.json();
+                    console.log('✅ Registration response data:', userData);
+                    
+                    if (userData.success && userData.user) {
+                        return {
+                            success: true,
+                            user: userData.user
+                        };
+                    } else {
+                        throw new Error(userData.error || 'Registration failed - no user data');
+                    }
+                } else {
+                    const errorData = await response.json();
+                    console.error('❌ Registration failed:', errorData);
+                    throw new Error(errorData.error || errorData.message || `Registration failed: ${response.status}`);
+                }
+            } catch (error) {
+                console.error('❌ API call error:', error);
+                if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+                    throw new Error('Unable to connect to the server. Please check your connection and try again.');
+                }
+                throw error;
+            }
+        }
+
+        getCSRFToken() {
+            const cookies = document.cookie.split(';');
+            for (let cookie of cookies) {
+                const [name, value] = cookie.trim().split('=');
+                if (name === 'csrftoken') {
+                    return value;
+                }
+            }
+            return '';
+        }
+
+        showAlert(message, type = 'info') {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertId = 'alert-' + Date.now();
+            
+            const alertHtml = `
+                <div id="${alertId}" class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            
+            alertContainer.innerHTML = alertHtml;
+            
+            // Auto-dismiss after 5 seconds
+            setTimeout(() => {
+                const alert = document.getElementById(alertId);
+                if (alert) {
+                    alert.remove();
+                }
+            }, 5000);
+        }
+    }
+
+    // Initialize registration when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        window.register = new Register();
+    });
+</script>
+{% endblock %}

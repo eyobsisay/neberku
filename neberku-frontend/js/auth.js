@@ -198,15 +198,21 @@ async function simulateLoginAPI(username, password) {
             console.log('🔑 CSRF token added to headers');
         }
         
+        console.log('🌐 Making login request to:', `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.LOGIN}`);
+        console.log('🔑 Headers:', headers);
+        console.log('🍪 Credentials mode: include');
+        
         const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.LOGIN}`, {
             method: 'POST',
             headers: headers,
             body: JSON.stringify({ username, password }),
-            credentials: 'include'  // Important: include cookies for session
+            credentials: 'include',  // Important: include cookies for session
+            mode: 'cors'  // Explicitly set CORS mode
         });
         
         console.log('📡 Login response status:', response.status);
         console.log('📡 Login response headers:', response.headers);
+        console.log('🍪 Response cookies:', document.cookie);
         
         if (response.ok) {
             const userData = await response.json();

@@ -1,0 +1,378 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Event Owner Dashboard - Neberku{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stats-card {
+        transition: transform 0.2s;
+    }
+    .stats-card:hover {
+        transform: translateY(-5px);
+    }
+    .event-card {
+        transition: all 0.3s ease;
+    }
+    .event-card:hover {
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    .loading {
+        opacity: 0.6;
+        pointer-events: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Dashboard Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-4 text-primary">
+                <i class="bi bi-speedometer2"></i> Event Dashboard
+            </h1>
+            <p class="lead">Manage your events and view guest contributions</p>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card bg-primary text-white h-100 stats-card">
+                <div class="card-body text-center">
+                    <i class="bi bi-calendar-event display-4"></i>
+                    <h3 class="card-title" id="totalEvents">0</h3>
+                    <p class="card-text">Total Events</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-success text-white h-100 stats-card">
+                <div class="card-body text-center">
+                    <i class="bi bi-image display-4"></i>
+                    <h3 class="card-title" id="totalPhotos">0</h3>
+                    <p class="card-text">Photos Collected</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-info text-white h-100 stats-card">
+                <div class="card-body text-center">
+                    <i class="bi bi-camera-video display-4"></i>
+                    <h3 class="card-title" id="totalVideos">0</h3>
+                    <p class="card-text">Videos Collected</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-warning text-white h-100 stats-card">
+                <div class="card-body text-center">
+                    <i class="bi bi-people display-4"></i>
+                    <h3 class="card-title" id="totalGuests">0</h3>
+                    <p class="card-text">Guest Contributors</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create New Event -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-plus-circle"></i> Create New Event
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="createEventForm">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="eventTitle" class="form-label">Event Title *</label>
+                                <input type="text" class="form-control" id="eventTitle" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="eventType" class="form-label">Event Type *</label>
+                                <select class="form-select" id="eventType" required>
+                                    <option value="">Select Event Type</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="eventDate" class="form-label">Event Date *</label>
+                                <input type="datetime-local" class="form-control" id="eventDate" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="eventLocation" class="form-label">Location</label>
+                                <input type="text" class="form-control" id="eventLocation">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="eventDescription" class="form-label">Description</label>
+                            <textarea class="form-control" id="eventDescription" rows="3"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-plus-circle"></i> Create Event
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Events List -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-calendar-event"></i> Your Events
+                    </h5>
+                    <button class="btn btn-outline-primary btn-sm" onclick="refreshEvents()">
+                        <i class="bi bi-arrow-clockwise"></i> Refresh
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="eventsContainer">
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2">Loading events...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Alert Container -->
+<div id="alertContainer" class="position-fixed top-0 end-0 p-3" style="z-index: 1050;"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Dashboard functionality
+    class Dashboard {
+        constructor() {
+            this.events = [];
+            this.eventStats = null;
+            this.init();
+        }
+
+        init() {
+            this.loadEvents();
+            this.setupEventListeners();
+        }
+
+        setupEventListeners() {
+            document.getElementById('createEventForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.createEvent();
+            });
+        }
+
+        async loadEvents() {
+            try {
+                console.log('🔍 Loading events...');
+                
+                const response = await fetch('/api/events/', {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+
+                console.log('📡 Response status:', response.status);
+
+                if (response.ok) {
+                    const eventsData = await response.json();
+                    console.log('✅ Events loaded:', eventsData);
+                    
+                    if (eventsData.results && Array.isArray(eventsData.results)) {
+                        this.events = eventsData.results;
+                    } else if (Array.isArray(eventsData)) {
+                        this.events = eventsData;
+                    } else {
+                        this.events = [];
+                    }
+                    
+                    this.eventStats = eventsData.stats || eventsData.counts || null;
+                    this.renderEvents();
+                    this.updateStatistics();
+                } else if (response.status === 401) {
+                    this.showAlert('Please log in to view events.', 'warning');
+                    setTimeout(() => {
+                        window.location.href = '/frontend/login/';
+                    }, 2000);
+                } else if (response.status === 403) {
+                    this.showAlert('Access denied. Please check your permissions.', 'danger');
+                } else {
+                    const errorText = await response.text();
+                    this.showAlert(`Error loading events: ${errorText}`, 'danger');
+                }
+            } catch (error) {
+                console.error('❌ Error loading events:', error);
+                this.showAlert(`Error loading events: ${error.message}`, 'danger');
+            }
+        }
+
+        renderEvents() {
+            const container = document.getElementById('eventsContainer');
+            
+            if (this.events.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-4">
+                        <i class="bi bi-calendar-x display-1 text-muted"></i>
+                        <h4 class="text-muted">No Events Yet</h4>
+                        <p class="text-muted">Create your first event to get started!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const eventsHtml = this.events.map(event => `
+                <div class="card event-card mb-3">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <h5 class="card-title">${event.title}</h5>
+                                <p class="card-text text-muted">${event.description || 'No description'}</p>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <small class="text-muted">
+                                            <i class="bi bi-calendar"></i> ${new Date(event.event_date).toLocaleDateString()}
+                                        </small>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <small class="text-muted">
+                                            <i class="bi bi-geo-alt"></i> ${event.location || 'No location'}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <span class="badge bg-${this.getStatusColor(event.status)}">${event.status}</span>
+                                <div class="mt-2">
+                                    <button class="btn btn-sm btn-outline-primary" onclick="viewEvent('${event.id}')">
+                                        <i class="bi bi-eye"></i> View
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            container.innerHTML = eventsHtml;
+        }
+
+        getStatusColor(status) {
+            const colors = {
+                'draft': 'secondary',
+                'pending_payment': 'warning',
+                'active': 'success',
+                'completed': 'info',
+                'cancelled': 'danger'
+            };
+            return colors[status] || 'secondary';
+        }
+
+        updateStatistics() {
+            if (this.eventStats) {
+                document.getElementById('totalEvents').textContent = this.eventStats.total || this.events.length;
+                document.getElementById('totalPhotos').textContent = this.eventStats.photos || 0;
+                document.getElementById('totalVideos').textContent = this.eventStats.videos || 0;
+                document.getElementById('totalGuests').textContent = this.eventStats.guests || 0;
+            } else {
+                // Calculate locally if no stats provided
+                document.getElementById('totalEvents').textContent = this.events.length;
+                // You can add more calculations here
+            }
+        }
+
+        async createEvent() {
+            const formData = {
+                title: document.getElementById('eventTitle').value,
+                event_type: document.getElementById('eventType').value,
+                event_date: document.getElementById('eventDate').value,
+                location: document.getElementById('eventLocation').value,
+                description: document.getElementById('eventDescription').value
+            };
+
+            try {
+                const response = await fetch('/api/events/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': this.getCSRFToken()
+                    },
+                    body: JSON.stringify(formData),
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    this.showAlert('Event created successfully!', 'success');
+                    document.getElementById('createEventForm').reset();
+                    this.loadEvents();
+                } else {
+                    const errorData = await response.json();
+                    this.showAlert(`Error creating event: ${errorData.error || 'Unknown error'}`, 'danger');
+                }
+            } catch (error) {
+                this.showAlert(`Error creating event: ${error.message}`, 'danger');
+            }
+        }
+
+        getCSRFToken() {
+            const cookies = document.cookie.split(';');
+            for (let cookie of cookies) {
+                const [name, value] = cookie.trim().split('=');
+                if (name === 'csrftoken') {
+                    return value;
+                }
+            }
+            return '';
+        }
+
+        showAlert(message, type = 'info') {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertId = 'alert-' + Date.now();
+            
+            const alertHtml = `
+                <div id="${alertId}" class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            
+            alertContainer.insertAdjacentHTML('beforeend', alertHtml);
+            
+            // Auto-dismiss after 5 seconds
+            setTimeout(() => {
+                const alert = document.getElementById(alertId);
+                if (alert) {
+                    alert.remove();
+                }
+            }, 5000);
+        }
+    }
+
+    // Initialize dashboard when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        window.dashboard = new Dashboard();
+    });
+
+    // Global functions
+    function refreshEvents() {
+        if (window.dashboard) {
+            window.dashboard.loadEvents();
+        }
+    }
+
+    function viewEvent(eventId) {
+        window.location.href = `/dashboard/${eventId}/`;
+    }
+</script>
+{% endblock %}

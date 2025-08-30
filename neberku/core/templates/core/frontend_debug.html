@@ -1,0 +1,370 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Debug Authentication - Neberku{% endblock %}
+
+{% block extra_css %}
+<style>
+    .debug-container {
+        padding: 2rem 0;
+    }
+    .debug-card {
+        margin-bottom: 1.5rem;
+    }
+    .debug-log {
+        height: 400px;
+        overflow-y: auto;
+        background: #f8f9fa;
+        padding: 15px;
+        font-family: 'Courier New', monospace;
+        font-size: 14px;
+        border-radius: 8px;
+        border: 1px solid #dee2e6;
+    }
+    .status-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 8px;
+    }
+    .status-success { background-color: #28a745; }
+    .status-warning { background-color: #ffc107; }
+    .status-danger { background-color: #dc3545; }
+    .status-info { background-color: #17a2b8; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="debug-container">
+    <div class="container">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="mb-4">
+                    <i class="bi bi-bug"></i> Authentication Debug
+                </h1>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card debug-card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-info-circle"></i> Current State</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="currentState">
+                            <p>
+                                <span class="status-indicator status-info"></span>
+                                <strong>User Data:</strong> <span id="userData">Loading...</span>
+                            </p>
+                            <p>
+                                <span class="status-indicator status-info"></span>
+                                <strong>Cookies:</strong> <span id="cookies">Loading...</span>
+                            </p>
+                            <p>
+                                <span class="status-indicator status-info"></span>
+                                <strong>Session ID:</strong> <span id="sessionId">Loading...</span>
+                            </p>
+                            <p>
+                                <span class="status-indicator status-info"></span>
+                                <strong>Current Page:</strong> <span id="currentPage">Loading...</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card debug-card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-tools"></i> Test Actions</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-primary mb-2 w-100" onclick="testDebugAuth()">
+                            <i class="bi bi-search"></i> Test Debug Auth
+                        </button>
+                        <button class="btn btn-success mb-2 w-100" onclick="testLogin()">
+                            <i class="bi bi-box-arrow-in-right"></i> Test Login
+                        </button>
+                        <button class="btn btn-info mb-2 w-100" onclick="testEvents()">
+                            <i class="bi bi-calendar-event"></i> Test Events API
+                        </button>
+                        <button class="btn btn-warning mb-2 w-100" onclick="clearData()">
+                            <i class="bi bi-trash"></i> Clear Data
+                        </button>
+                        <button class="btn btn-secondary mb-2 w-100" onclick="refreshState()">
+                            <i class="bi bi-arrow-clockwise"></i> Refresh State
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-12">
+                <div class="card debug-card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5><i class="bi bi-terminal"></i> Debug Log</h5>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="clearLog()">
+                            <i class="bi bi-trash"></i> Clear Log
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="debugLog" class="debug-log"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-12">
+                <div class="card debug-card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-gear"></i> Configuration</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>API Configuration</h6>
+                                <ul class="list-unstyled">
+                                    <li><strong>Base URL:</strong> <span id="baseUrl">Loading...</span></li>
+                                    <li><strong>Login Endpoint:</strong> <span id="loginEndpoint">Loading...</span></li>
+                                    <li><strong>Events Endpoint:</strong> <span id="eventsEndpoint">Loading...</span></li>
+                                    <li><strong>Debug Endpoint:</strong> <span id="debugEndpoint">Loading...</span></li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Browser Information</h6>
+                                <ul class="list-unstyled">
+                                    <li><strong>User Agent:</strong> <span id="userAgent">Loading...</span></li>
+                                    <li><strong>Platform:</strong> <span id="platform">Loading...</span></li>
+                                    <li><strong>Cookies Enabled:</strong> <span id="cookiesEnabled">Loading...</span></li>
+                                    <li><strong>Local Storage:</strong> <span id="localStorage">Loading...</span></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Debug functionality
+    class DebugAuth {
+        constructor() {
+            this.init();
+        }
+
+        init() {
+            this.updateState();
+            this.updateConfiguration();
+            this.log('🚀 Debug page loaded');
+        }
+
+        // Debug logging function
+        log(message, type = 'info') {
+            const logDiv = document.getElementById('debugLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const statusClass = `status-${type}`;
+            
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `
+                <span class="status-indicator ${statusClass}"></span>
+                [${timestamp}] ${message}
+            `;
+            
+            logDiv.appendChild(logEntry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        // Update current state display
+        updateState() {
+            const userData = localStorage.getItem('neberku_user');
+            const cookies = document.cookie;
+            const currentPage = window.location.pathname;
+            
+            document.getElementById('userData').textContent = userData ? JSON.stringify(JSON.parse(userData)) : 'None';
+            document.getElementById('cookies').textContent = cookies || 'None';
+            document.getElementById('sessionId').textContent = 'Will be shown after API call';
+            document.getElementById('currentPage').textContent = currentPage;
+        }
+
+        // Update configuration display
+        updateConfiguration() {
+            document.getElementById('baseUrl').textContent = window.location.origin;
+            document.getElementById('loginEndpoint').textContent = '/api/login/';
+            document.getElementById('eventsEndpoint').textContent = '/api/events/';
+            document.getElementById('debugEndpoint').textContent = '/api/debug-auth/';
+            
+            document.getElementById('userAgent').textContent = navigator.userAgent;
+            document.getElementById('platform').textContent = navigator.platform;
+            document.getElementById('cookiesEnabled').textContent = navigator.cookieEnabled ? 'Yes' : 'No';
+            document.getElementById('localStorage').textContent = typeof(Storage) !== "undefined" ? 'Available' : 'Not Available';
+        }
+
+        // Test debug authentication endpoint
+        async testDebugAuth() {
+            try {
+                this.log('🔍 Testing debug auth endpoint...', 'info');
+                
+                const response = await fetch('/api/debug-auth/', {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                
+                this.log(`📡 Response status: ${response.status}`, 'info');
+                this.log(`📡 Response headers: ${JSON.stringify([...response.headers.entries()])}`, 'info');
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    this.log(`✅ Debug auth response: ${JSON.stringify(data, null, 2)}`, 'success');
+                    
+                    // Update session ID display
+                    document.getElementById('sessionId').textContent = data.session_id || 'None';
+                } else {
+                    const errorText = await response.text();
+                    this.log(`❌ Error: ${errorText}`, 'danger');
+                }
+            } catch (error) {
+                this.log(`❌ Exception: ${error.message}`, 'danger');
+            }
+        }
+
+        // Test login
+        async testLogin() {
+            try {
+                this.log('🔐 Testing login...', 'info');
+                
+                const response = await fetch('/api/login/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': this.getCSRFToken()
+                    },
+                    body: JSON.stringify({
+                        username: 'admin',
+                        password: 'admin123'
+                    }),
+                    credentials: 'include'
+                });
+                
+                this.log(`📡 Login response status: ${response.status}`, 'info');
+                this.log(`📡 Login response headers: ${JSON.stringify([...response.headers.entries()])}`, 'info');
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    this.log(`✅ Login successful: ${JSON.stringify(data, null, 2)}`, 'success');
+                    
+                    // Store user data
+                    if (data.user) {
+                        localStorage.setItem('neberku_user', JSON.stringify(data.user));
+                        this.updateState();
+                    }
+                } else {
+                    const errorText = await response.text();
+                    this.log(`❌ Login failed: ${errorText}`, 'danger');
+                }
+            } catch (error) {
+                this.log(`❌ Login exception: ${error.message}`, 'danger');
+            }
+        }
+
+        // Test events API
+        async testEvents() {
+            try {
+                this.log('📊 Testing events API...', 'info');
+                
+                const response = await fetch('/api/events/', {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                
+                this.log(`📡 Events response status: ${response.status}`, 'info');
+                this.log(`📡 Events response headers: ${JSON.stringify([...response.headers.entries()])}`, 'info');
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    this.log(`✅ Events API successful: ${JSON.stringify(data, null, 2)}`, 'success');
+                } else {
+                    const errorText = await response.text();
+                    this.log(`❌ Events API failed: ${errorText}`, 'danger');
+                }
+            } catch (error) {
+                this.log(`❌ Events API exception: ${error.message}`, 'danger');
+            }
+        }
+
+        // Clear stored data
+        clearData() {
+            localStorage.removeItem('neberku_user');
+            this.log('🗑️ Cleared stored user data', 'warning');
+            this.updateState();
+        }
+
+        // Refresh state
+        refreshState() {
+            this.updateState();
+            this.updateConfiguration();
+            this.log('🔄 State refreshed', 'info');
+        }
+
+        // Get CSRF token
+        getCSRFToken() {
+            const cookies = document.cookie.split(';');
+            for (let cookie of cookies) {
+                const [name, value] = cookie.trim().split('=');
+                if (name === 'csrftoken') {
+                    return value;
+                }
+            }
+            return '';
+        }
+    }
+
+    // Global functions for button clicks
+    function testDebugAuth() {
+        if (window.debugAuth) {
+            window.debugAuth.testDebugAuth();
+        }
+    }
+
+    function testLogin() {
+        if (window.debugAuth) {
+            window.debugAuth.testLogin();
+        }
+    }
+
+    function testEvents() {
+        if (window.debugAuth) {
+            window.debugAuth.testEvents();
+        }
+    }
+
+    function clearData() {
+        if (window.debugAuth) {
+            window.debugAuth.clearData();
+        }
+    }
+
+    function refreshState() {
+        if (window.debugAuth) {
+            window.debugAuth.refreshState();
+        }
+    }
+
+    function clearLog() {
+        document.getElementById('debugLog').innerHTML = '';
+    }
+
+    // Initialize debug when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        window.debugAuth = new DebugAuth();
+    });
+</script>
+{% endblock %}
