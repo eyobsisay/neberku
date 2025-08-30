@@ -313,6 +313,10 @@ class Dashboard {
         formData.append('auto_approve_posts', document.getElementById('autoApprovePosts').value === 'true');
         formData.append('is_public', document.getElementById('isPublic').value === 'true');
         
+        // Add event settings fields
+        formData.append('max_posts_per_guest', document.getElementById('maxPostsPerGuest')?.value || '5');
+        formData.append('max_media_per_post', document.getElementById('maxMediaPerPost')?.value || '3');
+        
         // Add files if selected
         const thumbnailFile = document.getElementById('eventThumbnail').files[0];
         const videoFile = document.getElementById('eventVideo').files[0];
@@ -327,7 +331,7 @@ class Dashboard {
             console.log('🎥 Adding video:', videoFile.name);
         }
 
-        // Basic validation
+        // Enhanced validation
         if (!formData.get('title') || !formData.get('event_date') || !formData.get('location') || !formData.get('description')) {
             this.showAlert('Please fill in all required fields', 'warning');
             return;
@@ -335,6 +339,20 @@ class Dashboard {
 
         if (!formData.get('package_id') || !formData.get('event_type_id')) {
             this.showAlert('Please select both package and event type', 'warning');
+            return;
+        }
+        
+        // Validate event settings if they exist
+        const maxPostsPerGuest = parseInt(formData.get('max_posts_per_guest'));
+        const maxMediaPerPost = parseInt(formData.get('max_media_per_post'));
+        
+        if (maxPostsPerGuest && (maxPostsPerGuest < 1 || maxPostsPerGuest > 100)) {
+            this.showAlert('Max Posts per Guest must be between 1 and 100', 'warning');
+            return;
+        }
+        
+        if (maxMediaPerPost && (maxMediaPerPost < 1 || maxMediaPerPost > 50)) {
+            this.showAlert('Max Media per Post must be between 1 and 50', 'warning');
             return;
         }
 
@@ -426,6 +444,11 @@ class Dashboard {
         document.getElementById('allowVideos').value = 'true';
         document.getElementById('allowWishes').value = 'true';
         document.getElementById('autoApprovePosts').value = 'false';
+        document.getElementById('isPublic').value = 'false';
+        
+        // Reset event settings fields
+        if (document.getElementById('maxPostsPerGuest')) document.getElementById('maxPostsPerGuest').value = '5';
+        if (document.getElementById('maxMediaPerPost')) document.getElementById('maxMediaPerPost').value = '3';
         
         // Clear file inputs
         document.getElementById('eventThumbnail').value = '';

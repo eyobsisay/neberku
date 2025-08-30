@@ -166,10 +166,21 @@ class EventViewSet(viewsets.ModelViewSet):
             event = serializer.save(host=self.request.user)
             print(f"Event created successfully: {event.id}")
             
-            # Create default event settings
+            # Create event settings with user-provided values or sensible defaults
             try:
-                settings = EventSettings.objects.create(event=event)
+                # Get user-provided settings from the request data
+                request_data = self.request.data
+                
+                settings_data = {
+                    'event': event,
+                    'max_posts_per_guest': request_data.get('max_posts_per_guest', 5),
+                    'max_media_per_post': request_data.get('max_media_per_post', 3)
+                }
+                
+                settings = EventSettings.objects.create(**settings_data)
                 print(f"EventSettings created successfully: {settings.id}")
+                print(f"Settings: max_posts_per_guest={settings.max_posts_per_guest}, max_media_per_post={settings.max_media_per_post}")
+                
             except Exception as e:
                 # Log error but don't fail event creation
                 print(f"Error creating EventSettings for event {event.id}: {e}")

@@ -205,6 +205,29 @@
                                     <div class="form-text">Private events require contributor codes, public events can be discovered</div>
                                 </div>
                             </div>
+                            
+                            <!-- Event Settings Section -->
+                            <div class="row mt-4">
+                                <div class="col-12">
+                                    <h6 class="text-primary mb-3">
+                                        <i class="bi bi-gear"></i> Event Settings
+                                    </h6>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="maxPostsPerGuest" class="form-label">Max Posts per Guest</label>
+                                    <input type="number" class="form-control" id="maxPostsPerGuest" min="1" max="100" value="5">
+                                    <div class="form-text">Maximum number of posts a single guest can make</div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="maxMediaPerPost" class="form-label">Max Media per Post</label>
+                                    <input type="number" class="form-control" id="maxMediaPerPost" min="1" max="50" value="3">
+                                    <div class="form-text">Maximum number of media files (photos/videos) per post</div>
+                                </div>
+                            </div>
+                            
                             <div class="d-flex gap-2">
                                 <button type="submit" class="btn btn-primary">
                                     <i class="bi bi-plus-circle"></i> Create Event
