@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug File Upload</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1>Debug File Upload Issue</h1>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>File Upload Test</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="mediaFiles" class="form-label">Select Files (Max 3)</label>
+                            <input type="file" class="form-control" id="mediaFiles" 
+                                   multiple accept="image/*,video/*">
+                            <div class="form-text">Try selecting exactly 3 files to see the issue</div>
+                        </div>
+                        
+                        <div id="fileList">
+                            <!-- Selected files will be displayed here -->
+                        </div>
+                        
+                        <div id="debugInfo" class="mt-3">
+                            <h6>Debug Information:</h6>
+                            <div id="debugContent">
+                                <p>No files selected yet.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Test Controls</h5>
+                    </div>
+                    <div class="card-body">
+                        <button type="button" class="btn btn-primary mb-2" onclick="testFileCount()">
+                            Test File Count
+                        </button>
+                        <br>
+                        <button type="button" class="btn btn-warning mb-2" onclick="clearFiles()">
+                            Clear Files
+                        </button>
+                        <br>
+                        <button type="button" class="btn btn-info mb-2" onclick="setMaxFiles(3)">
+                            Set Max to 3
+                        </button>
+                        <br>
+                        <button type="button" class="btn btn-info mb-2" onclick="setMaxFiles(5)">
+                            Set Max to 5
+                        </button>
+                        
+                        <hr>
+                        <h6>Current Settings:</h6>
+                        <p><strong>Max Files:</strong> <span id="currentMax">3</span></p>
+                        <p><strong>Current Count:</strong> <span id="currentCount">0</span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class DebugFileManager {
+            constructor() {
+                this.maxFiles = 3;
+                this.init();
+            }
+
+            init() {
+                this.bindEvents();
+                this.updateDebugInfo();
+            }
+
+            bindEvents() {
+                const mediaFilesInput = document.getElementById('mediaFiles');
+                if (mediaFilesInput) {
+                    mediaFilesInput.addEventListener('change', (e) => {
+                        this.handleFileChange(e);
+                    });
+                }
+            }
+
+            handleFileChange(e) {
+                const newFiles = e.target.files;
+                console.log('File input change event triggered');
+                console.log('New files:', newFiles);
+                
+                if (newFiles.length === 0) return;
+                
+                // Get current count from the file input
+                const currentCount = this.getCurrentFileCount();
+                console.log(`Current count: ${currentCount}, New files: ${newFiles.length}, Max: ${this.maxFiles}`);
+                
+                // Check if adding new files would exceed the limit
+                if (currentCount + newFiles.length > this.maxFiles) {
+                    console.log('❌ LIMIT EXCEEDED - Cannot add files');
+                    alert(`Cannot add ${newFiles.length} files. You currently have ${currentCount} files and maximum ${this.maxFiles} files allowed.`);
+                    e.target.value = '';
+                    return;
+                }
+                
+                console.log('✅ Files can be added - processing...');
+                this.processFiles(newFiles);
+            }
+
+            getCurrentFileCount() {
+                const fileInput = document.getElementById('mediaFiles');
+                const count = fileInput ? fileInput.files.length : 0;
+                console.log(`getCurrentFileCount called - returning: ${count}`);
+                return count;
+            }
+
+            processFiles(newFiles) {
+                console.log('Processing files:', newFiles);
+                this.updateFileList();
+                this.updateDebugInfo();
+            }
+
+            updateFileList() {
+                const fileList = document.getElementById('fileList');
+                const fileInput = document.getElementById('mediaFiles');
+                
+                if (!fileList || !fileInput) return;
+                
+                const files = Array.from(fileInput.files);
+                console.log('Updating file list with:', files);
+                
+                fileList.innerHTML = '';
+                
+                if (files.length === 0) {
+                    fileList.innerHTML = '<p class="text-muted">No files selected</p>';
+                    return;
+                }
+                
+                files.forEach((file, index) => {
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'alert alert-info d-flex justify-content-between align-items-center';
+                    fileItem.innerHTML = `
+                        <div>
+                            <i class="fas fa-file me-2"></i>
+                            ${file.name} (${this.formatFileSize(file.size)})
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="debugManager.removeFile(${index})">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    `;
+                    fileList.appendChild(fileItem);
+                });
+            }
+
+            removeFile(index) {
+                console.log('Removing file at index:', index);
+                
+                const fileInput = document.getElementById('mediaFiles');
+                if (!fileInput) return;
+
+                const currentFiles = Array.from(fileInput.files);
+                console.log('Current files before removal:', currentFiles.map(f => f.name));
+                
+                currentFiles.splice(index, 1);
+                console.log('Files after removal:', currentFiles.map(f => f.name));
+                
+                const dataTransfer = new DataTransfer();
+                currentFiles.forEach(file => dataTransfer.items.add(file));
+                fileInput.files = dataTransfer.files;
+                
+                this.updateFileList();
+                this.updateDebugInfo();
+                
+                console.log('File removed successfully');
+            }
+
+            formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+
+            updateDebugInfo() {
+                const currentCount = this.getCurrentFileCount();
+                document.getElementById('currentCount').textContent = currentCount;
+                document.getElementById('currentMax').textContent = this.maxFiles;
+                
+                const debugContent = document.getElementById('debugContent');
+                debugContent.innerHTML = `
+                    <p><strong>File Input State:</strong></p>
+                    <ul>
+                        <li>Files in input: ${currentCount}</li>
+                        <li>Max allowed: ${this.maxFiles}</li>
+                        <li>Can add more: ${currentCount < this.maxFiles ? 'Yes' : 'No'}</li>
+                        <li>Remaining: ${Math.max(0, this.maxFiles - currentCount)}</li>
+                    </ul>
+                    <p><strong>File Names:</strong></p>
+                    <ul>
+                        ${Array.from(document.getElementById('mediaFiles').files).map(f => `<li>${f.name}</li>`).join('') || '<li>None</li>'}
+                    </ul>
+                `;
+            }
+
+            setMaxFiles(max) {
+                this.maxFiles = max;
+                console.log(`Max files set to: ${max}`);
+                this.updateDebugInfo();
+            }
+
+            clearFiles() {
+                const fileInput = document.getElementById('mediaFiles');
+                if (fileInput) {
+                    fileInput.value = '';
+                }
+                this.updateFileList();
+                this.updateDebugInfo();
+                console.log('Files cleared');
+            }
+        }
+
+        // Global functions for testing
+        function testFileCount() {
+            if (debugManager) {
+                debugManager.updateDebugInfo();
+            }
+        }
+
+        function clearFiles() {
+            if (debugManager) {
+                debugManager.clearFiles();
+            }
+        }
+
+        function setMaxFiles(max) {
+            if (debugManager) {
+                debugManager.setMaxFiles(max);
+            }
+        }
+
+        // Initialize when page loads
+        let debugManager;
+        document.addEventListener('DOMContentLoaded', function() {
+            debugManager = new DebugFileManager();
+            window.debugManager = debugManager;
+        });
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

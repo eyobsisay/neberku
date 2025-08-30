@@ -311,6 +311,7 @@ class Dashboard {
         formData.append('allow_videos', document.getElementById('allowVideos').value === 'true');
         formData.append('allow_wishes', document.getElementById('allowWishes').value === 'true');
         formData.append('auto_approve_posts', document.getElementById('autoApprovePosts').value === 'true');
+        formData.append('is_public', document.getElementById('isPublic').value === 'true');
         
         // Add files if selected
         const thumbnailFile = document.getElementById('eventThumbnail').files[0];

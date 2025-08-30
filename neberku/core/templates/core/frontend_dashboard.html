@@ -113,6 +113,15 @@
                             <label for="eventDescription" class="form-label">Description</label>
                             <textarea class="form-control" id="eventDescription" rows="3"></textarea>
                         </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="isPublic">
+                                    <label class="form-check-label" for="isPublic">Public Event (Discoverable)</label>
+                                    <div class="form-text">Check to make this event discoverable in public listings</div>
+                                </div>
+                            </div>
+                        </div>
                         <button type="submit" class="btn btn-primary">
                             <i class="bi bi-plus-circle"></i> Create Event
                         </button>
@@ -298,7 +307,8 @@
                 event_type: document.getElementById('eventType').value,
                 event_date: document.getElementById('eventDate').value,
                 location: document.getElementById('eventLocation').value,
-                description: document.getElementById('eventDescription').value
+                description: document.getElementById('eventDescription').value,
+                is_public: document.getElementById('isPublic').checked
             };
 
             try {

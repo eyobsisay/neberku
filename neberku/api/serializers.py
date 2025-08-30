@@ -261,11 +261,13 @@ class EventSerializer(serializers.ModelSerializer):
             'event_type', 'event_type_id', 'event_date', 'location', 'event_thumbnail', 'event_video',
             'allow_photos', 'allow_videos', 'allow_wishes', 'auto_approve_posts', 'status', 'payment_status',
             'qr_code', 'share_link', 'created_at', 'updated_at', 'published_at',
-            'settings', 'total_guest_posts', 'total_media_files', 'photo_count', 'video_count', 'is_live'
+            'settings', 'total_guest_posts', 'total_media_files', 'photo_count', 'video_count', 'is_live',
+            'is_public', 'contributor_code'
         ]
         read_only_fields = ['id', 'host', 'status', 'payment_status', 'qr_code', 
                            'share_link', 'created_at', 'updated_at', 'published_at',
-                           'settings', 'total_guest_posts', 'total_media_files', 'photo_count', 'video_count', 'is_live']
+                           'settings', 'total_guest_posts', 'total_media_files', 'photo_count', 'video_count', 'is_live',
+                           'contributor_code']
 
 class EventCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating events"""
@@ -292,7 +294,8 @@ class EventCreateSerializer(serializers.ModelSerializer):
         model = Event
         fields = [
             'title', 'description', 'package_id', 'event_type_id', 'event_date', 'location',
-            'event_thumbnail', 'event_video', 'allow_photos', 'allow_videos', 'allow_wishes', 'auto_approve_posts'
+            'event_thumbnail', 'event_video', 'allow_photos', 'allow_videos', 'allow_wishes', 'auto_approve_posts',
+            'is_public'
         ]
     
     def validate_title(self, value):
@@ -393,7 +396,8 @@ class EventGallerySerializer(serializers.ModelSerializer):
         fields = [
             'id', 'title', 'description', 'event_date', 'location', 'event_type',
             'event_thumbnail', 'package_name', 'guest_posts', 'total_guest_posts', 
-            'total_media_files', 'is_live', 'qr_code', 'share_link', 'like_count', 'is_liked_by_user'
+            'total_media_files', 'is_live', 'qr_code', 'share_link', 'like_count', 'is_liked_by_user',
+            'is_public'
         ]
         read_only_fields = ['id', 'total_guest_posts', 'total_media_files', 'is_live', 'like_count']
     
@@ -439,3 +443,38 @@ class EventSummarySerializer(serializers.ModelSerializer):
     
     def get_video_count(self, obj):
         return obj.media_files.filter(media_type='video').count() 
+
+class EventGuestAccessSerializer(serializers.ModelSerializer):
+    """Serializer for guest access to events"""
+    event_type = EventTypeSerializer(read_only=True)
+    package_name = serializers.CharField(source='package.name', read_only=True)
+    package_max_photos = serializers.IntegerField(source='package.max_photos', read_only=True)
+    package_max_videos = serializers.IntegerField(source='package.max_videos', read_only=True)
+    guest_max_media_per_post = serializers.SerializerMethodField()
+    total_guest_posts = serializers.ReadOnlyField()
+    total_media_files = serializers.ReadOnlyField()
+    is_accessible = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Event
+        fields = [
+            'id', 'title', 'description', 'event_date', 'location', 'event_type',
+            'event_thumbnail', 'package_name', 'package_max_photos', 'package_max_videos',
+            'guest_max_media_per_post', 'total_guest_posts', 'total_media_files', 'is_public', 'is_accessible'
+        ]
+        read_only_fields = ['id', 'total_guest_posts', 'total_media_files']
+    
+    def get_guest_max_media_per_post(self, obj):
+        """Get the maximum media files per guest post from EventSettings"""
+        try:
+            return obj.settings.max_media_per_post
+        except EventSettings.DoesNotExist:
+            return 3  # Default value
+    
+    def get_is_accessible(self, obj):
+        """Check if the event is accessible to the current request"""
+        request = self.context.get('request')
+        if request:
+            contributor_code = request.query_params.get('code')
+            return obj.can_be_accessed_by_guest(contributor_code)
+        return False

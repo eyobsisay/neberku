@@ -93,6 +93,9 @@ class Event(models.Model):
     # Social features
     likes = models.ManyToManyField(User, related_name='liked_events', blank=True)
     
+    # Privacy settings
+    is_public = models.BooleanField(default=False, help_text="If True, event can be accessed without contributor code")
+    
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -251,6 +254,14 @@ class Event(models.Model):
         """Check if a specific user has liked this event"""
         if user.is_authenticated:
             return self.likes.filter(id=user.id).exists()
+        return False
+    
+    def can_be_accessed_by_guest(self, contributor_code=None):
+        """Check if a guest can access this event"""
+        # All events require a valid contributor code
+        if contributor_code and contributor_code == self.contributor_code:
+            return True
+        
         return False
     
     def toggle_like(self, user):

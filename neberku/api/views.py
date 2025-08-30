@@ -18,7 +18,7 @@ from rest_framework.permissions import AllowAny
 from core.models import EventType, Package, Event, Payment, Guest, GuestPost, MediaFile, EventSettings
 from .serializers import (
     EventTypeSerializer, EventTypeCreateSerializer, PackageSerializer, PackageCreateSerializer, EventSerializer, EventCreateSerializer, EventGallerySerializer,
-    EventSummarySerializer, PaymentSerializer, PaymentCreateSerializer, GuestSerializer, GuestPostSerializer, GuestPostCreateSerializer,
+    EventSummarySerializer, EventGuestAccessSerializer, PaymentSerializer, PaymentCreateSerializer, GuestSerializer, GuestPostSerializer, GuestPostCreateSerializer,
     GuestPostListSerializer, MediaFileSerializer, MediaFileCreateSerializer
 )
 from rest_framework import serializers
@@ -232,6 +232,57 @@ class EventViewSet(viewsets.ModelViewSet):
         
         serializer = self.get_serializer(event)
         return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'])
+    def guest_access(self, request):
+        """Get event for guest access using contributor code only"""
+        contributor_code = request.query_params.get('code')
+        
+        if not contributor_code:
+            return Response(
+                {'error': 'Contributor code is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            # Find event by contributor code
+            event = Event.objects.get(contributor_code=contributor_code)
+        except Event.DoesNotExist:
+            return Response(
+                {'error': 'Invalid contributor code. Event not found.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Check if event is live
+        if not event.is_live:
+            return Response(
+                {'error': 'Event is not live'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # For private events, validate the code
+        # For public events, any valid code will work
+        if not event.can_be_accessed_by_guest(contributor_code):
+            return Response(
+                {'error': 'Access denied. Invalid contributor code or event is private.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        serializer = EventGuestAccessSerializer(event, context={'request': request})
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'])
+    def public_events(self, request):
+        """List all public events that guests can access without a code"""
+        # Only show live public events
+        public_events = Event.objects.filter(
+            is_public=True,
+            status='active',
+            payment_status='paid'
+        ).order_by('-published_at')
+        
+        serializer = EventGuestAccessSerializer(public_events, many=True, context={'request': request})
+        return Response(serializer.data)
 
 class PaymentViewSet(viewsets.ModelViewSet):
     """ViewSet for managing payments"""
@@ -357,23 +408,19 @@ class GuestPostCreateViewSet(viewsets.GenericViewSet):
                 event = post.event
                 guest = post.guest
                 
-                # Check media limits
+                # Check media limits from EventSettings (per-guest limits)
                 try:
                     settings = event.settings
-                    max_media = settings.max_media_per_post
-                    
-                    total_media = len(photos) + len(videos)
-                    if total_media > max_media:
-                        # Delete the post if media limit exceeded
-                        post.delete()
-                        raise serializers.ValidationError(f"Maximum media files per post ({max_media}) exceeded. You uploaded {total_media} files.")
-                        
+                    max_media_per_post = settings.max_media_per_post
                 except EventSettings.DoesNotExist:
-                    # Use default limit
-                    total_media = len(photos) + len(videos)
-                    if total_media > 3:
-                        post.delete()
-                        raise serializers.ValidationError(f"Maximum media files per post (3) exceeded. You uploaded {total_media} files.")
+                    # Use default limit if no settings exist
+                    max_media_per_post = 3
+                
+                # Check total media limit per post
+                total_media = len(photos) + len(videos)
+                if total_media > max_media_per_post:
+                    post.delete()
+                    raise serializers.ValidationError(f"Maximum media files per post ({max_media_per_post}) exceeded. You uploaded {total_media} files.")
                 
                 # Create media files for photos
                 for photo in photos:
@@ -864,3 +911,59 @@ def api_logout(request):
             {'error': 'User not authenticated'},
             status=status.HTTP_401_UNAUTHORIZED
         )
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def guest_event_access(request):
+    """API endpoint for guests to access events using contributor code only"""
+    contributor_code = request.query_params.get('code')
+    
+    if not contributor_code:
+        return Response(
+            {'error': 'Contributor code is required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    try:
+        # Find event by contributor code
+        event = Event.objects.get(contributor_code=contributor_code)
+    except Event.DoesNotExist:
+        return Response(
+            {'error': 'Invalid contributor code. Event not found.'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    
+    # Check if event is live
+    if not event.is_live:
+        return Response(
+            {'error': 'Event is not live'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    
+    # For private events, validate the code
+    # For public events, any valid code will work
+    if not event.can_be_accessed_by_guest(contributor_code):
+        return Response(
+            {'error': 'Access denied. Invalid contributor code or event is private.'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    # Serialize the event for guest access
+    serializer = EventGuestAccessSerializer(event, context={'request': request})
+    return Response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def list_public_events(request):
+    """API endpoint to list all public events that guests can access without a code"""
+    # Only show live public events
+    public_events = Event.objects.filter(
+        is_public=True,
+        status='active',
+        payment_status='paid'
+    ).order_by('-published_at')
+    
+    serializer = EventGuestAccessSerializer(public_events, many=True, context={'request': request})
+    return Response(serializer.data)

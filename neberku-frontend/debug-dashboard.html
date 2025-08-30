@@ -190,6 +190,20 @@
                                      </div>
                                  </div>
                              </div>
+                             <div class="row">
+                                 <div class="col-md-6">
+                                     <div class="mb-3">
+                                         <label for="isPublic" class="form-label">Event Visibility</label>
+                                         <select class="form-control" id="isPublic" required>
+                                             <option value="false">Private (Code Required)</option>
+                                             <option value="true">Public (Discoverable)</option>
+                                         </select>
+                                         <div class="form-text">Private events require contributor codes, public events can be discovered</div>
+                                     </div>
+                                 </div>
+                                     </div>
+                                 </div>
+                             </div>
                             <button type="submit" class="btn btn-primary">
                                 <i class="bi bi-plus-circle"></i> Create Event
                             </button>
@@ -474,7 +488,8 @@
                     allow_photos: document.getElementById('allowPhotos').value === 'true',
                     allow_videos: document.getElementById('allowVideos').value === 'true',
                     allow_wishes: document.getElementById('allowWishes').value === 'true',
-                    auto_approve_posts: document.getElementById('autoApprovePosts').value === 'true'
+                    auto_approve_posts: document.getElementById('autoApprovePosts').value === 'true',
+                    is_public: document.getElementById('isPublic').value === 'true'
                 };
 
                 try {

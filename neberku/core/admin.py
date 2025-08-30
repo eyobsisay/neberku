@@ -51,13 +51,13 @@ class PackageAdmin(admin.ModelAdmin):
 
 @admin.register(Event)
 class EventAdmin(admin.ModelAdmin):
-    list_display = ['title', 'host', 'event_type', 'event_date', 'status', 'payment_status', 'contributor_code', 'total_guest_posts', 'total_media_files', 'like_count', 'is_live']
-    list_filter = ['status', 'payment_status', 'event_type', 'created_at', 'event_date']
+    list_display = ['title', 'host', 'event_type', 'event_date', 'status', 'payment_status', 'is_public_display', 'contributor_code', 'total_guest_posts', 'total_media_files', 'like_count', 'is_live']
+    list_filter = ['status', 'payment_status', 'event_type', 'is_public', 'created_at', 'event_date']
     search_fields = ['title', 'description', 'host__username', 'host__email']
     readonly_fields = ['id', 'created_at', 'updated_at', 'published_at', 'total_guest_posts', 'total_media_files', 'like_count', 'is_live', 'qr_code_display', 'share_link_display', 'contributor_code_display']
     ordering = ['-created_at']
     
-    actions = ['regenerate_qr_codes', 'regenerate_share_links', 'regenerate_contributor_codes']
+    actions = ['regenerate_qr_codes', 'regenerate_share_links', 'regenerate_contributor_codes', 'toggle_public_status']
     
     fieldsets = (
         ('Event Information', {
@@ -67,7 +67,7 @@ class EventAdmin(admin.ModelAdmin):
             'fields': ('event_thumbnail', 'qr_code_display', 'share_link_display', 'contributor_code_display')
         }),
         ('Settings', {
-            'fields': ('allow_photos', 'allow_videos', 'allow_wishes', 'auto_approve_posts')
+            'fields': ('allow_photos', 'allow_videos', 'allow_wishes', 'auto_approve_posts', 'is_public')
         }),
         ('Status & Payment', {
             'fields': ('status', 'payment_status')
@@ -139,6 +139,12 @@ class EventAdmin(admin.ModelAdmin):
         return 'No code generated'
     contributor_code_display.short_description = 'Contributor Code'
     
+    def is_public_display(self, obj):
+        if obj.is_public:
+            return format_html('<span style="color: green; font-weight: bold;">✓ Public</span>')
+        return format_html('<span style="color: red; font-weight: bold;">✗ Private</span>')
+    is_public_display.short_description = 'Public'
+    
     def regenerate_contributor_codes(self, request, queryset):
         """Admin action to regenerate contributor codes for selected events"""
         count = 0
@@ -149,6 +155,17 @@ class EventAdmin(admin.ModelAdmin):
         
         self.message_user(request, f'Successfully regenerated contributor codes for {count} events.')
     regenerate_contributor_codes.short_description = "Regenerate contributor codes for selected events"
+    
+    def toggle_public_status(self, request, queryset):
+        """Admin action to toggle public/private status of selected events"""
+        count = 0
+        for event in queryset:
+            event.is_public = not event.is_public
+            event.save()
+            count += 1
+        
+        self.message_user(request, f'Successfully toggled public status for {count} events.')
+    toggle_public_status.short_description = "Toggle public/private status for selected events"
 
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):

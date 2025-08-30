@@ -21,4 +21,8 @@ urlpatterns = [
     path('login/', views.api_login, name='api_login'),
     path('register/', views.api_register, name='api_register'),
     path('logout/', views.api_logout, name='api_logout'),
+    
+    # Guest access endpoints
+    path('guest/event/', views.guest_event_access, name='guest_event_access'),
+    path('guest/public-events/', views.list_public_events, name='list_public_events'),
 ] 
