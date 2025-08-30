@@ -10,6 +10,7 @@ from django.utils import timezone
 from django.db.models import Q, Count
 from django.core.paginator import Paginator
 from django.conf import settings
+from .models import Event
 import os
 import json
 
@@ -124,3 +125,36 @@ def frontend_debug(request):
 def frontend_register(request):
     """Serve the frontend register page from Django to avoid CORS issues"""
     return render(request, 'core/frontend_register.html')
+
+def contributor_access(request):
+    """Page for contributors to enter event access code"""
+    if request.method == 'POST':
+        contributor_code = request.POST.get('contributor_code', '').strip().upper()
+        
+        if contributor_code:
+            try:
+                # Find event by contributor code
+                event = Event.objects.get(contributor_code=contributor_code, status='active')
+                # Store event ID in session for access
+                request.session['contributor_event_id'] = str(event.id)
+                messages.success(request, f'Welcome to {event.title}! You can now contribute to this event.')
+                return redirect('core:event_gallery', event_id=event.id)
+            except Event.DoesNotExist:
+                messages.error(request, 'Invalid contributor code. Please check and try again.')
+            except Exception as e:
+                messages.error(request, 'An error occurred. Please try again.')
+        else:
+            messages.error(request, 'Please enter a contributor code.')
+    
+    return render(request, 'core/contributor_access.html')
+
+def verify_contributor_access(request, event_id):
+    """Verify if user has access to contribute to an event"""
+    try:
+        # Check if user has valid contributor access
+        contributor_event_id = request.session.get('contributor_event_id')
+        if contributor_event_id == str(event_id):
+            return True
+        return False
+    except:
+        return False

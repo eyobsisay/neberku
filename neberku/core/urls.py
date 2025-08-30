@@ -37,6 +37,9 @@ urlpatterns = [
     # Guest contribution page
     path('contribute/', views.guest_contribution, name='guest_contribution'),
     
+    # Contributor access page
+    path('access/', views.contributor_access, name='contributor_access'),
+    
     # Event gallery (public)
     path('event/<uuid:event_id>/', views.event_gallery, name='event_gallery'),
     

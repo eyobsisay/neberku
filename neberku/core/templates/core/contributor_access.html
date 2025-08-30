@@ -1,0 +1,128 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Access Event - Neberku{% endblock %}
+
+{% block navigation %}
+<li class="nav-item">
+    <a class="nav-link" href="{% url 'core:landing_page' %}">Home</a>
+</li>
+<li class="nav-item">
+    <a class="nav-link" href="{% url 'core:contributor_access' %}">Access Event</a>
+</li>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-lg">
+                <div class="card-header bg-primary text-white text-center">
+                    <h3 class="mb-0">
+                        <i class="bi bi-key"></i> Access Event
+                    </h3>
+                </div>
+                <div class="card-body p-4">
+                    <div class="text-center mb-4">
+                        <i class="bi bi-camera-video text-primary" style="font-size: 3rem;"></i>
+                        <h4 class="mt-3">Enter Event Code</h4>
+                        <p class="text-muted">Enter the contributor code provided by the event host to access and contribute to the event.</p>
+                    </div>
+
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <form method="post" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        <div class="mb-4">
+                            <label for="contributor_code" class="form-label fw-bold">Contributor Code</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="bi bi-hash"></i>
+                                </span>
+                                <input type="text" 
+                                       class="form-control form-control-lg text-center text-uppercase" 
+                                       id="contributor_code" 
+                                       name="contributor_code" 
+                                       placeholder="Enter 6-digit code"
+                                       maxlength="6"
+                                       pattern="[A-Z0-9]{6}"
+                                       required>
+                            </div>
+                            <div class="form-text">
+                                <i class="bi bi-info-circle"></i> Enter the 6-character code (letters and numbers only)
+                            </div>
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-arrow-right-circle"></i> Access Event
+                            </button>
+                        </div>
+                    </form>
+
+                    <div class="text-center mt-4">
+                        <hr>
+                        <p class="text-muted mb-2">Don't have a code?</p>
+                        <p class="small">Contact the event host to get your contributor code, or ask them to share the event link with you.</p>
+                        <a href="{% url 'core:landing_page' %}" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-arrow-left"></i> Back to Home
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Help Section -->
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="bi bi-question-circle text-info"></i> How to Use
+                    </h5>
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle text-success"></i> Get the contributor code from your event host
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle text-success"></i> Enter the code above (it's case-insensitive)
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle text-success"></i> Access the event and start contributing photos/videos
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const codeInput = document.getElementById('contributor_code');
+    
+    // Auto-format input to uppercase
+    codeInput.addEventListener('input', function() {
+        this.value = this.value.toUpperCase();
+    });
+    
+    // Form validation
+    const form = document.querySelector('.needs-validation');
+    form.addEventListener('submit', function(event) {
+        if (!form.checkValidity()) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        form.classList.add('was-validated');
+    });
+    
+    // Auto-focus on input
+    codeInput.focus();
+});
+</script>
+{% endblock %}

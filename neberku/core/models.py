@@ -86,6 +86,10 @@ class Event(models.Model):
     qr_code = models.ImageField(upload_to='qr_codes/', blank=True, null=True)
     share_link = models.URLField(blank=True, null=True)
     
+    # Contributor access
+    contributor_code = models.CharField(max_length=10, unique=True, blank=True, null=True, 
+                                     help_text="Unique code for contributors to access this event")
+    
     # Social features
     likes = models.ManyToManyField(User, related_name='liked_events', blank=True)
     
@@ -144,6 +148,25 @@ class Event(models.Model):
             print(f"Error generating share link for event {self.id}: {e}")
             pass
     
+    def generate_contributor_code(self):
+        """Generate a unique contributor code for the event"""
+        import random
+        import string
+        
+        try:
+            if not self.contributor_code:
+                # Generate a 6-character alphanumeric code
+                while True:
+                    code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+                    # Check if code is unique
+                    if not Event.objects.filter(contributor_code=code).exists():
+                        self.contributor_code = code
+                        break
+        except Exception as e:
+            # Log error but don't fail event creation
+            print(f"Error generating contributor code for event {self.id}: {e}")
+            pass
+    
     def regenerate_qr_code(self):
         """Regenerate QR code (useful for updating existing events)"""
         # Delete existing QR code if it exists
@@ -158,13 +181,18 @@ class Event(models.Model):
     def regenerate_share_link(self):
         """Regenerate share link (useful for updating existing events)"""
         self.generate_share_link()
+    
+    def regenerate_contributor_code(self):
+        """Regenerate contributor code (useful for updating existing events)"""
+        self.contributor_code = None
+        self.generate_contributor_code()
             
     def save(self, *args, **kwargs):
         try:
             # Save first to get the ID
             super().save(*args, **kwargs)
             
-            # Generate QR code and share link if they don't exist
+            # Generate QR code, share link, and contributor code if they don't exist
             needs_save = False
             
             if not self.qr_code:
@@ -175,13 +203,17 @@ class Event(models.Model):
                 self.generate_share_link()
                 needs_save = True
                 
+            if not self.contributor_code:
+                self.generate_contributor_code()
+                needs_save = True
+                
             if self.status == 'active' and not self.published_at:
                 self.published_at = timezone.now()
                 needs_save = True
                 
             # Save again if we made changes
             if needs_save:
-                super().save(update_fields=['qr_code', 'share_link', 'published_at'])
+                super().save(update_fields=['qr_code', 'share_link', 'contributor_code', 'published_at'])
                 
         except Exception as e:
             print(f"Error in Event.save() for event {getattr(self, 'id', 'unknown')}: {e}")

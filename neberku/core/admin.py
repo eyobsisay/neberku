@@ -51,20 +51,20 @@ class PackageAdmin(admin.ModelAdmin):
 
 @admin.register(Event)
 class EventAdmin(admin.ModelAdmin):
-    list_display = ['title', 'host', 'event_type', 'event_date', 'status', 'payment_status', 'total_guest_posts', 'total_media_files', 'like_count', 'is_live']
+    list_display = ['title', 'host', 'event_type', 'event_date', 'status', 'payment_status', 'contributor_code', 'total_guest_posts', 'total_media_files', 'like_count', 'is_live']
     list_filter = ['status', 'payment_status', 'event_type', 'created_at', 'event_date']
     search_fields = ['title', 'description', 'host__username', 'host__email']
-    readonly_fields = ['id', 'created_at', 'updated_at', 'published_at', 'total_guest_posts', 'total_media_files', 'like_count', 'is_live', 'qr_code_display', 'share_link_display']
+    readonly_fields = ['id', 'created_at', 'updated_at', 'published_at', 'total_guest_posts', 'total_media_files', 'like_count', 'is_live', 'qr_code_display', 'share_link_display', 'contributor_code_display']
     ordering = ['-created_at']
     
-    actions = ['regenerate_qr_codes', 'regenerate_share_links']
+    actions = ['regenerate_qr_codes', 'regenerate_share_links', 'regenerate_contributor_codes']
     
     fieldsets = (
         ('Event Information', {
             'fields': ('id', 'title', 'description', 'host', 'package', 'event_type', 'event_date', 'location')
         }),
         ('Media & Images', {
-            'fields': ('event_thumbnail', 'qr_code_display', 'share_link_display')
+            'fields': ('event_thumbnail', 'qr_code_display', 'share_link_display', 'contributor_code_display')
         }),
         ('Settings', {
             'fields': ('allow_photos', 'allow_videos', 'allow_wishes', 'auto_approve_posts')
@@ -129,6 +129,26 @@ class EventAdmin(admin.ModelAdmin):
         
         self.message_user(request, f'Successfully regenerated share links for {count} events.')
     regenerate_share_links.short_description = "Regenerate share links for selected events"
+    
+    def contributor_code_display(self, obj):
+        if obj.contributor_code:
+            return format_html(
+                '<code style="background-color: #f8f9fa; padding: 4px 8px; border-radius: 4px; font-family: monospace; font-size: 1.1em;">{}</code>',
+                obj.contributor_code
+            )
+        return 'No code generated'
+    contributor_code_display.short_description = 'Contributor Code'
+    
+    def regenerate_contributor_codes(self, request, queryset):
+        """Admin action to regenerate contributor codes for selected events"""
+        count = 0
+        for event in queryset:
+            event.regenerate_contributor_code()
+            event.save()
+            count += 1
+        
+        self.message_user(request, f'Successfully regenerated contributor codes for {count} events.')
+    regenerate_contributor_codes.short_description = "Regenerate contributor codes for selected events"
 
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
