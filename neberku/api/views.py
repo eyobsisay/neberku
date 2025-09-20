@@ -9,12 +9,14 @@ from django.http import Http404
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from rest_framework.parsers import MultiPartParser, FormParser
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenObtainPairView
 from core.models import EventType, Package, Event, Payment, Guest, GuestPost, MediaFile, EventSettings
 from .serializers import (
     EventTypeSerializer, EventTypeCreateSerializer, PackageSerializer, PackageCreateSerializer, EventSerializer, EventCreateSerializer, EventGallerySerializer,
@@ -22,6 +24,30 @@ from .serializers import (
     GuestPostListSerializer, MediaFileSerializer, MediaFileCreateSerializer
 )
 from rest_framework import serializers
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    """
+    Custom JWT token view that includes user information in the response.
+    """
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+        if response.status_code == 200:
+            # Get the user from the validated data
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            user = serializer.validated_data['user']
+            
+            # Add user information to the response
+            response.data.update({
+                'user': {
+                    'id': user.id,
+                    'username': user.username,
+                    'email': user.email,
+                    'first_name': user.first_name,
+                    'last_name': user.last_name,
+                }
+            })
+        return response
 
 class EventTypeViewSet(viewsets.ModelViewSet):
     """
@@ -31,9 +57,15 @@ class EventTypeViewSet(viewsets.ModelViewSet):
     Event types are predefined categories that help organize and categorize events.
     """
     queryset = EventType.objects.filter(is_active=True)
-    permission_classes = [permissions.IsAdminUser]
     parser_classes = [MultiPartParser, FormParser]
 
+    def get_permissions(self):
+        """Set permissions based on action"""
+        if self.action in ['list', 'retrieve', 'featured']:
+            permission_classes = [permissions.AllowAny]
+        else:
+            permission_classes = [permissions.IsAdminUser]
+        return [permission() for permission in permission_classes]
     
     def get_serializer_class(self):
         """Use different serializers for different actions"""
@@ -54,18 +86,15 @@ class EventTypeViewSet(viewsets.ModelViewSet):
     
     def list(self, request, *args, **kwargs):
         """List event types - allow anyone to view active ones"""
-        self.permission_classes = [permissions.AllowAny]
         return super().list(request, *args, **kwargs)
     
     def retrieve(self, request, *args, **kwargs):
         """Retrieve event type - allow anyone to view active ones"""
-        self.permission_classes = [permissions.AllowAny]
         return super().retrieve(request, *args, **kwargs)
     
     @action(detail=False, methods=['get'])
     def featured(self, request):
         """Get featured event types - allow anyone to view"""
-        self.permission_classes = [permissions.AllowAny]
         featured_types = self.queryset.filter(is_active=True).order_by('sort_order')[:6]
         serializer = self.get_serializer(featured_types, many=True)
         return Response(serializer.data)
@@ -78,8 +107,15 @@ class PackageViewSet(viewsets.ModelViewSet):
     Packages define pricing, limits, and features for different types of events.
     """
     queryset = Package.objects.filter(is_active=True)
-    permission_classes = [permissions.IsAdminUser]
     parser_classes = [MultiPartParser, FormParser]
+    
+    def get_permissions(self):
+        """Set permissions based on action"""
+        if self.action in ['list', 'retrieve', 'featured']:
+            permission_classes = [permissions.AllowAny]
+        else:
+            permission_classes = [permissions.IsAdminUser]
+        return [permission() for permission in permission_classes]
     
     def get_serializer_class(self):
         """Use different serializers for different actions"""
@@ -100,18 +136,15 @@ class PackageViewSet(viewsets.ModelViewSet):
     
     def list(self, request, *args, **kwargs):
         """List packages - allow anyone to view active ones"""
-        self.permission_classes = [permissions.AllowAny]
         return super().list(request, *args, **kwargs)
     
     def retrieve(self, request, *args, **kwargs):
         """Retrieve package - allow anyone to view active ones"""
-        self.permission_classes = [permissions.AllowAny]
         return super().retrieve(request, *args, **kwargs)
     
     @action(detail=False, methods=['get'])
     def featured(self, request):
         """Get featured packages - allow anyone to view"""
-        self.permission_classes = [permissions.AllowAny]
         featured_packages = self.queryset.filter(is_active=True)[:3]
         serializer = self.get_serializer(featured_packages, many=True)
         return Response(serializer.data)
@@ -778,20 +811,21 @@ class PublicEventViewSet(viewsets.ReadOnlyModelViewSet):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def api_debug_auth(request):
-    """Debug endpoint to check authentication status"""
+    """Debug endpoint to check authentication status - JWT version"""
     print(f"🔍 Debug auth request - Method: {request.method}")
     print(f"🔍 Request user: {request.user}")
     print(f"🔍 User authenticated: {request.user.is_authenticated}")
-    print(f"🔍 Session key: {request.session.session_key}")
-    print(f"🔍 Session data: {dict(request.session)}")
-    print(f"🔍 Cookies: {request.COOKIES}")
     print(f"🔍 Headers: {dict(request.headers)}")
+    
+    # Check for JWT token in Authorization header
+    auth_header = request.headers.get('Authorization', '')
+    has_jwt_token = auth_header.startswith('Bearer ')
     
     return Response({
         'authenticated': request.user.is_authenticated,
         'user': str(request.user) if request.user.is_authenticated else None,
-        'session_id': request.session.session_key,
-        'cookies': dict(request.COOKIES),
+        'has_jwt_token': has_jwt_token,
+        'auth_header': auth_header[:20] + '...' if len(auth_header) > 20 else auth_header,
         'headers': dict(request.headers),
         'method': request.method,
         'path': request.path,
@@ -800,12 +834,9 @@ def api_debug_auth(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def api_login(request):
-    """API endpoint for user login"""
+    """API endpoint for user login - JWT version"""
     print(f"🔐 Login attempt - Method: {request.method}")
     print(f"🔐 Request data: {request.data}")
-    print(f"🔐 Request user: {request.user}")
-    print(f"🔐 Session key: {request.session.session_key}")
-    print(f"🔐 Cookies: {request.COOKIES}")
     
     username = request.data.get('username')
     password = request.data.get('password')
@@ -825,15 +856,16 @@ def api_login(request):
         print(f"🔐 User is active: {user.is_active}")
         print(f"🔐 User is staff: {user.is_staff}")
         
-        # Login the user
-        login(request, user)
+        # Generate JWT tokens
+        refresh = RefreshToken.for_user(user)
+        access_token = refresh.access_token
         
-        print(f"🔐 User logged in: {request.user}")
-        print(f"🔐 Session key after login: {request.session.session_key}")
-        print(f"🔐 Session data: {dict(request.session)}")
+        print(f"🔐 JWT tokens generated for user: {user.username}")
         
         return Response({
             'success': True,
+            'access': str(access_token),
+            'refresh': str(refresh),
             'user': {
                 'id': user.id,
                 'username': user.username,
@@ -910,17 +942,29 @@ def api_register(request):
 
 @api_view(['POST'])
 def api_logout(request):
-    """API endpoint for user logout"""
-    if request.user.is_authenticated:
-        logout(request)
-        return Response({
-            'success': True,
-            'message': 'Logout successful'
-        })
-    else:
+    """API endpoint for user logout - JWT version"""
+    try:
+        # For JWT, we can't really "logout" on the server side since tokens are stateless
+        # The client should simply discard the tokens
+        # However, we can implement token blacklisting if needed
+        
+        # Check if user is authenticated via JWT
+        if request.user.is_authenticated:
+            # In a more advanced implementation, you could blacklist the token here
+            # For now, we'll just return success and let the client handle token removal
+            return Response({
+                'success': True,
+                'message': 'Logout successful. Please discard your tokens on the client side.'
+            })
+        else:
+            return Response(
+                {'error': 'User not authenticated'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+    except Exception as e:
         return Response(
-            {'error': 'User not authenticated'},
-            status=status.HTTP_401_UNAUTHORIZED
+            {'error': f'Logout error: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
 

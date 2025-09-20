@@ -62,12 +62,25 @@ class EventDetail {
         try {
             console.log('📡 Loading event details for ID:', this.eventId);
             
+            // Get JWT token for authentication
+            const token = localStorage.getItem('neberku_access_token');
+            if (!token) {
+                console.error('❌ No JWT token found, cannot load event details');
+                this.showError('Authentication token not found. Please log in again.');
+                setTimeout(() => {
+                    window.location.replace('login.html');
+                }, 3000);
+                return;
+            }
+
+            const headers = {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            };
+            
             const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.EVENT_DETAIL.replace('{id}', this.eventId)}`, {
                 method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'include'
+                headers: headers
             });
 
             if (response.ok) {
@@ -89,13 +102,23 @@ class EventDetail {
         try {
             console.log('📡 Loading guest posts for event:', this.eventId);
             
+            // Get JWT token for authentication
+            const token = localStorage.getItem('neberku_access_token');
+            if (!token) {
+                console.error('❌ No JWT token found, cannot load guest posts');
+                this.showError('Authentication token not found. Please log in again.');
+                return;
+            }
+
+            const headers = {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            };
+            
             // Use the by_event action with event_id parameter
             const response = await fetch(`${API_CONFIG.BASE_URL}/api/guest-posts/by_event/?event_id=${this.eventId}`, {
                 method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'include'
+                headers: headers
             });
 
             if (response.ok) {
@@ -414,12 +437,22 @@ class EventDetail {
         try {
             console.log('✅ Approving post:', postId);
             
+            // Get JWT token for authentication
+            const token = localStorage.getItem('neberku_access_token');
+            if (!token) {
+                console.error('❌ No JWT token found, cannot approve post');
+                this.showError('Authentication token not found. Please log in again.');
+                return;
+            }
+
+            const headers = {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            };
+            
             const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.GUEST_POST_DETAIL.replace('{id}', postId)}/approve/`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'include'
+                headers: headers
             });
 
             if (response.ok) {
@@ -583,13 +616,22 @@ function debugGuestPosts() {
         console.log('Guest posts:', window.eventDetail.guestPosts);
         console.log('Filtered posts:', window.eventDetail.filteredPosts);
         
+        // Get JWT token for authentication
+        const token = localStorage.getItem('neberku_access_token');
+        if (!token) {
+            console.error('❌ No JWT token found for debug call');
+            return;
+        }
+
+        const headers = {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        };
+        
         // Test API call manually with the correct guest posts endpoint and event filtering
         fetch(`${API_CONFIG.BASE_URL}/api/guest-posts/?event=${window.eventDetail.eventId}`, {
             method: 'GET',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            credentials: 'include'
+            headers: headers
         })
         .then(response => response.json())
         .then(data => {

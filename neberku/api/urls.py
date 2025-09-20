@@ -1,5 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
+from rest_framework_simplejwt.views import TokenRefreshView, TokenVerifyView
 from . import views
 
 router = DefaultRouter()
@@ -16,7 +17,12 @@ router.register(r'public-events', views.PublicEventViewSet, basename='public-eve
 urlpatterns = [
     path('', include(router.urls)),
     
-    # Authentication endpoints
+    # JWT Authentication endpoints
+    path('token/', views.CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('token/verify/', TokenVerifyView.as_view(), name='token_verify'),
+    
+    # Custom Authentication endpoints
     path('debug-auth/', views.api_debug_auth, name='api_debug_auth'),
     path('login/', views.api_login, name='api_login'),
     path('register/', views.api_register, name='api_register'),

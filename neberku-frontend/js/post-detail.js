@@ -34,12 +34,25 @@ class PostDetail {
         try {
             console.log('📡 Loading post details for ID:', this.postId);
             
+            // Get JWT token for authentication
+            const token = localStorage.getItem('neberku_access_token');
+            if (!token) {
+                console.error('❌ No JWT token found, cannot load post details');
+                this.showError('Authentication token not found. Please log in again.');
+                setTimeout(() => {
+                    window.location.replace('login.html');
+                }, 3000);
+                return;
+            }
+
+            const headers = {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            };
+            
             const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.GUEST_POST_DETAIL.replace('{id}', this.postId)}`, {
                 method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'include'
+                headers: headers
             });
 
             if (response.ok) {
@@ -185,12 +198,22 @@ class PostDetail {
         try {
             console.log('✅ Approving post:', this.postId);
             
+            // Get JWT token for authentication
+            const token = localStorage.getItem('neberku_access_token');
+            if (!token) {
+                console.error('❌ No JWT token found, cannot approve post');
+                this.showError('Authentication token not found. Please log in again.');
+                return;
+            }
+
+            const headers = {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            };
+            
             const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.GUEST_POST_DETAIL.replace('{id}', this.postId)}/approve/`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'include'
+                headers: headers
             });
 
             if (response.ok) {
@@ -215,12 +238,22 @@ class PostDetail {
         try {
             console.log('❌ Rejecting post:', this.postId);
             
+            // Get JWT token for authentication
+            const token = localStorage.getItem('neberku_access_token');
+            if (!token) {
+                console.error('❌ No JWT token found, cannot reject post');
+                this.showError('Authentication token not found. Please log in again.');
+                return;
+            }
+
+            const headers = {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            };
+            
             const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.GUEST_POST_DETAIL.replace('{id}', this.postId)}/reject/`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'include'
+                headers: headers
             });
 
             if (response.ok) {

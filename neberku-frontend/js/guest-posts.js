@@ -74,18 +74,33 @@ class GuestPostsManager {
 
     async loadEvents() {
         try {
+            // Get JWT token for authentication
+            const token = localStorage.getItem('neberku_access_token');
+            if (!token) {
+                console.error('❌ No JWT token found, cannot load events');
+                this.showError('Authentication token not found. Please log in again.');
+                setTimeout(() => {
+                    window.location.replace('login.html');
+                }, 3000);
+                return;
+            }
+
+            const headers = {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            };
+
             const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.EVENTS}`, {
                 method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'include'
+                headers: headers
             });
 
             if (response.ok) {
                 const eventsData = await response.json();
                 const events = eventsData.results || eventsData;
                 this.populateEventFilter(events);
+            } else {
+                console.error('❌ Failed to load events:', response.status, response.statusText);
             }
         } catch (error) {
             console.error('❌ Error loading events:', error);
@@ -108,12 +123,25 @@ class GuestPostsManager {
         try {
             console.log('📡 Loading guest posts...');
             
+            // Get JWT token for authentication
+            const token = localStorage.getItem('neberku_access_token');
+            if (!token) {
+                console.error('❌ No JWT token found, cannot load posts');
+                this.showError('Authentication token not found. Please log in again.');
+                setTimeout(() => {
+                    window.location.replace('login.html');
+                }, 3000);
+                return;
+            }
+
+            const headers = {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            };
+            
             const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.GUEST_POSTS}`, {
                 method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'include'
+                headers: headers
             });
 
             if (response.ok) {
@@ -310,12 +338,22 @@ class GuestPostsManager {
         try {
             console.log('✅ Approving post:', postId);
             
+            // Get JWT token for authentication
+            const token = localStorage.getItem('neberku_access_token');
+            if (!token) {
+                console.error('❌ No JWT token found, cannot approve post');
+                this.showError('Authentication token not found. Please log in again.');
+                return;
+            }
+
+            const headers = {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            };
+            
             const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.GUEST_POST_DETAIL.replace('{id}', postId)}/approve/`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'include'
+                headers: headers
             });
 
             if (response.ok) {

@@ -66,47 +66,28 @@ class Dashboard {
 
     async loadEvents() {
         try {
-            // Get CSRF token if available
-            let csrfToken = null;
-            try {
-                const csrfResponse = await fetch(`${API_CONFIG.BASE_URL}/api/`, {
-                    method: 'GET',
-                    credentials: 'include'
-                });
-                if (csrfResponse.ok) {
-                    // Extract CSRF token from cookies
-                    const cookies = document.cookie.split(';');
-                    for (let cookie of cookies) {
-                        const [name, value] = cookie.trim().split('=');
-                        if (name === 'csrftoken') {
-                            csrfToken = value;
-                            break;
-                        }
-                    }
-                }
-            } catch (e) {
-                console.log('⚠️ Could not get CSRF token');
+            // Get JWT token for authentication
+            const token = localStorage.getItem('neberku_access_token');
+            if (!token) {
+                console.error('❌ No JWT token found, cannot load events');
+                this.showAlert('Authentication token not found. Please log in again.', 'error');
+                setTimeout(() => {
+                    window.location.replace('login.html');
+                }, 3000);
+                return;
             }
-            
+
             const headers = {
+                'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
             };
             
-            // Add CSRF token if available
-            if (csrfToken) {
-                headers['X-CSRFToken'] = csrfToken;
-                console.log('🔑 CSRF token added to headers');
-            }
-            
             console.log('🌐 Making request to:', `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.EVENTS}`);
             console.log('🔑 Headers:', headers);
-            console.log('🍪 Credentials mode: include');
-            console.log('🍪 Current cookies:', document.cookie);
             
             const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.EVENTS}`, {
                 method: 'GET',
                 headers: headers,
-                credentials: 'include',  // Include cookies for session authentication
                 mode: 'cors'  // Explicitly set CORS mode
             });
 
@@ -357,35 +338,20 @@ class Dashboard {
         }
 
         try {
-            // Get CSRF token if available
-            let csrfToken = null;
-            try {
-                const csrfResponse = await fetch(`${API_CONFIG.BASE_URL}/api/`, {
-                    method: 'GET',
-                    credentials: 'include'
-                });
-                if (csrfResponse.ok) {
-                    // Extract CSRF token from cookies
-                    const cookies = document.cookie.split(';');
-                    for (let cookie of cookies) {
-                        const [name, value] = cookie.trim().split('=');
-                        if (name === 'csrftoken') {
-                            csrfToken = value;
-                            break;
-                        }
-                    }
-                }
-            } catch (e) {
-                console.log('⚠️ Could not get CSRF token');
+            // Get JWT token for authentication
+            const token = localStorage.getItem('neberku_access_token');
+            if (!token) {
+                console.error('❌ No JWT token found, cannot create event');
+                this.showAlert('Authentication token not found. Please log in again.', 'error');
+                setTimeout(() => {
+                    window.location.replace('login.html');
+                }, 3000);
+                return;
             }
-            
-            const headers = {};
-            
-            // Add CSRF token if available
-            if (csrfToken) {
-                headers['X-CSRFToken'] = csrfToken;
-                console.log('🔑 CSRF token added to headers');
-            }
+
+            const headers = {
+                'Authorization': `Bearer ${token}`
+            };
             
             // Note: Don't set Content-Type header when using FormData
             // The browser will set it automatically with the boundary
@@ -393,7 +359,6 @@ class Dashboard {
             const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.EVENTS}`, {
                 method: 'POST',
                 headers: headers,
-                credentials: 'include',  // Include cookies for session authentication
                 body: formData
             });
 
@@ -996,9 +961,14 @@ class Dashboard {
 
     async loadPackagesAndEventTypes() {
         try {
+            // Packages and event types are publicly accessible (no authentication required)
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+
             // Load packages
             const packagesResponse = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PACKAGES}`, {
-                credentials: 'include'
+                headers: headers
             });
             if (packagesResponse.ok) {
                 const packagesData = await packagesResponse.json();
@@ -1020,11 +990,13 @@ class Dashboard {
                 } else {
                     console.error('❌ Packages is not an array:', packages);
                 }
+            } else {
+                console.error('❌ Failed to load packages:', packagesResponse.status, packagesResponse.statusText);
             }
             
             // Load event types
             const eventTypesResponse = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.EVENT_TYPES}`, {
-                credentials: 'include'
+                headers: headers
             });
             if (eventTypesResponse.ok) {
                 const eventTypesData = await eventTypesResponse.json();
@@ -1046,6 +1018,8 @@ class Dashboard {
                 } else {
                     console.error('❌ Event types is not an array:', eventTypes);
                 }
+            } else {
+                console.error('❌ Failed to load event types:', eventTypesResponse.status, eventTypesResponse.statusText);
             }
         } catch (error) {
             console.error('Error loading packages and event types:', error);

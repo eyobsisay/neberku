@@ -5,7 +5,12 @@ const API_CONFIG = {
     
     // API endpoints
     ENDPOINTS: {
-        // Authentication
+        // JWT Authentication
+        TOKEN: '/api/token/',
+        TOKEN_REFRESH: '/api/token/refresh/',
+        TOKEN_VERIFY: '/api/token/verify/',
+        
+        // Custom Authentication
         LOGIN: '/api/login/',
         REGISTER: '/api/register/',
         LOGOUT: '/api/logout/',
@@ -95,14 +100,14 @@ const API_UTILS = {
         return url;
     },
     
-    // Get default headers for API requests
+    // Get default headers for API requests - JWT version
     getDefaultHeaders: (includeAuth = true) => {
         const headers = {
             'Content-Type': 'application/json'
         };
         
         if (includeAuth) {
-            const token = localStorage.getItem('neberku_token');
+            const token = localStorage.getItem('neberku_access_token');
             if (token) {
                 headers['Authorization'] = `Bearer ${token}`;
             }

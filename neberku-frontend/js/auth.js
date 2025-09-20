@@ -161,72 +161,46 @@ async function loginUser(username, password, rememberMe) {
     }
 }
 
-// Login API call to Django backend
+// Login API call to Django backend - JWT version
 async function simulateLoginAPI(username, password) {
     try {
-        console.log('🔍 Calling Django login API...');
-        
-        // First, get CSRF token if needed
-        let csrfToken = null;
-        try {
-            const csrfResponse = await fetch(`${API_CONFIG.BASE_URL}/api/`, {
-                method: 'GET',
-                credentials: 'include'
-            });
-            if (csrfResponse.ok) {
-                // Extract CSRF token from cookies
-                const cookies = document.cookie.split(';');
-                for (let cookie of cookies) {
-                    const [name, value] = cookie.trim().split('=');
-                    if (name === 'csrftoken') {
-                        csrfToken = value;
-                        break;
-                    }
-                }
-            }
-        } catch (e) {
-            console.log('⚠️ Could not get CSRF token, proceeding without it');
-        }
+        console.log('🔍 Calling Django JWT login API...');
         
         const headers = {
             'Content-Type': 'application/json'
         };
         
-        // Add CSRF token if available
-        if (csrfToken) {
-            headers['X-CSRFToken'] = csrfToken;
-            console.log('🔑 CSRF token added to headers');
-        }
-        
         console.log('🌐 Making login request to:', `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.LOGIN}`);
         console.log('🔑 Headers:', headers);
-        console.log('🍪 Credentials mode: include');
         
         const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.LOGIN}`, {
             method: 'POST',
             headers: headers,
             body: JSON.stringify({ username, password }),
-            credentials: 'include',  // Important: include cookies for session
             mode: 'cors'  // Explicitly set CORS mode
         });
         
         console.log('📡 Login response status:', response.status);
         console.log('📡 Login response headers:', response.headers);
-        console.log('🍪 Response cookies:', document.cookie);
         
         if (response.ok) {
             const userData = await response.json();
             console.log('✅ Login response data:', userData);
             
-            if (userData.success && userData.user) {
-                // For session-based auth, we don't need a token
-                // The session cookie is automatically handled by the browser
+            if (userData.success && userData.user && userData.access) {
+                // Store JWT tokens
+                localStorage.setItem('neberku_access_token', userData.access);
+                localStorage.setItem('neberku_refresh_token', userData.refresh);
+                console.log('🔑 JWT tokens stored in localStorage');
+                
                 return {
                     success: true,
+                    token: userData.access,
+                    refresh: userData.refresh,
                     user: userData.user
                 };
             } else {
-                throw new Error(userData.error || 'Login failed - no user data');
+                throw new Error(userData.error || 'Login failed - no user data or token');
             }
         } else {
             const errorData = await response.json();
@@ -242,17 +216,29 @@ async function simulateLoginAPI(username, password) {
     }
 }
 
-// Logout user
+// Logout user - JWT version
 async function logoutUser() {
     try {
-        // Call Django logout API to clear session
-        const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.LOGOUT}`, {
-            method: 'POST',
-            credentials: 'include'
-        });
+        // Get the current access token for the logout request
+        const accessToken = localStorage.getItem('neberku_access_token');
         
-        // Clear local storage
+        if (accessToken) {
+            // Call Django logout API with JWT token
+            const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.LOGOUT}`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            console.log('📡 Logout response status:', response.status);
+        }
+        
+        // Clear all local storage
         localStorage.removeItem('neberku_user');
+        localStorage.removeItem('neberku_access_token');
+        localStorage.removeItem('neberku_refresh_token');
         
         // Show logout message
         showAlert('You have been logged out successfully.', 'success');
@@ -265,6 +251,8 @@ async function logoutUser() {
         console.error('Logout error:', error);
         // Even if API call fails, clear local data
         localStorage.removeItem('neberku_user');
+        localStorage.removeItem('neberku_access_token');
+        localStorage.removeItem('neberku_refresh_token');
         showAlert('Logged out locally. Redirecting...', 'info');
         setTimeout(() => {
             window.location.href = 'index.html';
@@ -272,12 +260,12 @@ async function logoutUser() {
     }
 }
 
-// Check if user is authenticated
+// Check if user is authenticated - JWT version
 function isAuthenticated() {
-    // For session-based authentication, we'll check if we have user data
-    // The actual authentication is handled by Django's session middleware
+    // For JWT authentication, we check if we have both user data and access token
     const user = localStorage.getItem('neberku_user');
-    return !!user;
+    const accessToken = localStorage.getItem('neberku_access_token');
+    return !!(user && accessToken);
 }
 
 // Get current user
@@ -294,9 +282,14 @@ function getCurrentUser() {
     return null;
 }
 
-// Get auth token
+// Get auth token - JWT version
 function getAuthToken() {
-    return localStorage.getItem('neberku_token');
+    return localStorage.getItem('neberku_access_token');
+}
+
+// Get refresh token
+function getRefreshToken() {
+    return localStorage.getItem('neberku_refresh_token');
 }
 
 // Require authentication for protected pages
@@ -311,17 +304,54 @@ function requireAuth() {
     return true;
 }
 
-// Auto-logout on token expiry (if implemented)
+// Refresh JWT token
+async function refreshJWTToken() {
+    try {
+        const refreshToken = getRefreshToken();
+        if (!refreshToken) {
+            throw new Error('No refresh token available');
+        }
+        
+        console.log('🔄 Refreshing JWT token...');
+        
+        const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.TOKEN_REFRESH}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ refresh: refreshToken })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            localStorage.setItem('neberku_access_token', data.access);
+            console.log('✅ JWT token refreshed successfully');
+            return data.access;
+        } else {
+            throw new Error('Token refresh failed');
+        }
+    } catch (error) {
+        console.error('❌ Token refresh error:', error);
+        // If refresh fails, logout the user
+        logoutUser();
+        throw error;
+    }
+}
+
+// Auto-refresh token before expiry
 function setupTokenExpiry() {
-    // Check token every 5 minutes
-    setInterval(() => {
+    // Check token every 50 minutes (tokens expire in 60 minutes)
+    setInterval(async () => {
         const token = getAuthToken();
         if (token) {
-            // You could implement token validation here
-            // For now, we'll just check if token exists
-            console.log('Token check passed');
+            try {
+                await refreshJWTToken();
+                console.log('🔄 Token auto-refreshed');
+            } catch (error) {
+                console.error('❌ Auto-refresh failed:', error);
+            }
         }
-    }, 5 * 60 * 1000);
+    }, 50 * 60 * 1000); // 50 minutes
 }
 
 // Initialize authentication
@@ -396,6 +426,8 @@ if (typeof module !== 'undefined' && module.exports) {
         isAuthenticated,
         getCurrentUser,
         getAuthToken,
+        getRefreshToken,
+        refreshJWTToken,
         requireAuth,
         showAlert
     };
@@ -406,6 +438,8 @@ if (typeof module !== 'undefined' && module.exports) {
         isAuthenticated,
         getCurrentUser,
         getAuthToken,
+        getRefreshToken,
+        refreshJWTToken,
         requireAuth,
         showAlert
     };

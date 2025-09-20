@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JWT Authentication Test</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>JWT Authentication Test</h3>
+                    </div>
+                    <div class="card-body">
+                        <div id="alertContainer"></div>
+                        
+                        <!-- Login Form -->
+                        <div id="loginSection">
+                            <h5>Login</h5>
+                            <form id="loginForm">
+                                <div class="mb-3">
+                                    <label for="username" class="form-label">Username</label>
+                                    <input type="text" class="form-control" id="username" value="testuser" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="password" class="form-label">Password</label>
+                                    <input type="password" class="form-control" id="password" value="testpass123" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Login</button>
+                            </form>
+                        </div>
+
+                        <!-- Test Results -->
+                        <div id="testResults" class="mt-4" style="display: none;">
+                            <h5>Test Results</h5>
+                            <div id="resultsContent"></div>
+                        </div>
+
+                        <!-- API Test Buttons -->
+                        <div id="apiTests" class="mt-4" style="display: none;">
+                            <h5>API Tests</h5>
+                            <button id="testPackages" class="btn btn-info me-2">Test Packages API</button>
+                            <button id="testEventTypes" class="btn btn-info me-2">Test Event Types API</button>
+                            <button id="testEvents" class="btn btn-warning me-2">Test Events API</button>
+                            <button id="testDebugAuth" class="btn btn-secondary me-2">Test Debug Auth</button>
+                            <button id="logoutBtn" class="btn btn-danger">Logout</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+        // Test functions
+        async function testPackagesAPI() {
+            try {
+                const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PACKAGES}`, {
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    showResult('✅ Packages API Test', `Success! Found ${Array.isArray(data) ? data.length : data.results?.length || 0} packages`);
+                } else {
+                    showResult('❌ Packages API Test', `Failed: ${response.status} ${response.statusText}`);
+                }
+            } catch (error) {
+                showResult('❌ Packages API Test', `Error: ${error.message}`);
+            }
+        }
+
+        async function testEventTypesAPI() {
+            try {
+                const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.EVENT_TYPES}`, {
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    showResult('✅ Event Types API Test', `Success! Found ${Array.isArray(data) ? data.length : data.results?.length || 0} event types`);
+                } else {
+                    showResult('❌ Event Types API Test', `Failed: ${response.status} ${response.statusText}`);
+                }
+            } catch (error) {
+                showResult('❌ Event Types API Test', `Error: ${error.message}`);
+            }
+        }
+
+        async function testEventsAPI() {
+            try {
+                const token = localStorage.getItem('neberku_access_token');
+                if (!token) {
+                    showResult('❌ Events API Test', 'No JWT token found');
+                    return;
+                }
+
+                const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.EVENTS}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    showResult('✅ Events API Test', `Success! Found ${Array.isArray(data) ? data.length : data.results?.length || 0} events`);
+                } else {
+                    showResult('❌ Events API Test', `Failed: ${response.status} ${response.statusText}`);
+                }
+            } catch (error) {
+                showResult('❌ Events API Test', `Error: ${error.message}`);
+            }
+        }
+
+        async function testDebugAuth() {
+            try {
+                const token = localStorage.getItem('neberku_access_token');
+                const headers = {
+                    'Content-Type': 'application/json'
+                };
+                
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+
+                const response = await fetch(`${API_CONFIG.BASE_URL}/api/debug-auth/`, {
+                    headers: headers
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    showResult('✅ Debug Auth Test', `Authenticated: ${data.authenticated}, User: ${data.user || 'None'}, Has JWT: ${data.has_jwt_token || false}`);
+                } else {
+                    showResult('❌ Debug Auth Test', `Failed: ${response.status} ${response.statusText}`);
+                }
+            } catch (error) {
+                showResult('❌ Debug Auth Test', `Error: ${error.message}`);
+            }
+        }
+
+        function showResult(title, message) {
+            const resultsContent = document.getElementById('resultsContent');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = 'alert alert-info';
+            resultDiv.innerHTML = `<strong>${title}</strong><br>${message}`;
+            resultsContent.appendChild(resultDiv);
+        }
+
+        function showAlert(message, type = 'info') {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            alertContainer.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 5000);
+        }
+
+        // Event listeners
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                showAlert('Logging in...', 'info');
+                
+                const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.LOGIN}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    if (data.success && data.access) {
+                        localStorage.setItem('neberku_access_token', data.access);
+                        localStorage.setItem('neberku_refresh_token', data.refresh);
+                        localStorage.setItem('neberku_user', JSON.stringify(data.user));
+                        
+                        showAlert('Login successful!', 'success');
+                        document.getElementById('loginSection').style.display = 'none';
+                        document.getElementById('testResults').style.display = 'block';
+                        document.getElementById('apiTests').style.display = 'block';
+                        
+                        showResult('✅ Login Test', `Success! User: ${data.user.username}, Token: ${data.access.substring(0, 50)}...`);
+                    } else {
+                        showAlert('Login failed: ' + (data.error || 'Unknown error'), 'danger');
+                    }
+                } else {
+                    const errorData = await response.json();
+                    showAlert('Login failed: ' + (errorData.error || 'Unknown error'), 'danger');
+                }
+            } catch (error) {
+                showAlert('Login error: ' + error.message, 'danger');
+            }
+        });
+
+        document.getElementById('testPackages').addEventListener('click', testPackagesAPI);
+        document.getElementById('testEventTypes').addEventListener('click', testEventTypesAPI);
+        document.getElementById('testEvents').addEventListener('click', testEventsAPI);
+        document.getElementById('testDebugAuth').addEventListener('click', testDebugAuth);
+        
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.removeItem('neberku_access_token');
+            localStorage.removeItem('neberku_refresh_token');
+            localStorage.removeItem('neberku_user');
+            
+            showAlert('Logged out successfully!', 'info');
+            document.getElementById('loginSection').style.display = 'block';
+            document.getElementById('testResults').style.display = 'none';
+            document.getElementById('apiTests').style.display = 'none';
+            document.getElementById('resultsContent').innerHTML = '';
+        });
+
+        // Check if already logged in
+        if (localStorage.getItem('neberku_access_token')) {
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('testResults').style.display = 'block';
+            document.getElementById('apiTests').style.display = 'block';
+            showResult('✅ Already Logged In', 'JWT token found in localStorage');
+        }
+    </script>
+</body>
+</html>
