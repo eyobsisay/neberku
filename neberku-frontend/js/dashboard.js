@@ -57,6 +57,8 @@ class Dashboard {
         try {
             await this.loadEvents();
             this.updateStatistics();
+            // Apply active filter by default (without showing alert)
+            this.filterEvents('active', false);
         } catch (error) {
             console.error('Error loading dashboard data:', error);
             this.showAlert('Error loading dashboard data', 'danger');
@@ -109,6 +111,27 @@ class Dashboard {
                     console.warn('⚠️ Unexpected response format:', eventsData);
                     this.events = [];
                 }
+                
+                // Sort events to show active events first, then by creation date
+                this.events.sort((a, b) => {
+                    const statusA = this.getEventStatus(a).toLowerCase();
+                    const statusB = this.getEventStatus(b).toLowerCase();
+                    
+                    // Active events first
+                    if (statusA.includes('active') && !statusB.includes('active')) return -1;
+                    if (!statusA.includes('active') && statusB.includes('active')) return 1;
+                    
+                    // Then sort by creation date (newest first)
+                    const dateA = new Date(a.created_at || a.event_date);
+                    const dateB = new Date(b.created_at || b.event_date);
+                    return dateB - dateA;
+                });
+                
+                console.log('📅 Events sorted with active events first:', this.events.map(e => ({
+                    title: e.title,
+                    status: this.getEventStatus(e),
+                    created_at: e.created_at
+                })));
                 
                 // Extract stats from the API response
                 this.eventStats = eventsData.stats || eventsData.counts || null;
@@ -418,7 +441,14 @@ class Dashboard {
         const totalVideos = this.events.reduce((sum, event) => sum + (event.video_count || 0), 0);
         const totalGuests = this.events.reduce((sum, event) => sum + (event.total_guest_posts || 0), 0);
 
+        console.log('📊 Updating statistics:', {
+            totalEvents: totalEvents,
+            eventsArray: this.events.length,
+            eventsData: this.events.map(e => ({ id: e.id, title: e.title }))
+        });
+
         document.getElementById('totalEvents').textContent = totalEvents;
+        document.getElementById('allEventsCount').textContent = totalEvents;
         document.getElementById('totalPhotos').textContent = totalPhotos;
         document.getElementById('totalVideos').textContent = totalVideos;
         document.getElementById('totalGuests').textContent = totalGuests;
@@ -651,7 +681,7 @@ class Dashboard {
         }
     }
     
-    filterEvents(filterType) {
+    filterEvents(filterType, showAlert = true) {
         const eventCards = document.querySelectorAll('.event-card');
         
         eventCards.forEach(card => {
@@ -685,6 +715,11 @@ class Dashboard {
                                 status.toLowerCase().includes('finished') ||
                                 status.toLowerCase().includes('done');
                     break;
+                case 'draft':
+                    shouldShow = status.toLowerCase().includes('draft') || 
+                                status.toLowerCase().includes('created') || 
+                                status.toLowerCase().includes('new');
+                    break;
                 case 'cancelled':
                     shouldShow = status.toLowerCase().includes('cancelled') || 
                                 status.toLowerCase().includes('canceled');
@@ -700,11 +735,26 @@ class Dashboard {
         document.querySelectorAll('.btn-group .btn').forEach(btn => {
             btn.classList.remove('active');
         });
-        event.target.classList.add('active');
+        
+        // Update status card visual feedback
+        document.querySelectorAll('.status-card').forEach(card => {
+            card.classList.remove('active-status');
+        });
+        
+        // Add visual feedback to clicked status card
+        const clickedCard = document.querySelector(`.status-card[onclick*="${filterType}"]`);
+        if (clickedCard) {
+            clickedCard.classList.add('active-status');
+        }
         
         // Log filtering results for debugging
         const visibleCount = Array.from(eventCards).filter(card => card.style.display !== 'none').length;
         console.log(`🔍 Filter '${filterType}' applied: ${visibleCount} events visible out of ${eventCards.length} total`);
+        
+        // Show feedback message only if showAlert is true
+        if (showAlert) {
+            this.showAlert(`Showing ${filterType} events (${visibleCount} found)`, 'info');
+        }
     }
     
 
