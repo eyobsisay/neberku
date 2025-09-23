@@ -66,6 +66,7 @@ class Event(models.Model):
     location = models.CharField(max_length=200, blank=True)
     event_thumbnail = models.ImageField(upload_to='event_thumbnails/', blank=True, null=True, help_text="Event preview image")
     event_video = models.FileField(upload_to='event_videos/', blank=True, null=True, help_text="Event video (mp4, mov, avi, webm)")
+    event_banner = models.ImageField(upload_to='event_banners/', blank=True, null=True, help_text="Event banner image for header display")
     
     # Settings
     allow_photos = models.BooleanField(default=True)

@@ -58,6 +58,7 @@ class EventTypeViewSet(viewsets.ModelViewSet):
     """
     queryset = EventType.objects.filter(is_active=True)
     parser_classes = [MultiPartParser, FormParser]
+    throttle_classes = []  # Disable throttling for this viewset
 
     def get_permissions(self):
         """Set permissions based on action"""
@@ -108,6 +109,7 @@ class PackageViewSet(viewsets.ModelViewSet):
     """
     queryset = Package.objects.filter(is_active=True)
     parser_classes = [MultiPartParser, FormParser]
+    throttle_classes = []  # Disable throttling for this viewset
     
     def get_permissions(self):
         """Set permissions based on action"""

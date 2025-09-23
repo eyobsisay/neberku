@@ -258,7 +258,7 @@ class EventSerializer(serializers.ModelSerializer):
         model = Event
         fields = [
             'id', 'title', 'description', 'host', 'package', 'package_id',
-            'event_type', 'event_type_id', 'event_date', 'location', 'event_thumbnail', 'event_video',
+            'event_type', 'event_type_id', 'event_date', 'location', 'event_thumbnail', 'event_banner', 'event_video',
             'allow_photos', 'allow_videos', 'allow_wishes', 'auto_approve_posts', 'status', 'payment_status',
             'qr_code', 'share_link', 'created_at', 'updated_at', 'published_at',
             'settings', 'total_guest_posts', 'total_media_files', 'photo_count', 'video_count', 'is_live',
@@ -285,6 +285,10 @@ class EventCreateSerializer(serializers.ModelSerializer):
         required=False,
         help_text="Event preview image (optional)"
     )
+    event_banner = serializers.ImageField(
+        required=False,
+        help_text="Event banner image for header display (optional)"
+    )
     event_video = serializers.FileField(
         required=False,
         help_text="Event video (optional, mp4, mov, avi, webm)"
@@ -294,7 +298,7 @@ class EventCreateSerializer(serializers.ModelSerializer):
         model = Event
         fields = [
             'title', 'description', 'package_id', 'event_type_id', 'event_date', 'location',
-            'event_thumbnail', 'event_video', 'allow_photos', 'allow_videos', 'allow_wishes', 'auto_approve_posts',
+            'event_thumbnail', 'event_banner', 'event_video', 'allow_photos', 'allow_videos', 'allow_wishes', 'auto_approve_posts',
             'is_public'
         ]
     
@@ -315,6 +319,20 @@ class EventCreateSerializer(serializers.ModelSerializer):
         from django.utils import timezone
         if value <= timezone.now():
             raise serializers.ValidationError("Event date must be in the future.")
+        return value
+    
+    def validate_event_banner(self, value):
+        """Validate event banner file"""
+        if value:
+            # Check file size (max 10MB)
+            if value.size > 10 * 1024 * 1024:
+                raise serializers.ValidationError("Event banner must be smaller than 10MB.")
+            
+            # Check file type
+            allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+            if hasattr(value, 'content_type') and value.content_type not in allowed_types:
+                raise serializers.ValidationError("Event banner must be JPEG, PNG, GIF, or WebP format.")
+        
         return value
     
     def validate_event_video(self, value):

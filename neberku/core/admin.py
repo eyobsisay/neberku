@@ -64,7 +64,7 @@ class EventAdmin(admin.ModelAdmin):
             'fields': ('id', 'title', 'description', 'host', 'package', 'event_type', 'event_date', 'location')
         }),
         ('Media & Images', {
-            'fields': ('event_thumbnail', 'qr_code_display', 'share_link_display', 'contributor_code_display')
+            'fields': ('event_thumbnail', 'event_banner', 'qr_code_display', 'share_link_display', 'contributor_code_display')
         }),
         ('Settings', {
             'fields': ('allow_photos', 'allow_videos', 'allow_wishes', 'auto_approve_posts', 'is_public')
