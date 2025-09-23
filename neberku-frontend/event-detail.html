@@ -9,9 +9,29 @@
     <style>
         .event-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
             color: white;
             padding: 3rem 0;
             margin-bottom: 2rem;
+            position: relative;
+        }
+        
+        .event-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 1;
+        }
+        
+        .event-header .container {
+            position: relative;
+            z-index: 2;
         }
         .stats-card {
             background: rgba(255, 255, 255, 0.1);
@@ -217,12 +237,6 @@
         </div>
     </nav>
 
-    <!-- Back Button -->
-    <div class="container mt-3">
-        <button class="btn btn-outline-secondary back-button" onclick="goBack()">
-            <i class="bi bi-arrow-left"></i> Back to Dashboard
-        </button>
-    </div>
 
     <!-- Event Header -->
     <div class="event-header">
@@ -478,13 +492,13 @@
                                                             </div>
                                                             <div class="mb-3">
                                                                 <label for="editEventType" class="form-label">Event Type</label>
-                                                                <select class="form-select" id="editEventType" required>
+                                                                <select class="form-control" id="editEventType" required>
                                                                     <option value="">Select Event Type</option>
                                                                 </select>
                                                             </div>
                                                             <div class="mb-3">
                                                                 <label for="editPackage" class="form-label">Package</label>
-                                                                <select class="form-select" id="editPackage" required>
+                                                                <select class="form-control" id="editPackage" required>
                                                                     <option value="">Select Package</option>
                                                                 </select>
                                                             </div>

@@ -10,6 +10,11 @@ class EventDetail {
             status: '',
             search: ''
         };
+        // Add loading states to prevent duplicate API calls
+        this.isLoadingPackages = false;
+        this.isLoadingEventTypes = false;
+        this.packagesLoaded = false;
+        this.eventTypesLoaded = false;
         this.init();
     }
 
@@ -159,6 +164,19 @@ class EventDetail {
     async loadEventTypesAndPackages() {
         try {
             console.log('📡 Loading event types and packages');
+            console.log('🔗 Packages URL:', `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PACKAGES}`);
+            console.log('🔗 Event Types URL:', `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.EVENT_TYPES}`);
+            
+            // Check if already loading or loaded to prevent duplicate calls
+            if (this.isLoadingPackages || this.isLoadingEventTypes) {
+                console.log('⚠️ Already loading packages/event types, skipping duplicate call');
+                return;
+            }
+            
+            if (this.packagesLoaded && this.eventTypesLoaded) {
+                console.log('✅ Packages and event types already loaded, skipping API calls');
+                return;
+            }
             
             // Packages and event types are publicly accessible (no authentication required)
             const headers = {
@@ -166,74 +184,106 @@ class EventDetail {
             };
             
             // Load packages
+            this.isLoadingPackages = true;
             const packagesResponse = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PACKAGES}`, {
                 headers: headers
             });
             
+            console.log('📦 Packages response status:', packagesResponse.status);
             if (packagesResponse.ok) {
                 const packagesData = await packagesResponse.json();
-                console.log('📦 Packages response:', packagesData);
+                console.log('📦 Packages response data:', packagesData);
                 
                 // Handle different response structures
                 let packages = packagesData;
                 if (packagesData.results) {
                     packages = packagesData.results; // Django REST Framework pagination
+                    console.log('📦 Using paginated results:', packages.length, 'packages');
                 } else if (packagesData.data) {
                     packages = packagesData.data; // Some APIs wrap in data field
+                    console.log('📦 Using data field:', packages.length, 'packages');
                 } else if (!Array.isArray(packagesData)) {
                     console.error('❌ Unexpected packages response structure:', packagesData);
                     packages = [];
+                } else {
+                    console.log('📦 Using direct array:', packages.length, 'packages');
                 }
                 
                 if (Array.isArray(packages)) {
-                    this.populatePackagesSelect(packages);
+                    console.log('📦 Calling populatePackageDropdown with:', packages);
+                    this.populatePackageDropdown(packages);
+                    this.packagesLoaded = true;
                 } else {
                     console.error('❌ Packages is not an array:', packages);
                 }
             } else {
                 console.error('❌ Failed to load packages:', packagesResponse.status, packagesResponse.statusText);
+                const errorText = await packagesResponse.text();
+                console.error('❌ Packages error response:', errorText);
             }
             
+            this.isLoadingPackages = false;
+            
+            // Add a small delay between API calls to prevent rate limiting
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
             // Load event types
+            this.isLoadingEventTypes = true;
             const eventTypesResponse = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.EVENT_TYPES}`, {
                 headers: headers
             });
             
+            console.log('🎯 Event types response status:', eventTypesResponse.status);
             if (eventTypesResponse.ok) {
                 const eventTypesData = await eventTypesResponse.json();
-                console.log('🎯 Event types response:', eventTypesData);
+                console.log('🎯 Event types response data:', eventTypesData);
                 
                 // Handle different response structures
                 let eventTypes = eventTypesData;
                 if (eventTypesData.results) {
                     eventTypes = eventTypesData.results; // Django REST Framework pagination
+                    console.log('🎯 Using paginated results:', eventTypes.length, 'event types');
                 } else if (eventTypesData.data) {
                     eventTypes = eventTypesData.data; // Some APIs wrap in data field
+                    console.log('🎯 Using data field:', eventTypes.length, 'event types');
                 } else if (!Array.isArray(eventTypesData)) {
                     console.error('❌ Unexpected event types response structure:', eventTypesData);
                     eventTypes = [];
+                } else {
+                    console.log('🎯 Using direct array:', eventTypes.length, 'event types');
                 }
                 
                 if (Array.isArray(eventTypes)) {
-                    this.populateEventTypesSelect(eventTypes);
+                    console.log('🎯 Calling populateEventTypeDropdown with:', eventTypes);
+                    this.populateEventTypeDropdown(eventTypes);
+                    this.eventTypesLoaded = true;
                 } else {
                     console.error('❌ Event types is not an array:', eventTypes);
                 }
             } else {
                 console.error('❌ Failed to load event types:', eventTypesResponse.status, eventTypesResponse.statusText);
+                const errorText = await eventTypesResponse.text();
+                console.error('❌ Event types error response:', errorText);
             }
+            
+            this.isLoadingEventTypes = false;
         } catch (error) {
             console.error('❌ Error loading event types and packages:', error);
+            // Reset loading states on error
+            this.isLoadingPackages = false;
+            this.isLoadingEventTypes = false;
         }
     }
 
-    populateEventTypesSelect(eventTypes) {
+    populateEventTypeDropdown(eventTypes) {
+        console.log('🎯 populateEventTypeDropdown called with:', eventTypes);
         const eventTypeSelect = document.getElementById('editEventType');
         if (!eventTypeSelect) {
             console.error('❌ Event type select element not found');
             return;
         }
         
+        console.log('🎯 Found event type select element:', eventTypeSelect);
         eventTypeSelect.innerHTML = '<option value="">Select event type</option>';
         
         if (!Array.isArray(eventTypes) || eventTypes.length === 0) {
@@ -242,7 +292,8 @@ class EventDetail {
             return;
         }
         
-        eventTypes.forEach(eventType => {
+        eventTypes.forEach((eventType, index) => {
+            console.log(`🎯 Adding event type ${index + 1}:`, eventType);
             const option = document.createElement('option');
             option.value = eventType.id;
             option.textContent = eventType.name;
@@ -250,15 +301,18 @@ class EventDetail {
         });
         
         console.log(`✅ Populated event type dropdown with ${eventTypes.length} event types`);
+        console.log('🎯 Final dropdown options:', eventTypeSelect.innerHTML);
     }
 
-    populatePackagesSelect(packages) {
+    populatePackageDropdown(packages) {
+        console.log('📦 populatePackageDropdown called with:', packages);
         const packageSelect = document.getElementById('editPackage');
         if (!packageSelect) {
             console.error('❌ Package select element not found');
             return;
         }
         
+        console.log('📦 Found package select element:', packageSelect);
         packageSelect.innerHTML = '<option value="">Select a package</option>';
         
         if (!Array.isArray(packages) || packages.length === 0) {
@@ -267,7 +321,8 @@ class EventDetail {
             return;
         }
         
-        packages.forEach(pkg => {
+        packages.forEach((pkg, index) => {
+            console.log(`📦 Adding package ${index + 1}:`, pkg);
             const option = document.createElement('option');
             option.value = pkg.id;
             option.textContent = `${pkg.name} - $${pkg.price}`;
@@ -275,6 +330,7 @@ class EventDetail {
         });
         
         console.log(`✅ Populated package dropdown with ${packages.length} packages`);
+        console.log('📦 Final dropdown options:', packageSelect.innerHTML);
     }
 
     renderEventDetail() {
@@ -377,6 +433,9 @@ class EventDetail {
         
         // Event media previews
         this.renderEventMediaPreviews();
+
+        // Event banner
+        this.renderEventBanner();
 
         // Event settings - update settings tab
         document.getElementById('photosAllowed').textContent = `Photos: ${this.event.allow_photos ? 'Allowed' : 'Not Allowed'}`;
@@ -751,6 +810,29 @@ class EventDetail {
             } else {
                 videoPreview.innerHTML = '<span class="text-muted">No video uploaded</span>';
             }
+        }
+    }
+
+    renderEventBanner() {
+        const eventHeader = document.querySelector('.event-header');
+        if (!eventHeader) {
+            console.error('❌ Event header container not found');
+            return;
+        }
+
+        if (this.event.event_thumbnail) {
+            const thumbnailUrl = this.getFullUrl(this.event.event_thumbnail);
+            console.log('🖼️ Rendering event header with thumbnail background:', thumbnailUrl);
+            
+            // Set the background image
+            eventHeader.style.backgroundImage = `url('${thumbnailUrl}')`;
+            eventHeader.style.backgroundSize = 'cover';
+            eventHeader.style.backgroundPosition = 'center';
+            eventHeader.style.backgroundRepeat = 'no-repeat';
+        } else {
+            console.log('⚠️ No event thumbnail available, using default gradient');
+            // Reset to default gradient background
+            eventHeader.style.backgroundImage = '';
         }
     }
 
