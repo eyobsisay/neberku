@@ -242,15 +242,26 @@ class Dashboard {
             const statusClass = this.getStatusClass(status);
             const statusIcon = this.getStatusIcon(status);
             
+            // Generate thumbnail HTML
+            const thumbnailHTML = this.generateThumbnailHTML(event);
+            
             return `
                 <div class="col-md-6 col-lg-4 mb-4 event-card" data-event-id="${event.id}">
                     <div class="card h-100 shadow-sm">
+                        ${thumbnailHTML}
                         <div class="card-header bg-transparent border-0 pb-0">
                             <div class="d-flex justify-content-between align-items-start">
                                 <span class="badge ${statusClass} rounded-pill">
                                     <i class="bi ${statusIcon}"></i> ${status}
                                 </span>
-                                <small class="text-muted">${this.formatDate(event.event_date)}</small>
+                                <small class="text-muted">
+                                    <i class="bi bi-calendar-plus"></i> ${this.formatDetailedDate(event.created_at) || 'Unknown'}
+                                </small>
+                            </div>
+                            <div class="event-date mt-2">
+                                <small class="text-muted">
+                                    <i class="bi bi-calendar-event"></i> Event: ${this.formatDetailedDate(event.event_date) || 'Not set'}
+                                </small>
                             </div>
                         </div>
                         <div class="card-body">
@@ -300,6 +311,46 @@ class Dashboard {
 
         // Render pagination controls
         this.renderPagination(eventsToRender.length);
+    }
+
+    generateThumbnailHTML(event) {
+        // Check if event has a thumbnail
+        if (event.event_thumbnail) {
+            const thumbnailUrl = this.getThumbnailUrl(event.event_thumbnail);
+            return `
+                <div class="event-thumbnail-container">
+                    <img src="${thumbnailUrl}" 
+                         alt="${event.title}" 
+                         class="card-img-top event-thumbnail"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <div class="thumbnail-placeholder" style="display: none;">
+                        <i class="bi bi-image"></i>
+                        <span>Event Image</span>
+                    </div>
+                </div>
+            `;
+        } else {
+            // Show placeholder when no thumbnail
+            return `
+                <div class="event-thumbnail-container">
+                    <div class="thumbnail-placeholder">
+                        <i class="bi bi-calendar-event"></i>
+                        <span>${event.title}</span>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    getThumbnailUrl(thumbnailPath) {
+        // Handle different thumbnail URL formats
+        if (thumbnailPath.startsWith('http')) {
+            return thumbnailPath; // Full URL
+        } else if (thumbnailPath.startsWith('/')) {
+            return `${API_CONFIG.BASE_URL}${thumbnailPath}`; // Absolute path
+        } else {
+            return `${API_CONFIG.BASE_URL}/media/${thumbnailPath}`; // Relative path
+        }
     }
 
     renderPagination(totalEvents) {
@@ -931,6 +982,21 @@ class Dashboard {
                 day: 'numeric'
             });
         }
+    }
+
+    formatDetailedDate(dateString) {
+        if (!dateString) return 'No date';
+        
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return 'Invalid date';
+        
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
     }
     
     formatDateTime(dateString) {
