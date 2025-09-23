@@ -107,6 +107,8 @@ class EventDetail {
             if (response.ok) {
                 this.event = await response.json();
                 console.log('✅ Event loaded successfully:', this.event);
+                console.log('🖼️ Event banner:', this.event.event_banner);
+                console.log('📸 Event thumbnail:', this.event.event_thumbnail);
                 this.renderEventDetail();
             } else {
                 const errorData = await response.json();
@@ -796,6 +798,19 @@ class EventDetail {
             }
         }
         
+        // Event banner preview
+        const bannerPreview = document.getElementById('eventBannerPreview');
+        if (bannerPreview) {
+            if (this.event.event_banner) {
+                const bannerUrl = this.getFullUrl(this.event.event_banner);
+                bannerPreview.innerHTML = `
+                    <img src="${bannerUrl}" alt="Event banner" class="img-fluid" style="max-height: 150px; border-radius: 8px;">
+                `;
+            } else {
+                bannerPreview.innerHTML = '<span class="text-muted">No banner uploaded</span>';
+            }
+        }
+        
         // Event video preview
         const videoPreview = document.getElementById('eventVideoPreview');
         if (videoPreview) {
@@ -820,19 +835,32 @@ class EventDetail {
             return;
         }
 
-        if (this.event.event_thumbnail) {
-            const thumbnailUrl = this.getFullUrl(this.event.event_thumbnail);
-            console.log('🖼️ Rendering event header with thumbnail background:', thumbnailUrl);
-            
+        // Use banner image if available, fallback to thumbnail, then default gradient
+        let backgroundImage = null;
+        let imageSource = '';
+
+        if (this.event.event_banner) {
+            backgroundImage = this.getFullUrl(this.event.event_banner);
+            imageSource = 'banner';
+            console.log('🖼️ Rendering event header with banner background:', backgroundImage);
+        } else if (this.event.event_thumbnail) {
+            backgroundImage = this.getFullUrl(this.event.event_thumbnail);
+            imageSource = 'thumbnail';
+            console.log('🖼️ Rendering event header with thumbnail background (fallback):', backgroundImage);
+        } else {
+            console.log('⚠️ No event banner or thumbnail available, using default gradient');
+            // Reset to default gradient background
+            eventHeader.style.backgroundImage = '';
+            return;
+        }
+
+        if (backgroundImage) {
             // Set the background image
-            eventHeader.style.backgroundImage = `url('${thumbnailUrl}')`;
+            eventHeader.style.backgroundImage = `url('${backgroundImage}')`;
             eventHeader.style.backgroundSize = 'cover';
             eventHeader.style.backgroundPosition = 'center';
             eventHeader.style.backgroundRepeat = 'no-repeat';
-        } else {
-            console.log('⚠️ No event thumbnail available, using default gradient');
-            // Reset to default gradient background
-            eventHeader.style.backgroundImage = '';
+            console.log(`✅ Event header background set using ${imageSource} image`);
         }
     }
 
@@ -997,6 +1025,25 @@ class EventDetail {
         
         thumbnailContainer.insertBefore(currentThumbnailDiv, document.getElementById('editThumbnail'));
         
+        // Show current banner
+        const bannerContainer = document.getElementById('editBanner').parentNode;
+        const currentBannerDiv = document.createElement('div');
+        currentBannerDiv.className = 'mb-2 current-banner-preview';
+        currentBannerDiv.innerHTML = '<small class="text-muted">Current banner:</small>';
+        
+        if (this.event.event_banner) {
+            const bannerUrl = this.getFullUrl(this.event.event_banner);
+            currentBannerDiv.innerHTML += `
+                <div class="mt-1">
+                    <img src="${bannerUrl}" alt="Current banner" class="img-thumbnail" style="max-width: 150px; max-height: 100px;">
+                </div>
+            `;
+        } else {
+            currentBannerDiv.innerHTML += '<div class="mt-1 text-muted">No banner uploaded</div>';
+        }
+        
+        bannerContainer.insertBefore(currentBannerDiv, document.getElementById('editBanner'));
+        
         // Show current video
         const videoContainer = document.getElementById('editVideo').parentNode;
         const currentVideoDiv = document.createElement('div');
@@ -1027,13 +1074,18 @@ class EventDetail {
             existingThumbnailPreview.remove();
         }
         
+        const existingBannerPreview = document.querySelector('.current-banner-preview');
+        if (existingBannerPreview) {
+            existingBannerPreview.remove();
+        }
+        
         const existingVideoPreview = document.querySelector('.current-video-preview');
         if (existingVideoPreview) {
             existingVideoPreview.remove();
         }
     }
 
-    async updateEvent(eventData, thumbnailFile = null, videoFile = null) {
+    async updateEvent(eventData, thumbnailFile = null, bannerFile = null, videoFile = null) {
         try {
             console.log('📡 Updating event:', this.eventId);
             
@@ -1061,10 +1113,18 @@ class EventDetail {
                 console.log('📸 Adding thumbnail file:', thumbnailFile.name);
             }
             
+            if (bannerFile) {
+                formData.append('event_banner', bannerFile);
+                console.log('🖼️ Adding banner file:', bannerFile.name);
+            }
+            
             if (videoFile) {
                 formData.append('event_video', videoFile);
                 console.log('🎥 Adding video file:', videoFile.name);
             }
+            
+            // Debug: Log all form data keys
+            console.log('📋 Form data keys:', Array.from(formData.keys()));
 
             const headers = {
                 'Authorization': `Bearer ${token}`
@@ -1080,6 +1140,8 @@ class EventDetail {
             if (response.ok) {
                 const updatedEvent = await response.json();
                 console.log('✅ Event updated successfully:', updatedEvent);
+                console.log('🖼️ Updated event banner:', updatedEvent.event_banner);
+                console.log('📸 Updated event thumbnail:', updatedEvent.event_thumbnail);
                 this.event = updatedEvent;
                 this.renderEventDetail();
                 this.showSuccess('Event updated successfully!');
@@ -1301,6 +1363,7 @@ async function handleEditFormSubmit(event) {
     
     // Handle file uploads
     const thumbnailFile = document.getElementById('editThumbnail').files[0];
+    const bannerFile = document.getElementById('editBanner').files[0];
     const videoFile = document.getElementById('editVideo').files[0];
     
     // Validate file uploads
@@ -1314,6 +1377,20 @@ async function handleEditFormSubmit(event) {
         const maxImageSize = 10 * 1024 * 1024; // 10MB
         if (thumbnailFile.size > maxImageSize) {
             window.eventDetail.showError('Thumbnail file size must be less than 10MB');
+            return;
+        }
+    }
+    
+    if (bannerFile) {
+        const allowedImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        if (!allowedImageTypes.includes(bannerFile.type)) {
+            window.eventDetail.showError('Banner must be a valid image file (JPEG, PNG, GIF, or WebP)');
+            return;
+        }
+        
+        const maxImageSize = 10 * 1024 * 1024; // 10MB
+        if (bannerFile.size > maxImageSize) {
+            window.eventDetail.showError('Banner file size must be less than 10MB');
             return;
         }
     }
@@ -1365,7 +1442,7 @@ async function handleEditFormSubmit(event) {
     submitBtn.disabled = true;
     
     try {
-        const success = await window.eventDetail.updateEvent(formData, thumbnailFile, videoFile);
+        const success = await window.eventDetail.updateEvent(formData, thumbnailFile, bannerFile, videoFile);
         if (success) {
             // Switch back to view mode
             window.eventDetail.toggleEditMode();

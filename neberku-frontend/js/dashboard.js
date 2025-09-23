@@ -462,11 +462,17 @@ class Dashboard {
         
         // Add files if selected
         const thumbnailFile = document.getElementById('eventThumbnail').files[0];
+        const bannerFile = document.getElementById('eventBanner').files[0];
         const videoFile = document.getElementById('eventVideo').files[0];
         
         if (thumbnailFile) {
             formData.append('event_thumbnail', thumbnailFile);
             console.log('📸 Adding thumbnail:', thumbnailFile.name);
+        }
+        
+        if (bannerFile) {
+            formData.append('event_banner', bannerFile);
+            console.log('🖼️ Adding banner:', bannerFile.name);
         }
         
         if (videoFile) {
@@ -478,6 +484,49 @@ class Dashboard {
         if (!formData.get('title') || !formData.get('event_date') || !formData.get('location') || !formData.get('description')) {
             this.showAlert('Please fill in all required fields', 'warning');
             return;
+        }
+        
+        // Validate file uploads
+        if (thumbnailFile) {
+            const allowedImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            if (!allowedImageTypes.includes(thumbnailFile.type)) {
+                this.showAlert('Thumbnail must be a valid image file (JPEG, PNG, GIF, or WebP)', 'warning');
+                return;
+            }
+            
+            const maxImageSize = 10 * 1024 * 1024; // 10MB
+            if (thumbnailFile.size > maxImageSize) {
+                this.showAlert('Thumbnail file size must be less than 10MB', 'warning');
+                return;
+            }
+        }
+        
+        if (bannerFile) {
+            const allowedImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            if (!allowedImageTypes.includes(bannerFile.type)) {
+                this.showAlert('Banner must be a valid image file (JPEG, PNG, GIF, or WebP)', 'warning');
+                return;
+            }
+            
+            const maxImageSize = 10 * 1024 * 1024; // 10MB
+            if (bannerFile.size > maxImageSize) {
+                this.showAlert('Banner file size must be less than 10MB', 'warning');
+                return;
+            }
+        }
+        
+        if (videoFile) {
+            const allowedVideoTypes = ['video/mp4', 'video/mov', 'video/avi', 'video/webm'];
+            if (!allowedVideoTypes.includes(videoFile.type)) {
+                this.showAlert('Video must be a valid video file (MP4, MOV, AVI, or WebM)', 'warning');
+                return;
+            }
+            
+            const maxVideoSize = 100 * 1024 * 1024; // 100MB
+            if (videoFile.size > maxVideoSize) {
+                this.showAlert('Video file size must be less than 100MB', 'warning');
+                return;
+            }
         }
 
         if (!formData.get('package_id') || !formData.get('event_type_id')) {
