@@ -19,6 +19,7 @@ class EventDetail {
         if (this.eventId) {
             this.loadEventDetail();
             this.loadEventGuestPosts();
+            this.loadEventTypesAndPackages();
             this.bindEvents();
         } else {
             this.showError('No event ID provided');
@@ -55,6 +56,21 @@ class EventDetail {
                 this.filters.search = e.target.value;
                 this.applyFilters();
             }, 300);
+        });
+
+        // Tab switching events
+        const tabButtons = document.querySelectorAll('#eventTabs button[data-bs-toggle="tab"]');
+        tabButtons.forEach(button => {
+            button.addEventListener('shown.bs.tab', (e) => {
+                const targetTab = e.target.getAttribute('data-bs-target');
+                console.log('📑 Tab switched to:', targetTab);
+                
+                // Handle specific tab actions
+                if (targetTab === '#share') {
+                    // Generate QR code when Share tab is activated
+                    this.generateQRCode();
+                }
+            });
         });
     }
 
@@ -140,6 +156,127 @@ class EventDetail {
         }
     }
 
+    async loadEventTypesAndPackages() {
+        try {
+            console.log('📡 Loading event types and packages');
+            
+            // Packages and event types are publicly accessible (no authentication required)
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+            
+            // Load packages
+            const packagesResponse = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PACKAGES}`, {
+                headers: headers
+            });
+            
+            if (packagesResponse.ok) {
+                const packagesData = await packagesResponse.json();
+                console.log('📦 Packages response:', packagesData);
+                
+                // Handle different response structures
+                let packages = packagesData;
+                if (packagesData.results) {
+                    packages = packagesData.results; // Django REST Framework pagination
+                } else if (packagesData.data) {
+                    packages = packagesData.data; // Some APIs wrap in data field
+                } else if (!Array.isArray(packagesData)) {
+                    console.error('❌ Unexpected packages response structure:', packagesData);
+                    packages = [];
+                }
+                
+                if (Array.isArray(packages)) {
+                    this.populatePackagesSelect(packages);
+                } else {
+                    console.error('❌ Packages is not an array:', packages);
+                }
+            } else {
+                console.error('❌ Failed to load packages:', packagesResponse.status, packagesResponse.statusText);
+            }
+            
+            // Load event types
+            const eventTypesResponse = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.EVENT_TYPES}`, {
+                headers: headers
+            });
+            
+            if (eventTypesResponse.ok) {
+                const eventTypesData = await eventTypesResponse.json();
+                console.log('🎯 Event types response:', eventTypesData);
+                
+                // Handle different response structures
+                let eventTypes = eventTypesData;
+                if (eventTypesData.results) {
+                    eventTypes = eventTypesData.results; // Django REST Framework pagination
+                } else if (eventTypesData.data) {
+                    eventTypes = eventTypesData.data; // Some APIs wrap in data field
+                } else if (!Array.isArray(eventTypesData)) {
+                    console.error('❌ Unexpected event types response structure:', eventTypesData);
+                    eventTypes = [];
+                }
+                
+                if (Array.isArray(eventTypes)) {
+                    this.populateEventTypesSelect(eventTypes);
+                } else {
+                    console.error('❌ Event types is not an array:', eventTypes);
+                }
+            } else {
+                console.error('❌ Failed to load event types:', eventTypesResponse.status, eventTypesResponse.statusText);
+            }
+        } catch (error) {
+            console.error('❌ Error loading event types and packages:', error);
+        }
+    }
+
+    populateEventTypesSelect(eventTypes) {
+        const eventTypeSelect = document.getElementById('editEventType');
+        if (!eventTypeSelect) {
+            console.error('❌ Event type select element not found');
+            return;
+        }
+        
+        eventTypeSelect.innerHTML = '<option value="">Select event type</option>';
+        
+        if (!Array.isArray(eventTypes) || eventTypes.length === 0) {
+            console.log('⚠️ No event types available or invalid data');
+            eventTypeSelect.innerHTML = '<option value="">No event types available</option>';
+            return;
+        }
+        
+        eventTypes.forEach(eventType => {
+            const option = document.createElement('option');
+            option.value = eventType.id;
+            option.textContent = eventType.name;
+            eventTypeSelect.appendChild(option);
+        });
+        
+        console.log(`✅ Populated event type dropdown with ${eventTypes.length} event types`);
+    }
+
+    populatePackagesSelect(packages) {
+        const packageSelect = document.getElementById('editPackage');
+        if (!packageSelect) {
+            console.error('❌ Package select element not found');
+            return;
+        }
+        
+        packageSelect.innerHTML = '<option value="">Select a package</option>';
+        
+        if (!Array.isArray(packages) || packages.length === 0) {
+            console.log('⚠️ No packages available or invalid data');
+            packageSelect.innerHTML = '<option value="">No packages available</option>';
+            return;
+        }
+        
+        packages.forEach(pkg => {
+            const option = document.createElement('option');
+            option.value = pkg.id;
+            option.textContent = `${pkg.name} - $${pkg.price}`;
+            packageSelect.appendChild(option);
+        });
+        
+        console.log(`✅ Populated package dropdown with ${packages.length} packages`);
+    }
+
     renderEventDetail() {
         if (!this.event) return;
 
@@ -147,7 +284,7 @@ class EventDetail {
         document.getElementById('eventTitle').textContent = this.event.title;
         document.getElementById('eventDescription').textContent = this.event.description || 'No description available';
         
-        // Event status
+        // Event status - update both header and detail tab
         const statusBadge = document.getElementById('eventStatus');
         if (this.event.status === 'active') {
             statusBadge.textContent = 'Active';
@@ -159,23 +296,89 @@ class EventDetail {
             statusBadge.textContent = this.event.status;
             statusBadge.className = 'badge bg-info fs-6';
         }
+        
+        // Update Event Details tab status
+        const eventStatusDetail = document.getElementById('eventStatusDetail');
+        if (eventStatusDetail) {
+            if (this.event.status === 'active') {
+                eventStatusDetail.textContent = 'Active';
+            } else if (this.event.status === 'draft') {
+                eventStatusDetail.textContent = 'Draft';
+            } else {
+                eventStatusDetail.textContent = this.event.status;
+            }
+        }
 
-        // Event date and location
+        // Event date and location - update both header and detail tab
         document.getElementById('eventDate').textContent = this.formatDate(this.event.event_date);
         document.getElementById('eventLocation').textContent = this.event.location;
+        
+        // Update Event Details tab with unique IDs
+        const eventDateDetail = document.getElementById('eventDateDetail');
+        if (eventDateDetail) {
+            eventDateDetail.textContent = this.formatDate(this.event.event_date);
+        }
+        
+        const eventLocationDetail = document.getElementById('eventLocationDetail');
+        if (eventLocationDetail) {
+            eventLocationDetail.textContent = this.event.location;
+        }
 
-        // Statistics
+        // Statistics - update both header and detail tab
         document.getElementById('totalPhotos').textContent = this.event.photo_count || 0;
         document.getElementById('totalVideos').textContent = this.event.video_count || 0;
         document.getElementById('totalPosts').textContent = this.event.total_guest_posts || 0;
         document.getElementById('totalGuests').textContent = this.event.total_guest_posts || 0; // Using posts as guest count for now
 
-        // Event details
+        // Event details - update detail tab
         document.getElementById('eventType').textContent = this.event.event_type?.name || 'Unknown';
         document.getElementById('eventPackage').textContent = this.event.package?.name || 'Unknown';
         document.getElementById('createdAt').textContent = this.formatDate(this.event.created_at);
 
-        // Event settings
+        // Enhanced event details for the detail tab
+        document.getElementById('eventTitleDetail').textContent = this.event.title;
+        document.getElementById('eventDescriptionDetail').textContent = this.event.description || 'No description available';
+        document.getElementById('updatedAt').textContent = this.formatDate(this.event.updated_at);
+        
+        // Payment status - update both header and detail tab
+        const paymentStatus = document.getElementById('paymentStatus');
+        if (paymentStatus) {
+            const paymentStatusText = this.event.payment_status || 'Unknown';
+            paymentStatus.textContent = paymentStatusText.charAt(0).toUpperCase() + paymentStatusText.slice(1);
+        }
+        
+        const paymentStatusDetail = document.getElementById('paymentStatusDetail');
+        if (paymentStatusDetail) {
+            const paymentStatusText = this.event.payment_status || 'Unknown';
+            paymentStatusDetail.textContent = paymentStatusText.charAt(0).toUpperCase() + paymentStatusText.slice(1);
+        }
+        
+        // Published date - update both header and detail tab
+        const publishedAt = document.getElementById('publishedAt');
+        if (publishedAt) {
+            publishedAt.textContent = this.event.published_at ? this.formatDate(this.event.published_at) : 'Not published';
+        }
+        
+        const publishedAtDetail = document.getElementById('publishedAtDetail');
+        if (publishedAtDetail) {
+            publishedAtDetail.textContent = this.event.published_at ? this.formatDate(this.event.published_at) : 'Not published';
+        }
+        
+        // Privacy settings
+        const isPublic = document.getElementById('isPublic');
+        if (isPublic) {
+            isPublic.textContent = this.event.is_public ? 'Yes' : 'No';
+        }
+        
+        const contributorCodeDetail = document.getElementById('contributorCodeDetail');
+        if (contributorCodeDetail) {
+            contributorCodeDetail.textContent = this.event.contributor_code || 'Not generated';
+        }
+        
+        // Event media previews
+        this.renderEventMediaPreviews();
+
+        // Event settings - update settings tab
         document.getElementById('photosAllowed').textContent = `Photos: ${this.event.allow_photos ? 'Allowed' : 'Not Allowed'}`;
         document.getElementById('videosAllowed').textContent = `Videos: ${this.event.allow_videos ? 'Allowed' : 'Not Allowed'}`;
         document.getElementById('wishesAllowed').textContent = `Wishes: ${this.event.allow_wishes ? 'Allowed' : 'Not Allowed'}`;
@@ -520,6 +723,43 @@ class EventDetail {
         }, 5000);
     }
 
+    renderEventMediaPreviews() {
+        // Event thumbnail preview
+        const thumbnailPreview = document.getElementById('eventThumbnailPreview');
+        if (thumbnailPreview) {
+            if (this.event.event_thumbnail) {
+                const thumbnailUrl = this.getFullUrl(this.event.event_thumbnail);
+                thumbnailPreview.innerHTML = `
+                    <img src="${thumbnailUrl}" alt="Event thumbnail" class="img-fluid" style="max-height: 150px; border-radius: 8px;">
+                `;
+            } else {
+                thumbnailPreview.innerHTML = '<span class="text-muted">No thumbnail uploaded</span>';
+            }
+        }
+        
+        // Event video preview
+        const videoPreview = document.getElementById('eventVideoPreview');
+        if (videoPreview) {
+            if (this.event.event_video) {
+                const videoUrl = this.getFullUrl(this.event.event_video);
+                videoPreview.innerHTML = `
+                    <video class="img-fluid" controls style="max-height: 150px; border-radius: 8px;">
+                        <source src="${videoUrl}" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                `;
+            } else {
+                videoPreview.innerHTML = '<span class="text-muted">No video uploaded</span>';
+            }
+        }
+    }
+
+    getFullUrl(relativePath) {
+        if (!relativePath) return '';
+        if (relativePath.startsWith('http')) return relativePath;
+        return `${API_CONFIG.BASE_URL}${relativePath}`;
+    }
+
     setupQRCodeAndShare() {
         // Set contributor code
         const contributorCodeDisplay = document.getElementById('contributorCodeDisplay');
@@ -535,8 +775,8 @@ class EventDetail {
             shareLinkInput.value = shareUrl;
         }
 
-        // Generate QR code
-        this.generateQRCode();
+        // Generate QR code (will be triggered when Share tab is activated)
+        console.log('🔗 Share setup completed, QR code will generate when Share tab is activated');
     }
 
     async generateQRCode() {
@@ -575,6 +815,203 @@ class EventDetail {
                     </div>
                 `;
             }
+        }
+    }
+
+    // Edit functionality methods
+    toggleEditMode() {
+        const viewMode = document.getElementById('eventDetailsView');
+        const editMode = document.getElementById('eventDetailsEdit');
+        const editBtn = document.getElementById('editEventBtn');
+        
+        if (viewMode.style.display === 'none') {
+            // Switch to view mode
+            viewMode.style.display = 'block';
+            editMode.style.display = 'none';
+            editBtn.innerHTML = '<i class="bi bi-pencil-square"></i> Edit Event';
+        } else {
+            // Switch to edit mode
+            viewMode.style.display = 'none';
+            editMode.style.display = 'block';
+            editBtn.innerHTML = '<i class="bi bi-eye"></i> View Event';
+            this.populateEditForm();
+        }
+    }
+
+    populateEditForm() {
+        if (!this.event) return;
+        
+        // Populate form fields with current event data
+        document.getElementById('editTitle').value = this.event.title || '';
+        document.getElementById('editDescription').value = this.event.description || '';
+        document.getElementById('editLocation').value = this.event.location || '';
+        
+        // Format date for datetime-local input
+        if (this.event.event_date) {
+            const eventDate = new Date(this.event.event_date);
+            const formattedDate = eventDate.toISOString().slice(0, 16);
+            document.getElementById('editEventDate').value = formattedDate;
+        }
+        
+        // Set event type and package
+        const eventTypeSelect = document.getElementById('editEventType');
+        if (eventTypeSelect && this.event.event_type) {
+            eventTypeSelect.value = this.event.event_type.id;
+        }
+        
+        const packageSelect = document.getElementById('editPackage');
+        if (packageSelect && this.event.package) {
+            packageSelect.value = this.event.package.id;
+        }
+        
+        // Populate checkboxes
+        document.getElementById('editAllowPhotos').checked = this.event.allow_photos || false;
+        document.getElementById('editAllowVideos').checked = this.event.allow_videos || false;
+        document.getElementById('editAllowWishes').checked = this.event.allow_wishes || false;
+        document.getElementById('editAutoApprove').checked = this.event.auto_approve_posts || false;
+        document.getElementById('editIsPublic').checked = this.event.is_public || false;
+        
+        // Populate privacy settings
+        const contributorCodeInput = document.getElementById('editContributorCode');
+        if (contributorCodeInput) {
+            contributorCodeInput.value = this.event.contributor_code || '';
+        }
+        
+        // Set access control radio buttons
+        const privateAccessRadio = document.getElementById('editPrivateAccess');
+        const publicAccessRadio = document.getElementById('editPublicAccess');
+        if (privateAccessRadio && publicAccessRadio) {
+            if (this.event.is_public) {
+                publicAccessRadio.checked = true;
+            } else {
+                privateAccessRadio.checked = true;
+            }
+        }
+        
+        // Show current media files
+        this.showCurrentMediaFiles();
+    }
+
+    showCurrentMediaFiles() {
+        // Clear any existing media previews first
+        this.clearMediaPreviews();
+        
+        // Show current thumbnail
+        const thumbnailContainer = document.getElementById('editThumbnail').parentNode;
+        const currentThumbnailDiv = document.createElement('div');
+        currentThumbnailDiv.className = 'mb-2 current-thumbnail-preview';
+        currentThumbnailDiv.innerHTML = '<small class="text-muted">Current thumbnail:</small>';
+        
+        if (this.event.event_thumbnail) {
+            const thumbnailUrl = this.getFullUrl(this.event.event_thumbnail);
+            currentThumbnailDiv.innerHTML += `
+                <div class="mt-1">
+                    <img src="${thumbnailUrl}" alt="Current thumbnail" class="img-thumbnail" style="max-width: 150px; max-height: 100px;">
+                </div>
+            `;
+        } else {
+            currentThumbnailDiv.innerHTML += '<div class="mt-1 text-muted">No thumbnail uploaded</div>';
+        }
+        
+        thumbnailContainer.insertBefore(currentThumbnailDiv, document.getElementById('editThumbnail'));
+        
+        // Show current video
+        const videoContainer = document.getElementById('editVideo').parentNode;
+        const currentVideoDiv = document.createElement('div');
+        currentVideoDiv.className = 'mb-2 current-video-preview';
+        currentVideoDiv.innerHTML = '<small class="text-muted">Current video:</small>';
+        
+        if (this.event.event_video) {
+            const videoUrl = this.getFullUrl(this.event.event_video);
+            currentVideoDiv.innerHTML += `
+                <div class="mt-1">
+                    <video controls class="img-thumbnail" style="max-width: 150px; max-height: 100px;">
+                        <source src="${videoUrl}" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                </div>
+            `;
+        } else {
+            currentVideoDiv.innerHTML += '<div class="mt-1 text-muted">No video uploaded</div>';
+        }
+        
+        videoContainer.insertBefore(currentVideoDiv, document.getElementById('editVideo'));
+    }
+
+    clearMediaPreviews() {
+        // Remove existing media previews
+        const existingThumbnailPreview = document.querySelector('.current-thumbnail-preview');
+        if (existingThumbnailPreview) {
+            existingThumbnailPreview.remove();
+        }
+        
+        const existingVideoPreview = document.querySelector('.current-video-preview');
+        if (existingVideoPreview) {
+            existingVideoPreview.remove();
+        }
+    }
+
+    async updateEvent(eventData, thumbnailFile = null, videoFile = null) {
+        try {
+            console.log('📡 Updating event:', this.eventId);
+            
+            // Get JWT token for authentication
+            const token = localStorage.getItem('neberku_access_token');
+            if (!token) {
+                console.error('❌ No JWT token found, cannot update event');
+                this.showError('Authentication token not found. Please log in again.');
+                return false;
+            }
+
+            // Create FormData for multipart/form-data request
+            const formData = new FormData();
+            
+            // Add all the form fields to FormData
+            Object.keys(eventData).forEach(key => {
+                if (eventData[key] !== null && eventData[key] !== undefined) {
+                    formData.append(key, eventData[key]);
+                }
+            });
+            
+            // Add file uploads if provided
+            if (thumbnailFile) {
+                formData.append('event_thumbnail', thumbnailFile);
+                console.log('📸 Adding thumbnail file:', thumbnailFile.name);
+            }
+            
+            if (videoFile) {
+                formData.append('event_video', videoFile);
+                console.log('🎥 Adding video file:', videoFile.name);
+            }
+
+            const headers = {
+                'Authorization': `Bearer ${token}`
+                // Don't set Content-Type header - let browser set it with boundary for FormData
+            };
+            
+            const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.EVENT_DETAIL.replace('{id}', this.eventId)}`, {
+                method: 'PUT',
+                headers: headers,
+                body: formData
+            });
+
+            if (response.ok) {
+                const updatedEvent = await response.json();
+                console.log('✅ Event updated successfully:', updatedEvent);
+                this.event = updatedEvent;
+                this.renderEventDetail();
+                this.showSuccess('Event updated successfully!');
+                return true;
+            } else {
+                const errorData = await response.json();
+                console.error('❌ Error updating event:', errorData);
+                this.showError(`Error updating event: ${errorData.detail || 'Unknown error'}`);
+                return false;
+            }
+        } catch (error) {
+            console.error('❌ Error updating event:', error);
+            this.showError('Unable to update event. Please check your connection and try again.');
+            return false;
         }
     }
 }
@@ -718,7 +1155,156 @@ function shareViaSocial() {
     }
 }
 
+// Edit functionality global functions
+function toggleEditMode() {
+    if (window.eventDetail) {
+        window.eventDetail.toggleEditMode();
+    }
+}
+
+function cancelEdit() {
+    if (window.eventDetail) {
+        window.eventDetail.toggleEditMode();
+    }
+}
+
+async function handleEditFormSubmit(event) {
+    event.preventDefault();
+    
+    if (!window.eventDetail) {
+        console.error('EventDetail instance not found');
+        return;
+    }
+    
+    // Collect form data
+    const formData = {
+        title: document.getElementById('editTitle').value,
+        description: document.getElementById('editDescription').value,
+        location: document.getElementById('editLocation').value,
+        event_date: document.getElementById('editEventDate').value,
+        package_id: document.getElementById('editPackage').value,
+        event_type_id: document.getElementById('editEventType').value,
+        allow_photos: document.getElementById('editAllowPhotos').checked,
+        allow_videos: document.getElementById('editAllowVideos').checked,
+        allow_wishes: document.getElementById('editAllowWishes').checked,
+        auto_approve_posts: document.getElementById('editAutoApprove').checked,
+        is_public: document.getElementById('editIsPublic').checked
+    };
+    
+    // Handle privacy settings
+    const contributorCode = document.getElementById('editContributorCode').value.trim();
+    const accessControl = document.querySelector('input[name="editAccessControl"]:checked');
+    
+    // Set privacy settings based on radio button selection
+    if (accessControl) {
+        formData.is_public = accessControl.value === 'public';
+    }
+    
+    // Add contributor code if provided
+    if (contributorCode) {
+        // Validate contributor code
+        if (contributorCode.length > 10) {
+            window.eventDetail.showError('Contributor code must be 10 characters or less');
+            return;
+        }
+        
+        // Check for valid characters (alphanumeric only)
+        if (!/^[a-zA-Z0-9]+$/.test(contributorCode)) {
+            window.eventDetail.showError('Contributor code can only contain letters and numbers');
+            return;
+        }
+        
+        formData.contributor_code = contributorCode;
+    }
+    
+    // Handle file uploads
+    const thumbnailFile = document.getElementById('editThumbnail').files[0];
+    const videoFile = document.getElementById('editVideo').files[0];
+    
+    // Validate file uploads
+    if (thumbnailFile) {
+        const allowedImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        if (!allowedImageTypes.includes(thumbnailFile.type)) {
+            window.eventDetail.showError('Thumbnail must be a valid image file (JPEG, PNG, GIF, or WebP)');
+            return;
+        }
+        
+        const maxImageSize = 10 * 1024 * 1024; // 10MB
+        if (thumbnailFile.size > maxImageSize) {
+            window.eventDetail.showError('Thumbnail file size must be less than 10MB');
+            return;
+        }
+    }
+    
+    if (videoFile) {
+        const allowedVideoTypes = ['video/mp4', 'video/mov', 'video/avi', 'video/webm'];
+        if (!allowedVideoTypes.includes(videoFile.type)) {
+            window.eventDetail.showError('Video must be a valid video file (MP4, MOV, AVI, or WebM)');
+            return;
+        }
+        
+        const maxVideoSize = 100 * 1024 * 1024; // 100MB
+        if (videoFile.size > maxVideoSize) {
+            window.eventDetail.showError('Video file size must be less than 100MB');
+            return;
+        }
+    }
+    
+    // Validate required fields
+    if (!formData.title.trim()) {
+        window.eventDetail.showError('Event title is required');
+        return;
+    }
+    
+    if (!formData.description.trim()) {
+        window.eventDetail.showError('Event description is required');
+        return;
+    }
+    
+    if (!formData.event_date) {
+        window.eventDetail.showError('Event date is required');
+        return;
+    }
+    
+    if (!formData.package_id) {
+        window.eventDetail.showError('Package is required');
+        return;
+    }
+    
+    if (!formData.event_type_id) {
+        window.eventDetail.showError('Event type is required');
+        return;
+    }
+    
+    // Show loading state
+    const submitBtn = event.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Saving...';
+    submitBtn.disabled = true;
+    
+    try {
+        const success = await window.eventDetail.updateEvent(formData, thumbnailFile, videoFile);
+        if (success) {
+            // Switch back to view mode
+            window.eventDetail.toggleEditMode();
+        }
+    } catch (error) {
+        console.error('Error updating event:', error);
+        window.eventDetail.showError('Failed to update event');
+    } finally {
+        // Restore button state
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    }
+}
+
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', () => {
     window.eventDetail = new EventDetail();
+    
+    // Add form event listener for edit form
+    const editForm = document.getElementById('editEventForm');
+    if (editForm) {
+        editForm.addEventListener('submit', handleEditFormSubmit);
+    }
 }); 
