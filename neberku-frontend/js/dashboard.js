@@ -2,6 +2,9 @@
 class Dashboard {
     constructor() {
         this.events = [];
+        this.currentPage = 1;
+        this.eventsPerPage = 6;
+        this.filteredEvents = [];
         this.init();
     }
 
@@ -57,6 +60,8 @@ class Dashboard {
         try {
             await this.loadEvents();
             this.updateStatistics();
+            // Initialize filtered events to all events first
+            this.filteredEvents = [...this.events];
             // Apply active filter by default (without showing alert)
             this.filterEvents('active', false);
         } catch (error) {
@@ -199,7 +204,10 @@ class Dashboard {
         const eventsList = document.getElementById('eventsList');
         if (!eventsList) return;
 
-        if (this.events.length === 0) {
+        // Use filteredEvents if available, otherwise use all events
+        const eventsToRender = this.filteredEvents.length > 0 ? this.filteredEvents : this.events;
+        
+        if (eventsToRender.length === 0) {
             eventsList.innerHTML = `
                 <div class="col-12 text-center py-5">
                     <i class="bi bi-calendar-x display-1 text-muted"></i>
@@ -218,10 +226,18 @@ class Dashboard {
                     </p>
                 </div>
             `;
+            this.renderPagination(0);
             return;
         }
 
-        eventsList.innerHTML = this.events.map(event => {
+        // Calculate pagination
+        const totalPages = Math.ceil(eventsToRender.length / this.eventsPerPage);
+        const startIndex = (this.currentPage - 1) * this.eventsPerPage;
+        const endIndex = startIndex + this.eventsPerPage;
+        const eventsForCurrentPage = eventsToRender.slice(startIndex, endIndex);
+
+        // Render events for current page
+        eventsList.innerHTML = eventsForCurrentPage.map(event => {
             const status = this.getEventStatus(event);
             const statusClass = this.getStatusClass(status);
             const statusIcon = this.getStatusIcon(status);
@@ -281,6 +297,146 @@ class Dashboard {
                 </div>
             `;
         }).join('');
+
+        // Render pagination controls
+        this.renderPagination(eventsToRender.length);
+    }
+
+    renderPagination(totalEvents) {
+        const paginationContainer = document.getElementById('paginationContainer');
+        if (!paginationContainer) return;
+
+        const totalPages = Math.ceil(totalEvents / this.eventsPerPage);
+        
+        // Only show pagination if there are more than 6 events
+        if (totalEvents <= this.eventsPerPage) {
+            paginationContainer.innerHTML = '';
+            return;
+        }
+
+        let paginationHTML = `
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="pagination-info">
+                    <small class="text-muted">
+                        Showing ${((this.currentPage - 1) * this.eventsPerPage) + 1} to ${Math.min(this.currentPage * this.eventsPerPage, totalEvents)} of ${totalEvents} events
+                    </small>
+                </div>
+                <nav aria-label="Events pagination">
+                    <ul class="pagination pagination-sm mb-0">
+        `;
+
+        // Previous button
+        if (this.currentPage > 1) {
+            paginationHTML += `
+                <li class="page-item">
+                    <button class="page-link" onclick="dashboard.goToPage(${this.currentPage - 1})" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </button>
+                </li>
+            `;
+        } else {
+            paginationHTML += `
+                <li class="page-item disabled">
+                    <span class="page-link" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </span>
+                </li>
+            `;
+        }
+
+        // Page numbers
+        const maxVisiblePages = 5;
+        let startPage = Math.max(1, this.currentPage - Math.floor(maxVisiblePages / 2));
+        let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+        
+        // Adjust start page if we're near the end
+        if (endPage - startPage + 1 < maxVisiblePages) {
+            startPage = Math.max(1, endPage - maxVisiblePages + 1);
+        }
+
+        // First page
+        if (startPage > 1) {
+            paginationHTML += `
+                <li class="page-item">
+                    <button class="page-link" onclick="dashboard.goToPage(1)">1</button>
+                </li>
+            `;
+            if (startPage > 2) {
+                paginationHTML += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+            }
+        }
+
+        // Page numbers
+        for (let i = startPage; i <= endPage; i++) {
+            if (i === this.currentPage) {
+                paginationHTML += `
+                    <li class="page-item active">
+                        <span class="page-link">${i}</span>
+                    </li>
+                `;
+            } else {
+                paginationHTML += `
+                    <li class="page-item">
+                        <button class="page-link" onclick="dashboard.goToPage(${i})">${i}</button>
+                    </li>
+                `;
+            }
+        }
+
+        // Last page
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                paginationHTML += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+            }
+            paginationHTML += `
+                <li class="page-item">
+                    <button class="page-link" onclick="dashboard.goToPage(${totalPages})">${totalPages}</button>
+                </li>
+            `;
+        }
+
+        // Next button
+        if (this.currentPage < totalPages) {
+            paginationHTML += `
+                <li class="page-item">
+                    <button class="page-link" onclick="dashboard.goToPage(${this.currentPage + 1})" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </button>
+                </li>
+            `;
+        } else {
+            paginationHTML += `
+                <li class="page-item disabled">
+                    <span class="page-link" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </span>
+                </li>
+            `;
+        }
+
+        paginationHTML += `
+                    </ul>
+                </nav>
+            </div>
+        `;
+
+        paginationContainer.innerHTML = paginationHTML;
+    }
+
+    goToPage(pageNumber) {
+        const totalEvents = this.filteredEvents.length > 0 ? this.filteredEvents.length : this.events.length;
+        const totalPages = Math.ceil(totalEvents / this.eventsPerPage);
+        
+        if (pageNumber >= 1 && pageNumber <= totalPages) {
+            this.currentPage = pageNumber;
+            this.renderEvents();
+            
+            // Scroll to top of events list
+            const eventsList = document.getElementById('eventsList');
+            if (eventsList) {
+                eventsList.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
     }
 
     async createEvent() {
@@ -682,28 +838,22 @@ class Dashboard {
     }
     
     filterEvents(filterType, showAlert = true) {
-        const eventCards = document.querySelectorAll('.event-card');
-        
-        eventCards.forEach(card => {
-            const eventId = card.dataset.eventId;
-            const event = this.events.find(e => e.id == eventId);
-            
-            if (!event) return;
-            
+        // First, filter the events based on status
+        this.filteredEvents = this.events.filter(event => {
             const status = this.getEventStatus(event);
-            let shouldShow = false;
+            let shouldInclude = false;
             
             switch (filterType) {
                 case 'all':
-                    shouldShow = true;
+                    shouldInclude = true;
                     break;
                 case 'active':
-                    shouldShow = status.toLowerCase().includes('active') || 
+                    shouldInclude = status.toLowerCase().includes('active') || 
                                 status.toLowerCase().includes('today') || 
                                 status.toLowerCase().includes('ongoing');
                     break;
                 case 'pending':
-                    shouldShow = status.toLowerCase().includes('pending') || 
+                    shouldInclude = status.toLowerCase().includes('pending') || 
                                 status.toLowerCase().includes('payment') ||
                                 status.toLowerCase().includes('tomorrow') || 
                                 status.toLowerCase().includes('scheduled') ||
@@ -711,30 +861,28 @@ class Dashboard {
                                 status.toLowerCase().includes('planned');
                     break;
                 case 'completed':
-                    shouldShow = status.toLowerCase().includes('completed') || 
+                    shouldInclude = status.toLowerCase().includes('completed') || 
                                 status.toLowerCase().includes('finished') ||
                                 status.toLowerCase().includes('done');
                     break;
                 case 'draft':
-                    shouldShow = status.toLowerCase().includes('draft') || 
+                    shouldInclude = status.toLowerCase().includes('draft') || 
                                 status.toLowerCase().includes('created') || 
                                 status.toLowerCase().includes('new');
                     break;
                 case 'cancelled':
-                    shouldShow = status.toLowerCase().includes('cancelled') || 
+                    shouldInclude = status.toLowerCase().includes('cancelled') || 
                                 status.toLowerCase().includes('canceled');
                     break;
                 default:
-                    shouldShow = true;
+                    shouldInclude = true;
             }
             
-            card.style.display = shouldShow ? 'block' : 'none';
+            return shouldInclude;
         });
         
-        // Update active filter button
-        document.querySelectorAll('.btn-group .btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
+        // Reset to first page when filtering
+        this.currentPage = 1;
         
         // Update status card visual feedback
         document.querySelectorAll('.status-card').forEach(card => {
@@ -747,13 +895,15 @@ class Dashboard {
             clickedCard.classList.add('active-status');
         }
         
+        // Render the filtered events with pagination
+        this.renderEvents();
+        
         // Log filtering results for debugging
-        const visibleCount = Array.from(eventCards).filter(card => card.style.display !== 'none').length;
-        console.log(`🔍 Filter '${filterType}' applied: ${visibleCount} events visible out of ${eventCards.length} total`);
+        console.log(`🔍 Filter '${filterType}' applied: ${this.filteredEvents.length} events found`);
         
         // Show feedback message only if showAlert is true
         if (showAlert) {
-            this.showAlert(`Showing ${filterType} events (${visibleCount} found)`, 'info');
+            this.showAlert(`Showing ${filterType} events (${this.filteredEvents.length} found)`, 'info');
         }
     }
     
