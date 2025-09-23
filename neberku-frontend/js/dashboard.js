@@ -245,6 +245,21 @@ class Dashboard {
             return `
                 <div class="col-md-6 col-lg-4 mb-4 event-card" data-event-id="${event.id}">
                     <div class="card h-100 shadow-sm">
+                        ${event.event_thumbnail ? `
+                            <div class="card-img-top-container" style="height: 200px; overflow: hidden;">
+                                <img src="${this.getFullUrl(event.event_thumbnail)}" 
+                                     class="card-img-top" 
+                                     alt="${event.title}" 
+                                     style="width: 100%; height: 100%; object-fit: cover;">
+                            </div>
+                        ` : `
+                            <div class="card-img-top-container bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                                <div class="text-center text-muted">
+                                    <i class="bi bi-image display-4"></i>
+                                    <div class="small mt-2">No thumbnail</div>
+                                </div>
+                            </div>
+                        `}
                         <div class="card-header bg-transparent border-0 pb-0">
                             <div class="d-flex justify-content-between align-items-start">
                                 <span class="badge ${statusClass} rounded-pill">
@@ -980,6 +995,12 @@ class Dashboard {
                 day: 'numeric'
             });
         }
+    }
+
+    getFullUrl(relativePath) {
+        if (!relativePath) return '';
+        if (relativePath.startsWith('http')) return relativePath;
+        return `${API_CONFIG.BASE_URL}${relativePath}`;
     }
     
     formatDateTime(dateString) {
