@@ -57,7 +57,6 @@ class Dashboard {
         try {
             await this.loadEvents();
             this.updateStatistics();
-            this.updateDashboardHeader(); // Show recent activity ordering
         } catch (error) {
             console.error('Error loading dashboard data:', error);
             this.showAlert('Error loading dashboard data', 'danger');
@@ -110,19 +109,6 @@ class Dashboard {
                     console.warn('⚠️ Unexpected response format:', eventsData);
                     this.events = [];
                 }
-                
-                // Sort events by creation date (newest first) for proper recent activity ordering
-                this.events.sort((a, b) => {
-                    const dateA = new Date(a.created_at || a.event_date);
-                    const dateB = new Date(b.created_at || b.event_date);
-                    return dateB - dateA; // Newest first
-                });
-                
-                console.log('📅 Events sorted by creation date for recent activity:', this.events.map(e => ({
-                    title: e.title,
-                    created_at: e.created_at,
-                    event_date: e.event_date
-                })));
                 
                 // Extract stats from the API response
                 this.eventStats = eventsData.stats || eventsData.counts || null;
@@ -189,9 +175,6 @@ class Dashboard {
     renderEvents() {
         const eventsList = document.getElementById('eventsList');
         if (!eventsList) return;
-
-        // Ensure events are properly sorted before rendering
-        this.ensureProperOrdering();
 
         if (this.events.length === 0) {
             eventsList.innerHTML = `
@@ -369,13 +352,6 @@ class Dashboard {
                 console.log('✅ Event created successfully:', newEvent);
                 this.events.push(newEvent);
                 
-                // Re-sort events to maintain recent activity order
-                this.events.sort((a, b) => {
-                    const dateA = new Date(a.created_at || a.event_date);
-                    const dateB = new Date(b.created_at || b.event_date);
-                    return dateB - dateA; // Newest first
-                });
-                
                 this.renderEvents();
                 this.updateStatistics();
                 this.resetForm();
@@ -451,36 +427,8 @@ class Dashboard {
         this.updateEventStatusOverview();
     }
     
-    // Ensure events are always properly sorted by creation date for recent activity
-    ensureProperOrdering() {
-        if (this.events.length > 0) {
-            this.events.sort((a, b) => {
-                const dateA = new Date(a.created_at || a.event_date);
-                const dateB = new Date(b.created_at || b.event_date);
-                return dateB - dateA; // Newest first
-            });
-            console.log('🔄 Events re-sorted to maintain recent activity order');
-        }
-    }
     
-    // Update dashboard header to show recent activity ordering
-    updateDashboardHeader() {
-        const headerElement = document.querySelector('.dashboard-header h1, .dashboard-header h2, .dashboard-header h3');
-        if (headerElement) {
-            const currentText = headerElement.textContent;
-            if (!currentText.includes('Recent Activity')) {
-                headerElement.innerHTML = `${currentText} <small class="text-muted">(Recent Activity First)</small>`;
-            }
-        }
-    }
     
-    // Refresh the event status timeline specifically
-    refreshEventStatus() {
-        console.log('🔄 Refreshing event status overview...');
-        this.updateEventStatusOverview();
-        this.updateEventStatusTimeline();
-        this.showAlert('Event status refreshed!', 'success');
-    }
     
     debugEventData() {
         console.log('🐛 Debug: Current events data with status categorization:');
@@ -559,9 +507,6 @@ class Dashboard {
             // Fallback to local calculation if no stats provided
             this.calculateLocalEventStats();
         }
-        
-        // Update timeline
-        this.updateEventStatusTimeline();
     }
     
     calculateLocalEventStats() {
@@ -762,68 +707,6 @@ class Dashboard {
         console.log(`🔍 Filter '${filterType}' applied: ${visibleCount} events visible out of ${eventCards.length} total`);
     }
     
-    updateEventStatusTimeline() {
-        const timelineContainer = document.getElementById('eventStatusTimeline');
-        
-        if (this.events.length === 0) {
-            timelineContainer.innerHTML = '<p class="text-muted text-center py-3">No recent activity</p>';
-            return;
-        }
-        
-        // Sort events by creation date (most recent first) for proper recent activity ordering
-        const sortedEvents = [...this.events].sort((a, b) => {
-            const dateA = new Date(a.created_at || a.event_date);
-            const dateB = new Date(b.created_at || b.event_date);
-            return dateB - dateA; // Newest first
-        });
-        
-        // Take only the last 5 events for timeline
-        const recentEvents = sortedEvents.slice(0, 5);
-        
-        let timelineHTML = '';
-        recentEvents.forEach(event => {
-            const status = this.getEventStatus(event);
-            const statusClass = this.getStatusClass(status);
-            const statusIcon = this.getStatusIcon(status);
-            
-            // Show only the most relevant date information (shorter text)
-            let dateInfo = '';
-            if (event.created_at) {
-                dateInfo = this.formatShortDate(event.created_at);
-            } else if (event.event_date) {
-                dateInfo = this.formatShortDate(event.event_date);
-            } else {
-                dateInfo = 'Draft';
-            }
-            
-            timelineHTML += `
-                <div class="timeline-item mb-3">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0">
-                            <span class="badge ${statusClass} rounded-pill">
-                                <i class="bi ${statusIcon}"></i> ${status}
-                            </span>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <h6 class="mb-1">${this.truncateText(event.title)}</h6>
-                            <p class="mb-0 text-muted small">
-                                ${dateInfo}
-                                ${event.location ? ` • ${event.location.split(',')[0]}` : ''}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            `;
-        });
-        
-        timelineContainer.innerHTML = timelineHTML;
-        
-        // Add a note about the ordering
-        const noteElement = document.createElement('p');
-        noteElement.className = 'text-muted small text-center mt-3 mb-0';
-        noteElement.innerHTML = '<i class="bi bi-info-circle"></i> Events ordered by creation date (newest first)';
-        timelineContainer.appendChild(noteElement);
-    }
 
     formatDate(dateString) {
         if (!dateString) return 'No date';
@@ -882,32 +765,6 @@ class Dashboard {
         return `${datePart} at ${timePart}`;
     }
     
-    // Format date for timeline (shorter, cleaner text)
-    formatShortDate(dateString) {
-        if (!dateString) return 'No date';
-        
-        const date = new Date(dateString);
-        if (isNaN(date.getTime())) return 'Invalid date';
-        
-        const now = new Date();
-        const diffTime = Math.abs(now - date);
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        
-        if (diffDays === 0) {
-            return 'Today';
-        } else if (diffDays === 1) {
-            return 'Yesterday';
-        } else if (diffDays < 7) {
-            return `${diffDays}d ago`;
-        } else if (diffDays < 30) {
-            return `${Math.floor(diffDays / 7)}w ago`;
-        } else {
-            return date.toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric'
-            });
-        }
-    }
     
     // Truncate long text for cleaner display
     truncateText(text, maxLength = 30) {

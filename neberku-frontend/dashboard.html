@@ -251,9 +251,6 @@
                             <i class="bi bi-activity"></i> Event Status Overview
                         </h5>
                         <div class="btn-group status-filter-buttons" role="group">
-                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="dashboard.refreshEventStatus()">
-                                <i class="bi bi-arrow-clockwise"></i> Refresh
-                            </button>
                             <button type="button" class="btn btn-outline-warning btn-sm" onclick="dashboard.debugEventData()">
                                 <i class="bi bi-bug"></i> Debug
                             </button>
@@ -308,18 +305,6 @@
                             </div>
                         </div>
                         
-                        <!-- Event Status Timeline -->
-                        <div class="row mt-3">
-                            <div class="col-12">
-                                <h6 class="text-muted mb-3">
-                                    <i class="bi bi-clock-history"></i> Recent Event Activity
-                                </h6>
-                                <div id="eventStatusTimeline" class="event-status-timeline">
-                                    <!-- Timeline items will be loaded here -->
-                                    <p class="text-muted text-center py-3">No recent activity</p>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
