@@ -478,7 +478,7 @@ class EventGuestAccessSerializer(serializers.ModelSerializer):
         model = Event
         fields = [
             'id', 'title', 'description', 'event_date', 'location', 'event_type',
-            'event_thumbnail', 'package_name', 'package_max_photos', 'package_max_videos',
+            'event_thumbnail', 'event_banner', 'package_name', 'package_max_photos', 'package_max_videos',
             'guest_max_media_per_post', 'total_guest_posts', 'total_media_files', 'is_public', 'is_accessible',
             'frontend_share_url'
         ]
