@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Detail - Neberku</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="css/custom.css" rel="stylesheet">
+    <style>
+        /* Social app vibe enhancements */
+        :root{
+            /* Celebration palette */
+            --primary-start:#f59e0b; /* amber */
+            --primary-end:#ec4899;   /* pink */
+            --accent:#a855f7;        /* purple */
+            --confetti-1:#f43f5e;    /* rose */
+            --confetti-2:#22c55e;    /* green */
+            --confetti-3:#fde047;    /* yellow */
+            --ink:#fff7ed;           /* warm off-white */
+            --muted:#f3e8ff;         /* soft lilac */
+            --panel-1:rgba(24, 19, 35, .62);
+            --panel-2:rgba(24, 19, 35, .44);
+            --line:rgba(250, 204, 21, .22); /* golden line */
+        }
+        body {
+            background: radial-gradient(1200px 600px at 10% -10%, rgba(236,72,153,0.10), transparent 60%),
+                        radial-gradient(900px 500px at 110% 0%, rgba(245,158,11,0.10), transparent 40%),
+                        linear-gradient(180deg, #120c1b 0%, #1a1327 100%);
+            background-size: 160% 160%, 140% 140%, 100% 100%;
+            animation: bgShift 18s ease-in-out infinite;
+            color: var(--ink);
+            min-height: 100vh;
+        }
+        .navbar {
+            background: linear-gradient(90deg, var(--primary-start) 0%, var(--primary-end) 45%, var(--accent) 100%) !important;
+            box-shadow: 0 6px 24px rgba(0,0,0,0.25);
+        }
+        .brand-logo {
+            display: inline-flex;
+            align-items: center;
+            gap: .5rem;
+            font-weight: 700;
+            letter-spacing: .3px;
+        }
+        
+        /* Event Header Styles */
+        .event-header {
+            position: relative;
+            overflow: hidden;
+            border-radius: 0;
+            background: linear-gradient(135deg, rgba(245,158,11,0.22), rgba(236,72,153,0.20));
+            border: none;
+            box-shadow: 0 10px 40px rgba(2,6,23,.45);
+            margin-bottom: 2rem;
+            margin-left: calc(-50vw + 50%);
+            margin-right: calc(-50vw + 50%);
+            width: 100vw;
+        }
+        .event-header::before{
+            content:"";
+            position:absolute;
+            inset:-2px;
+            border-radius:0;
+            background: conic-gradient(from 0deg,
+                rgba(245,158,11,.0) 0deg,
+                rgba(245,158,11,.35) 90deg,
+                rgba(236,72,153,.35) 180deg,
+                rgba(168,85,247,.35) 270deg,
+                rgba(245,158,11,.0) 360deg);
+            filter: blur(14px);
+            z-index:0;
+            animation: spinHue 14s linear infinite;
+            pointer-events:none;
+        }
+        .event-header::after {
+            content: "";
+            position: absolute;
+            inset: -40% -20% auto auto;
+            width: 420px;
+            height: 420px;
+            background: radial-gradient(circle, rgba(253,224,71,.35) 0%, rgba(253,224,71,0) 60%);
+            filter: blur(20px);
+            transform: translate(10%, -10%);
+            animation: floatBlob 8s ease-in-out infinite alternate;
+        }
+        .event-header > * { position: relative; z-index: 1; }
+        
+        /* Banner Container */
+        .banner-container {
+            position: relative;
+            height: 250px;
+            overflow: hidden;
+            border-radius: 0;
+        }
+        
+        .event-banner {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 0;
+        }
+        
+        /* Event Info Cards Container */
+        .event-info-cards {
+            margin-top: -50px;
+            position: relative;
+            z-index: 10;
+            padding: 0 1rem;
+        }
+        
+        /* Title Card */
+        .title-card {
+            background: linear-gradient(135deg, var(--panel-1), var(--panel-2));
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 15px 40px rgba(2,6,23,.6);
+        }
+        
+        .event-title {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(90deg, var(--primary-start), var(--confetti-3), var(--primary-end));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            background-size: 200% 200%;
+            animation: gradientPulse 8s ease-in-out infinite;
+            margin-bottom: 1rem;
+            line-height: 1.2;
+        }
+        
+        .event-description {
+            color: var(--muted);
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin: 0;
+        }
+        
+        /* Meta Cards Grid */
+        .meta-cards-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .meta-card {
+            background: linear-gradient(135deg, var(--panel-1), var(--panel-2));
+            backdrop-filter: blur(15px);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(2,6,23,.4);
+        }
+        
+        .meta-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 35px rgba(2,6,23,.6);
+        }
+        
+        .meta-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--primary-start), var(--primary-end));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+        
+        .meta-content {
+            flex: 1;
+        }
+        
+        .meta-label {
+            font-size: 0.8rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0.25rem;
+        }
+        
+        .meta-value {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--ink);
+        }
+        
+        /* Stats Cards Grid */
+        .stats-cards-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, var(--panel-1), var(--panel-2));
+            backdrop-filter: blur(15px);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(2,6,23,.4);
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 35px rgba(2,6,23,.6);
+        }
+        
+        .stat-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--accent), var(--primary-end));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+            margin: 0 auto 1rem;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--confetti-3);
+            margin-bottom: 0.5rem;
+        }
+        
+        /* Event Media Section */
+        .event-media-section {
+            margin-bottom: 1.5rem;
+        }
+        
+        .media-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        
+        .media-item {
+            background: linear-gradient(135deg, var(--panel-1), var(--panel-2));
+            backdrop-filter: blur(15px);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(2,6,23,.4);
+        }
+        
+        .media-item:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 35px rgba(2,6,23,.6);
+        }
+        
+        .media-preview {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 16px 16px 0 0;
+        }
+        
+        .thumbnail-item {
+            cursor: pointer;
+        }
+        
+        .thumbnail-item:hover {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 12px 35px rgba(2,6,23,.6);
+        }
+        
+        .media-info {
+            padding: 1rem;
+            text-align: center;
+        }
+        
+        .media-label {
+            font-size: 0.8rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0.25rem;
+        }
+        
+        .media-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--ink);
+        }
+        
+        .video-item {
+            position: relative;
+            cursor: pointer;
+        }
+        
+        .video-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            z-index: 2;
+        }
+        
+        .play-button {
+            width: 80px;
+            height: 80px;
+            background: rgba(0,0,0,0.8);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 2rem;
+            transition: all 0.3s ease;
+            margin-bottom: 1rem;
+        }
+        
+        .video-duration {
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        
+        .video-item:hover .play-button {
+            background: rgba(0,0,0,0.9);
+            transform: scale(1.1);
+        }
+        
+        .video-item:hover .video-overlay {
+            background: rgba(0,0,0,0.4);
+        }
+        
+        /* Image Modal Styles */
+        .image-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .image-modal.show {
+            display: flex;
+            opacity: 1;
+        }
+        
+        .modal-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+        
+        .modal-content {
+            position: relative;
+            max-width: 90%;
+            max-height: 90%;
+            background: var(--panel-1);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+            transform: scale(0.8);
+            transition: transform 0.3s ease;
+        }
+        
+        .image-modal.show .modal-content {
+            transform: scale(1);
+        }
+        
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 40px;
+            height: 40px;
+            background: rgba(0,0,0,0.7);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            z-index: 10001;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-close:hover {
+            background: rgba(0,0,0,0.9);
+            transform: scale(1.1);
+        }
+        
+        .modal-content img {
+            width: 100%;
+            height: auto;
+            max-height: 70vh;
+            object-fit: contain;
+            display: block;
+        }
+        
+        .modal-info {
+            padding: 1.5rem;
+            text-align: center;
+        }
+        
+        .modal-info h3 {
+            color: var(--ink);
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        
+        .modal-info p {
+            color: var(--muted);
+            font-size: 0.9rem;
+            margin: 0;
+        }
+        
+        /* Responsive Modal */
+        @media (max-width: 768px) {
+            .modal-content {
+                max-width: 95%;
+                max-height: 95%;
+            }
+            
+            .modal-content img {
+                max-height: 60vh;
+            }
+            
+            .modal-info {
+                padding: 1rem;
+            }
+            
+            .modal-info h3 {
+                font-size: 1.2rem;
+            }
+        }
+        
+        /* Video Modal Styles */
+        .video-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .video-modal.show {
+            display: flex;
+            opacity: 1;
+        }
+        
+        .video-modal .modal-content video {
+            width: 100%;
+            height: auto;
+            max-height: 70vh;
+            object-fit: contain;
+            display: block;
+        }
+        
+        /* Glass Card Styles */
+        .glass-card {
+            background: linear-gradient(180deg, var(--panel-1), var(--panel-2));
+            backdrop-filter: blur(10px) saturate(140%);
+            border: 1px solid var(--line);
+            box-shadow: 0 10px 30px rgba(2,6,23,.5);
+            border-radius: 16px;
+            position: relative;
+        }
+        .glass-card::after{
+            content:"";
+            position:absolute;
+            inset:0;
+            border-radius:16px;
+            background: radial-gradient(800px 200px at -10% -40%, rgba(99,102,241,.18), transparent 60%);
+            pointer-events:none;
+        }
+        .glass-card > * { position: relative; z-index: 1; }
+        
+        .card-header.bg-primary {
+            background: linear-gradient(135deg, rgba(245,158,11,.78), rgba(236,72,153,.74)) !important;
+            border-bottom: 1px solid rgba(255,255,255,.15);
+        }
+        
+        /* Contribution Form Styles */
+        .contribution-section {
+            margin-top: 2rem;
+        }
+        
+        .form-control, .form-select, .form-textarea {
+            background: rgba(2,6,23,.35);
+            border: 1px solid rgba(148,163,184,.25);
+            color: #e5e7eb;
+        }
+        .form-control::placeholder { color: #94a3b8; }
+        .form-control:focus {
+            background: rgba(2,6,23,.45);
+            border-color: rgba(139,92,246,.65);
+            box-shadow: 0 0 0 0.2rem rgba(139,92,246,.25);
+            color: #e5e7eb;
+        }
+        
+        .input-group-text {
+            background: rgba(2,6,23,.45);
+            border: 1px solid rgba(148,163,184,.25);
+            color: #c7d2fe;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-start), var(--primary-end));
+            border: 0;
+            box-shadow: 0 10px 24px rgba(245,158,11,.28);
+            transition: transform .15s ease, filter .15s ease, box-shadow .2s ease;
+            background-size: 200% 200%;
+            animation: gradientPulse 6s ease-in-out infinite;
+        }
+        .btn-primary:hover {
+            filter: brightness(1.05);
+            transform: translateY(-1px);
+            box-shadow: 0 14px 30px rgba(236,72,153,.38);
+        }
+        .btn-primary:active {
+            transform: translateY(1px) scale(.99);
+            box-shadow: 0 6px 18px rgba(245,158,11,.25);
+        }
+        
+        .btn-outline-secondary {
+            border-color: rgba(148,163,184,.35);
+            color: #e5e7eb;
+            transition: transform .15s ease, border-color .2s ease, color .2s ease;
+        }
+        .btn-outline-secondary:hover { 
+            transform: translateY(-1px);
+            background-color: rgba(148,163,184,.1);
+            border-color: rgba(148,163,184,.5);
+        }
+        
+        /* File upload */
+        .file-upload-area {
+            border: 2px dashed rgba(148,163,184,.30);
+            border-radius: 14px;
+            padding: 1rem;
+            background: rgba(2,6,23,.25);
+            transition: border-color .2s ease, background .2s ease;
+        }
+        .file-upload-area:hover {
+            border-color: rgba(99,102,241,.55);
+            background: rgba(2,6,23,.35);
+        }
+        .file-upload-area:focus-within {
+            border-color: rgba(139,92,246,.65);
+            box-shadow: inset 0 0 0 2px rgba(139,92,246,.25);
+        }
+        
+        #fileList .file-item {
+            background: rgba(2,6,23,.35);
+            border: 1px solid rgba(148,163,184,.25);
+            border-radius: 12px;
+            padding: .5rem .75rem;
+            margin-bottom: .5rem;
+        }
+        
+        
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--muted);
+        }
+        
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+        
+        /* Back Button */
+        .back-button {
+            position: sticky;
+            top: 1rem;
+            z-index: 1000;
+            margin-bottom: 1rem;
+        }
+        
+        /* Loading States */
+        .loading-skeleton {
+            background: linear-gradient(90deg, rgba(255,255,255,.1) 25%, rgba(255,255,255,.2) 50%, rgba(255,255,255,.1) 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+            border-radius: 8px;
+        }
+        
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes floatBlob {
+            from { transform: translate(10%, -10%) scale(1); }
+            to { transform: translate(6%, -6%) scale(1.06); }
+        }
+        @keyframes gradientPulse{
+            0%,100%{ background-position: 0% 50%; }
+            50%{ background-position: 100% 50%; }
+        }
+        @keyframes spinHue{ to{ transform: rotate(360deg); } }
+        @keyframes bgShift{
+            0%,100%{ background-position: 0% 0%, 100% 0%, 0% 0%; }
+            50%{ background-position: 20% 10%, 90% 8%, 0% 0%; }
+        }
+        
+        .animate-fade-in { animation: fadeIn .8s ease-out both; }
+        .animate-slide-up { animation: slideUp .8s ease-out both; }
+        .delay-1 { animation-delay: .15s; }
+        .delay-2 { animation-delay: .3s; }
+        
+        /* Responsive Design */
+        @media (min-width: 768px) {
+            .banner-container {
+                height: 300px;
+            }
+            
+            .event-info-cards {
+                margin-top: -80px;
+                padding: 0 2rem;
+            }
+            
+            .title-card {
+                padding: 2.5rem;
+            }
+            
+            .event-title {
+                font-size: 2.5rem;
+            }
+            
+            .meta-cards-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+            
+            .stats-cards-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+            
+            .media-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 767px) {
+            .event-info-cards {
+                margin-top: -30px;
+                padding: 0 0.5rem;
+            }
+            
+            .title-card {
+                padding: 1.5rem;
+            }
+            
+            .event-title {
+                font-size: 1.8rem;
+            }
+            
+            .meta-card {
+                padding: 1rem;
+            }
+            
+            .meta-icon {
+                width: 40px;
+                height: 40px;
+                font-size: 1rem;
+            }
+            
+            .stat-card {
+                padding: 1rem;
+            }
+            
+            .stat-icon {
+                width: 50px;
+                height: 50px;
+                font-size: 1.2rem;
+            }
+            
+            .stat-number {
+                font-size: 1.5rem;
+            }
+            
+            .media-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .media-preview {
+                height: 120px;
+            }
+        }
+        
+        /* Top Right Notification */
+        .top-right-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            background: linear-gradient(135deg, rgba(34,197,94,.95), rgba(22,163,74,.95));
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(34,197,94,.3);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            box-shadow: 0 10px 30px rgba(34,197,94,.3);
+            transform: translateX(100%);
+            opacity: 0;
+            transition: all 0.3s ease;
+            max-width: 300px;
+        }
+        
+        .top-right-notification.show {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        
+        .notification-content {
+            color: white;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            font-size: 0.9rem;
+        }
+        
+        .notification-content i {
+            font-size: 1.1rem;
+        }
+        
+        /* Respect reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation: none !important; transition: none !important; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand brand-logo" href="guest-contribution.html">
+                <i class="fas fa-camera-retro"></i>
+                Neberku
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="guest-contribution.html">
+                            <i class="fas fa-arrow-left me-1"></i>Back to Events
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container mt-4">
+        <!-- Alert Container -->
+        <div id="alertContainer"></div>
+
+        <!-- Loading Spinner -->
+        <div id="loadingSpinner" class="text-center d-none">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+
+        <!-- Event Header -->
+        <div class="event-header animate-fade-in">
+            <div id="eventBannerContainer" class="banner-container">
+                <!-- Event banner will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Event Info Cards -->
+        <div class="event-info-cards">
+            <!-- Title Card -->
+            <div class="info-card title-card animate-slide-up">
+                <div class="card-content">
+                    <h1 id="eventTitle" class="event-title">Loading...</h1>
+                    <p id="eventDescription" class="event-description">Loading...</p>
+                </div>
+            </div>
+
+            <!-- Meta Info Cards -->
+            <div class="meta-cards-grid animate-slide-up delay-1">
+                <div class="meta-card">
+                    <div class="meta-icon">
+                        <i class="fas fa-calendar"></i>
+                    </div>
+                    <div class="meta-content">
+                        <div class="meta-label">Date</div>
+                        <div class="meta-value" id="eventDate">Loading...</div>
+                    </div>
+                </div>
+                
+                <div class="meta-card">
+                    <div class="meta-icon">
+                        <i class="fas fa-map-marker-alt"></i>
+                    </div>
+                    <div class="meta-content">
+                        <div class="meta-label">Location</div>
+                        <div class="meta-value" id="eventLocation">Loading...</div>
+                    </div>
+                </div>
+                
+                <div class="meta-card">
+                    <div class="meta-icon">
+                        <i class="fas fa-tag"></i>
+                    </div>
+                    <div class="meta-content">
+                        <div class="meta-label">Type</div>
+                        <div class="meta-value" id="eventType">Loading...</div>
+                    </div>
+                </div>
+                
+                <div class="meta-card">
+                    <div class="meta-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="meta-content">
+                        <div class="meta-label">Access</div>
+                        <div class="meta-value" id="eventStatus">Loading...</div>
+                    </div>
+                </div>
+            </div>
+
+        <!-- Event Media Section -->
+        <div class="event-media-section animate-slide-up delay-2">
+            <div class="media-grid" id="eventMediaGrid">
+                <!-- Event thumbnail and video will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Image Modal -->
+        <div class="image-modal" id="imageModal">
+            <div class="modal-overlay" onclick="closeImageModal()"></div>
+            <div class="modal-content">
+                <button class="modal-close" onclick="closeImageModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+                <img id="modalImage" src="" alt="Full size image">
+                <div class="modal-info">
+                    <h3 id="modalTitle">Event Thumbnail</h3>
+                    <p id="modalDescription">Click outside or press ESC to close</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Video Modal -->
+        <div class="video-modal" id="videoModal">
+            <div class="modal-overlay" onclick="closeVideoModal()"></div>
+            <div class="modal-content">
+                <button class="modal-close" onclick="closeVideoModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+                <video id="modalVideo" controls>
+                    <source src="" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+                <div class="modal-info">
+                    <h3 id="modalVideoTitle">Event Video</h3>
+                    <p id="modalVideoDescription">Click outside or press ESC to close</p>
+                </div>
+            </div>
+        </div>
+
+            <!-- Stats Cards -->
+            <div class="stats-cards-grid animate-slide-up delay-3">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-image"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="totalPhotos">0</div>
+                        <div class="stat-label">Photos</div>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-video"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="totalVideos">0</div>
+                        <div class="stat-label">Videos</div>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-comment"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="totalPosts">0</div>
+                        <div class="stat-label">Posts</div>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-user-friends"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="totalGuests">0</div>
+                        <div class="stat-label">Guests</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contribution Section -->
+        <div class="contribution-section">
+            <div class="row">
+                <div class="col-lg-8 mx-auto">
+                    <div class="card shadow-sm glass-card animate-slide-up">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-gift me-2"></i>
+                                Share Your Contribution
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="contributionForm">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="guestName" class="form-label">
+                                            <i class="fas fa-user me-1"></i>Your Name *
+                                        </label>
+                                        <input type="text" class="form-control" id="guestName" 
+                                               placeholder="Enter your name" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="guestPhone" class="form-label">
+                                            <i class="fas fa-phone me-1"></i>Phone Number *
+                                        </label>
+                                        <input type="tel" class="form-control" id="guestPhone" 
+                                               placeholder="Enter your phone number" required>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="wishText" class="form-label">
+                                        <i class="fas fa-comment me-1"></i>Your Message/Wish *
+                                    </label>
+                                    <textarea class="form-control" id="wishText" rows="4" 
+                                              placeholder="Share your thoughts, wishes, or memories for this event..." required></textarea>
+                                </div>
+                                
+                                <div class="mb-3 file-upload-area">
+                                    <label for="mediaFiles" class="form-label">
+                                        <i class="fas fa-images me-1"></i>Media Files (Optional)
+                                    </label>
+                                    <input type="file" class="form-control" id="mediaFiles" 
+                                           multiple accept="image/*,video/*">
+                                    <div class="form-text">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        <strong>Multiple Upload Support:</strong><br>
+                                        • Select multiple files by holding Ctrl (or Cmd on Mac) and clicking<br>
+                                        • Drag & drop multiple files at once<br>
+                                        • <strong>Guest Limits: <span id="packageLimits">Loading...</span></strong><br>
+                                        • <strong>Max 10MB per file</strong><br>
+                                        • Supported: Images (JPG, PNG, GIF) & Videos (MP4, MOV, AVI)
+                                    </div>
+                                </div>
+                                
+                                <div id="fileList">
+                                    <!-- Selected files will be displayed here -->
+                                </div>
+                                
+                                <!-- Error Display Area -->
+                                <div id="errorContainer" class="mt-3" style="display: none;">
+                                    <!-- Errors will be displayed here -->
+                                </div>
+                                
+                                <div class="text-center mt-4">
+                                    <button type="submit" class="btn btn-primary btn-lg">
+                                        <i class="fas fa-paper-plane me-2"></i>Submit Contribution
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-light py-4 mt-5">
+        <div class="container text-center">
+            <p class="mb-0">
+                &copy; 2024 Neberku. All rights reserved. | 
+                <a href="#" class="text-light text-decoration-none">Privacy Policy</a> | 
+                <a href="#" class="text-light text-decoration-none">Terms of Service</a>
+            </p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/event-detail-guest.js"></script>
+</body>
+</html>

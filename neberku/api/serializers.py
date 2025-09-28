@@ -471,6 +471,8 @@ class EventGuestAccessSerializer(serializers.ModelSerializer):
     guest_max_media_per_post = serializers.SerializerMethodField()
     total_guest_posts = serializers.ReadOnlyField()
     total_media_files = serializers.ReadOnlyField()
+    photo_count = serializers.ReadOnlyField()
+    video_count = serializers.ReadOnlyField()
     is_accessible = serializers.SerializerMethodField()
     frontend_share_url = serializers.ReadOnlyField()
     
@@ -478,11 +480,11 @@ class EventGuestAccessSerializer(serializers.ModelSerializer):
         model = Event
         fields = [
             'id', 'title', 'description', 'event_date', 'location', 'event_type',
-            'event_thumbnail', 'event_banner', 'package_name', 'package_max_photos', 'package_max_videos',
-            'guest_max_media_per_post', 'total_guest_posts', 'total_media_files', 'is_public', 'is_accessible',
+            'event_thumbnail', 'event_banner', 'event_video', 'package_name', 'package_max_photos', 'package_max_videos',
+            'guest_max_media_per_post', 'total_guest_posts', 'total_media_files', 'photo_count', 'video_count', 'is_public', 'is_accessible',
             'frontend_share_url'
         ]
-        read_only_fields = ['id', 'total_guest_posts', 'total_media_files', 'frontend_share_url']
+        read_only_fields = ['id', 'total_guest_posts', 'total_media_files', 'photo_count', 'video_count', 'frontend_share_url']
     
     def get_guest_max_media_per_post(self, obj):
         """Get the maximum media files per guest post from EventSettings"""
