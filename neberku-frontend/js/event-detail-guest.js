@@ -27,6 +27,8 @@ class EventDetailGuestManager {
 
         // File input change
         const mediaFilesInput = document.getElementById('mediaFiles');
+        const uploadArea = document.getElementById('uploadArea');
+        
         if (mediaFilesInput) {
             mediaFilesInput.addEventListener('change', (e) => {
                 const newFiles = e.target.files;
@@ -43,17 +45,76 @@ class EventDetailGuestManager {
                 this.handleFileSelection(newFiles);
             });
             
+            // Click to upload
+            if (uploadArea) {
+                uploadArea.addEventListener('click', (e) => {
+                    // Don't trigger if clicking directly on the file input
+                    if (e.target === mediaFilesInput) {
+                        return;
+                    }
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Upload area clicked, triggering file input');
+                    mediaFilesInput.click();
+                });
+                
+                // Prevent clicks on file input from bubbling up
+                mediaFilesInput.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                });
+            }
+            
             // Add drag and drop support
-            this.setupDragAndDrop(mediaFilesInput);
+            this.setupDragAndDrop(mediaFilesInput, uploadArea);
         }
 
-        // Clear errors when form inputs change
-        const formInputs = document.querySelectorAll('#contributionForm input, #contributionForm textarea');
-        formInputs.forEach(input => {
-            input.addEventListener('input', () => {
-                this.clearErrors();
-            });
+        // Enhanced form field interactions
+        const formFields = document.querySelectorAll('.form-field');
+        formFields.forEach(field => {
+            const input = field.querySelector('input, textarea');
+            const label = field.querySelector('label');
+            
+            if (input && label) {
+                // Function to update label state
+                function updateLabelState() {
+                    if (input.value.trim() !== '' || input === document.activeElement) {
+                        label.classList.add('active');
+                    } else {
+                        label.classList.remove('active');
+                    }
+                }
+                
+                // Event listeners
+                input.addEventListener('focus', updateLabelState);
+                input.addEventListener('blur', () => {
+                    // Small delay to allow placeholder animation
+                    setTimeout(updateLabelState, 50);
+                });
+                input.addEventListener('input', updateLabelState);
+                
+                // Initial state - labels should be inactive initially
+                label.classList.remove('active');
+            }
         });
+
+        // Character counter for textarea
+        const wishText = document.getElementById('wishText');
+        const charCount = document.getElementById('charCount');
+        if (wishText && charCount) {
+            wishText.addEventListener('input', () => {
+                const count = wishText.value.length;
+                charCount.textContent = count;
+                
+                // Change color when approaching limit
+                if (count > 450) {
+                    charCount.style.color = '#ef4444';
+                } else if (count > 400) {
+                    charCount.style.color = '#f59e0b';
+                } else {
+                    charCount.style.color = 'var(--muted)';
+                }
+            });
+        }
     }
 
     async loadEventFromURL() {
@@ -143,6 +204,12 @@ class EventDetailGuestManager {
 
         // Update page title
         document.title = `${event.title} - Neberku`;
+        
+        // Update contributor count
+        const joinCount = document.getElementById('joinCount');
+        if (joinCount) {
+            joinCount.textContent = event.total_guest_posts || 0;
+        }
     }
 
     updateStats(event) {
@@ -612,8 +679,11 @@ class EventDetailGuestManager {
         }
     }
     
-    setupDragAndDrop(fileInput) {
-        const container = fileInput.parentElement;
+    setupDragAndDrop(fileInput, uploadArea) {
+        // Use the upload area if provided, otherwise fall back to fileInput parent
+        const container = uploadArea || fileInput.parentElement;
+        
+        console.log('Setting up drag and drop for:', container);
         
         // Prevent default drag behaviors
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -636,21 +706,26 @@ class EventDetailGuestManager {
         });
         
         function highlight(e) {
-            container.classList.add('drag-over');
+            console.log('Drag highlight triggered');
+            container.classList.add('dragover');
         }
         
         function unhighlight(e) {
-            container.classList.remove('drag-over');
+            console.log('Drag unhighlight triggered');
+            container.classList.remove('dragover');
         }
         
         // Handle dropped files
         container.addEventListener('drop', handleDrop, false);
         
         function handleDrop(e) {
+            console.log('Files dropped!');
             const dt = e.dataTransfer;
             const files = dt.files;
             
             if (files.length > 0) {
+                console.log(`${files.length} files dropped`);
+                
                 // Get current files and add new ones
                 const currentFiles = Array.from(fileInput.files);
                 const newFiles = Array.from(files);
@@ -672,10 +747,9 @@ class EventDetailGuestManager {
                 allFiles.forEach(file => dataTransfer.items.add(file));
                 fileInput.files = dataTransfer.files;
                 
-                // Process the files to update the display
-                if (window.eventDetailManager) {
-                    window.eventDetailManager.handleFileSelection([]);
-                }
+                // Trigger the change event to process files
+                const changeEvent = new Event('change', { bubbles: true });
+                fileInput.dispatchEvent(changeEvent);
                 
                 // Show success message
                 if (window.eventDetailManager) {
