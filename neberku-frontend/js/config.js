@@ -1,7 +1,7 @@
 // Neberku Frontend Configuration
 const API_CONFIG = {
     // Base URL for the Django backend
-    BASE_URL: 'http://localhost:8000',
+    BASE_URL: 'https://api.koshkoshe.com',
     
     // API endpoints
     ENDPOINTS: {
@@ -72,14 +72,23 @@ const ENV_CONFIG = {
         LOG_LEVEL: 'debug'
     },
     production: {
-        API_URL: 'http://localhost:8000',
+        API_URL: 'https://api.koshkoshe.com',
         DEBUG: false,
         LOG_LEVEL: 'error'
     }
 };
 
 // Get current environment
-const currentEnv = window.location.hostname === 'localhost' ? 'development' : 'production';
+const isDevelopment = window.location.hostname === 'localhost' || 
+                     window.location.hostname === '127.0.0.1' || 
+                     window.location.hostname.startsWith('192.168.') ||
+                     window.location.hostname.startsWith('10.') ||
+                     window.location.hostname.endsWith('.local') ||
+                     window.location.port === '3000' ||
+                     window.location.port === '8080' ||
+                     window.location.port === '5000';
+
+const currentEnv = isDevelopment ? 'development' : 'production';
 
 // Override base URL if environment-specific config exists
 if (ENV_CONFIG[currentEnv]) {
@@ -173,4 +182,7 @@ if (typeof module !== 'undefined' && module.exports) {
     console.log('📍 Base URL:', API_CONFIG.BASE_URL);
     console.log('🔑 Available Endpoints:', Object.keys(API_CONFIG.ENDPOINTS));
     console.log('🌍 Environment:', currentEnv);
+    console.log('🏠 Hostname:', window.location.hostname);
+    console.log('🔌 Port:', window.location.port);
+    console.log('🔍 Is Development:', isDevelopment);
 } 
