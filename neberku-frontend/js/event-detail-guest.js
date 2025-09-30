@@ -120,6 +120,7 @@ class EventDetailGuestManager {
     async loadEventFromURL() {
         const urlParams = new URLSearchParams(window.location.search);
         const eventId = urlParams.get('event');
+        const contributorCode = urlParams.get('code');
         
         if (!eventId) {
             this.showError('No event ID provided in URL', 'danger');
@@ -129,7 +130,25 @@ class EventDetailGuestManager {
         try {
             this.showLoading(true);
             
-            // Try to get event details using the event ID
+            // If we have a contributor code, use it to access the event
+            if (contributorCode) {
+                console.log('🔑 Using contributor code to access event:', contributorCode);
+                const response = await fetch(`${this.API_BASE_URL}/guest/event/?code=${contributorCode}`);
+                
+                if (response.ok) {
+                    const eventData = await response.json();
+                    this.currentEvent = eventData;
+                    this.displayEventDetails(eventData);
+                    this.showTopRightSuccess('Event loaded successfully!');
+                    return;
+                } else {
+                    const errorData = await response.json();
+                    this.showError(errorData.error || 'Invalid contributor code', 'danger');
+                    return;
+                }
+            }
+            
+            // Try to get event details using the event ID directly (for public events)
             const response = await fetch(`${this.API_BASE_URL}/guest/event-by-id/${eventId}/`);
             
             if (response.ok) {
@@ -139,7 +158,14 @@ class EventDetailGuestManager {
                 this.showTopRightSuccess('Event loaded successfully!');
             } else {
                 const errorData = await response.json();
-                this.showError(errorData.error || 'Failed to load event', 'danger');
+                
+                if (response.status === 403 && errorData.error?.includes('private event')) {
+                    // Private event - show contributor code form
+                    this.showContributorCodeForm();
+                    this.showError('This is a private event. Please enter the contributor code to access.', 'info');
+                } else {
+                    this.showError(errorData.error || 'Failed to load event', 'danger');
+                }
             }
         } catch (error) {
             console.error('Error loading event:', error);
@@ -494,7 +520,7 @@ class EventDetailGuestManager {
         
         // Show upload summary
         if (mediaFiles.length > 0) {
-            this.showSuccess(`Uploading ${mediaFiles.length} files (${photoCount} photos, ${videoCount} videos)...`);
+            this.showTopRightSuccess(`Uploading ${mediaFiles.length} files (${photoCount} photos, ${videoCount} videos)...`);
         }
 
         try {
@@ -508,7 +534,7 @@ class EventDetailGuestManager {
             const data = await response.json();
 
             if (response.ok) {
-                this.showSuccess('Contribution submitted successfully!');
+                this.showTopRightSuccess('Contribution submitted successfully!');
                 
                 // Reset form
                 document.getElementById('contributionForm').reset();
@@ -578,7 +604,7 @@ class EventDetailGuestManager {
         this.handleFileSelection([]);
         
         // Show success message
-        this.showSuccess('File removed successfully');
+        this.showTopRightSuccess('File removed successfully');
     }
 
     showAlert(message, type = 'info') {
@@ -635,33 +661,55 @@ class EventDetailGuestManager {
     }
 
     showTopRightSuccess(message) {
-        // Create a fixed position notification in the top right
-        const notification = document.createElement('div');
-        notification.className = 'top-right-notification';
-        notification.innerHTML = `
-            <div class="notification-content">
-                <i class="fas fa-check-circle me-2"></i>
-                ${message}
-            </div>
-        `;
+        // Use the existing notification element in the HTML
+        const notification = document.getElementById('topRightNotification');
+        const messageElement = document.getElementById('notificationMessage');
         
-        // Add to body
-        document.body.appendChild(notification);
-        
-        // Animate in
-        setTimeout(() => {
-            notification.classList.add('show');
-        }, 100);
-        
-        // Auto-remove after 3 seconds
-        setTimeout(() => {
-            notification.classList.remove('show');
+        if (notification && messageElement) {
+            messageElement.textContent = message;
+            notification.style.display = 'block';
+            
+            // Animate in
             setTimeout(() => {
-                if (notification.parentNode) {
-                    notification.remove();
-                }
-            }, 300);
-        }, 3000);
+                notification.classList.add('show');
+            }, 100);
+            
+            // Auto-remove after 3 seconds
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    notification.style.display = 'none';
+                }, 300);
+            }, 3000);
+        } else {
+            // Fallback to creating a new notification if elements don't exist
+            const newNotification = document.createElement('div');
+            newNotification.className = 'top-right-notification';
+            newNotification.innerHTML = `
+                <div class="notification-content">
+                    <i class="fas fa-check-circle me-2"></i>
+                    ${message}
+                </div>
+            `;
+            
+            // Add to body
+            document.body.appendChild(newNotification);
+            
+            // Animate in
+            setTimeout(() => {
+                newNotification.classList.add('show');
+            }, 100);
+            
+            // Auto-remove after 3 seconds
+            setTimeout(() => {
+                newNotification.classList.remove('show');
+                setTimeout(() => {
+                    if (newNotification.parentNode) {
+                        newNotification.remove();
+                    }
+                }, 300);
+            }, 3000);
+        }
     }
 
     clearErrors() {
@@ -676,6 +724,98 @@ class EventDetailGuestManager {
         const loadingSpinner = document.getElementById('loadingSpinner');
         if (loadingSpinner) {
             loadingSpinner.style.display = show ? 'block' : 'none';
+        }
+    }
+
+    showContributorCodeForm() {
+        // Hide the main content and show a contributor code form
+        const mainContent = document.querySelector('.container');
+        if (!mainContent) return;
+
+        // Create contributor code form
+        const formHTML = `
+            <div class="row justify-content-center">
+                <div class="col-md-6 col-lg-4">
+                    <div class="card">
+                        <div class="card-header text-center">
+                            <h4 class="mb-0">
+                                <i class="fas fa-key text-primary me-2"></i>
+                                Private Event Access
+                            </h4>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted text-center mb-4">
+                                This is a private event. Please enter the contributor code provided by the event host.
+                            </p>
+                            <form id="contributorCodeForm">
+                                <div class="mb-3">
+                                    <label for="contributorCodeInput" class="form-label">Contributor Code</label>
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="contributorCodeInput" 
+                                           placeholder="Enter contributor code"
+                                           required>
+                                </div>
+                                <div class="d-grid">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-unlock me-2"></i>
+                                        Access Event
+                                    </button>
+                                </div>
+                            </form>
+                            <div class="text-center mt-3">
+                                <a href="guest-contribution.html" class="btn btn-outline-secondary btn-sm">
+                                    <i class="fas fa-arrow-left me-1"></i>
+                                    Back to Events
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Replace main content with the form
+        mainContent.innerHTML = formHTML;
+
+        // Bind form submission
+        const form = document.getElementById('contributorCodeForm');
+        if (form) {
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.handleContributorCodeSubmit();
+            });
+        }
+    }
+
+    async handleContributorCodeSubmit() {
+        const contributorCode = document.getElementById('contributorCodeInput').value.trim();
+        
+        if (!contributorCode) {
+            this.showError('Please enter a contributor code', 'warning');
+            return;
+        }
+
+        try {
+            this.showLoading(true);
+            
+            const response = await fetch(`${this.API_BASE_URL}/guest/event/?code=${contributorCode}`);
+            const data = await response.json();
+
+            if (response.ok) {
+                this.currentEvent = data;
+                // Reload the page with the contributor code in the URL
+                const urlParams = new URLSearchParams(window.location.search);
+                urlParams.set('code', contributorCode);
+                window.location.href = `${window.location.pathname}?${urlParams.toString()}`;
+            } else {
+                this.showError(data.error || 'Invalid contributor code', 'danger');
+            }
+        } catch (error) {
+            console.error('Error accessing event:', error);
+            this.showError('Error accessing event. Please try again.', 'danger');
+        } finally {
+            this.showLoading(false);
         }
     }
     
@@ -753,7 +893,7 @@ class EventDetailGuestManager {
                 
                 // Show success message
                 if (window.eventDetailManager) {
-                    window.eventDetailManager.showSuccess(`Successfully added ${newFiles.length} file(s)`);
+                    window.eventDetailManager.showTopRightSuccess(`Successfully added ${newFiles.length} file(s)`);
                 }
             }
         }

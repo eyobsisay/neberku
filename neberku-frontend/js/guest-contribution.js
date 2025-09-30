@@ -292,7 +292,8 @@ class GuestContributionManager {
         try {
             this.showLoading(true);
             
-            // Redirect to the event detail page instead of showing modal
+            // For public events, we don't need a contributor code
+            // Redirect to the event detail page
             window.location.href = `event-detail-guest.html?event=${eventId}`;
             
         } catch (error) {
@@ -306,8 +307,14 @@ class GuestContributionManager {
     showEventDetails(event) {
         this.currentEvent = event;
         
-        // Redirect to the event detail page instead of showing modal
-        window.location.href = `event-detail-guest.html?event=${event.id}`;
+        // Get the contributor code that was used to access this event
+        const contributorCode = document.getElementById('contributorCode').value.trim();
+        
+        // Always redirect to the event detail page with the contributor code
+        const redirectUrl = `event-detail-guest.html?event=${event.id}&code=${contributorCode}`;
+        
+        console.log('🔗 Redirecting to event detail with code:', redirectUrl);
+        window.location.href = redirectUrl;
     }
 
 
