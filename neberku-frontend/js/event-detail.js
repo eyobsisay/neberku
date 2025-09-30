@@ -889,6 +889,7 @@ class EventDetail {
         console.log('🔗 Share setup completed, QR code will generate when Share tab is activated');
     }
 
+
     async generateQRCode() {
         try {
             const qrContainer = document.getElementById('qrCodeContainer');
@@ -1295,6 +1296,42 @@ function shareViaSocial() {
         } else {
             // Fallback: copy to clipboard
             copyShareLink();
+        }
+    }
+}
+
+// Preview functionality global functions
+function openGuestView() {
+    if (window.eventDetail && window.eventDetail.event) {
+        let guestUrl;
+        
+        // Check if event is public or private
+        if (window.eventDetail.event.is_public) {
+            // Public event - just need event ID
+            guestUrl = `${window.location.origin}/event-detail-guest.html?event=${window.eventDetail.event.id}`;
+            console.log('👁️ Opening public event guest view:', guestUrl);
+        } else {
+            // Private event - need both event ID and contributor code
+            if (window.eventDetail.event.contributor_code) {
+                guestUrl = `${window.location.origin}/event-detail-guest.html?event=${window.eventDetail.event.id}&code=${window.eventDetail.event.contributor_code}`;
+                console.log('👁️ Opening private event guest view with code:', guestUrl);
+            } else {
+                // No contributor code available - show error
+                window.eventDetail.showError('Cannot preview private event: No contributor code available. Please generate a contributor code first.');
+                return;
+            }
+        }
+        
+        // Open in new tab
+        window.open(guestUrl, '_blank', 'noopener,noreferrer');
+        
+        // Show success message
+        const eventType = window.eventDetail.event.is_public ? 'public' : 'private';
+        window.eventDetail.showSuccess(`${eventType.charAt(0).toUpperCase() + eventType.slice(1)} event guest view opened in new tab!`);
+    } else {
+        console.error('❌ EventDetail instance or event not found');
+        if (window.eventDetail) {
+            window.eventDetail.showError('Event information not available');
         }
     }
 }
