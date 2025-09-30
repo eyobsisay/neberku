@@ -83,38 +83,16 @@ class EventDetail {
         try {
             console.log('📡 Loading event details for ID:', this.eventId);
             
-            // Get JWT token for authentication
-            const token = localStorage.getItem('neberku_access_token');
-            if (!token) {
-                console.error('❌ No JWT token found, cannot load event details');
-                this.showError('Authentication token not found. Please log in again.');
-                setTimeout(() => {
-                    window.location.replace('login.html');
-                }, 3000);
-                return;
-            }
-
-            const headers = {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            };
-            
-            const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.EVENT_DETAIL.replace('{id}', this.eventId)}`, {
-                method: 'GET',
-                headers: headers
+            // Use centralized API request with automatic auth error handling
+            this.event = await API_UTILS.request(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.EVENT_DETAIL.replace('{id}', this.eventId)}`, {
+                method: 'GET'
             });
 
-            if (response.ok) {
-                this.event = await response.json();
-                console.log('✅ Event loaded successfully:', this.event);
-                console.log('🖼️ Event banner:', this.event.event_banner);
-                console.log('📸 Event thumbnail:', this.event.event_thumbnail);
-                this.renderEventDetail();
-            } else {
-                const errorData = await response.json();
-                console.error('❌ Error loading event:', errorData);
-                this.showError(`Error loading event: ${errorData.detail || 'Unknown error'}`);
-            }
+            console.log('✅ Event loaded successfully:', this.event);
+            console.log('🖼️ Event banner:', this.event.event_banner);
+            console.log('📸 Event thumbnail:', this.event.event_thumbnail);
+            this.renderEventDetail();
+            
         } catch (error) {
             console.error('❌ Error loading event:', error);
             this.showError('Unable to load event details. Please check your connection and try again.');
@@ -125,38 +103,20 @@ class EventDetail {
         try {
             console.log('📡 Loading guest posts for event:', this.eventId);
             
-            // Get JWT token for authentication
-            const token = localStorage.getItem('neberku_access_token');
-            if (!token) {
-                console.error('❌ No JWT token found, cannot load guest posts');
-                this.showError('Authentication token not found. Please log in again.');
-                return;
-            }
-
-            const headers = {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            };
-            
+            // Use centralized API request with automatic auth error handling
             // Use the by_event action with event_id parameter
-            const response = await fetch(`${API_CONFIG.BASE_URL}/api/guest-posts/by_event/?event_id=${this.eventId}`, {
-                method: 'GET',
-                headers: headers
+            const postsData = await API_UTILS.request(`${API_CONFIG.BASE_URL}/api/guest-posts/by_event/?event_id=${this.eventId}`, {
+                method: 'GET'
             });
 
-            if (response.ok) {
-                const postsData = await response.json();
-                console.log('✅ Guest posts loaded for event:', postsData);
-                
-                // Handle paginated response
-                this.guestPosts = postsData.results || postsData;
-                console.log(`📊 Found ${this.guestPosts.length} posts for this event`);
-                
-                this.applyFilters();
-            } else {
-                console.error('❌ Error loading guest posts:', response.status);
-                this.renderGuestPosts([]);
-            }
+            console.log('✅ Guest posts loaded for event:', postsData);
+            
+            // Handle paginated response
+            this.guestPosts = postsData.results || postsData;
+            console.log(`📊 Found ${this.guestPosts.length} posts for this event`);
+            
+            this.applyFilters();
+            
         } catch (error) {
             console.error('❌ Error loading guest posts:', error);
             this.renderGuestPosts([]);
@@ -701,40 +661,22 @@ class EventDetail {
         try {
             console.log('✅ Approving post:', postId);
             
-            // Get JWT token for authentication
-            const token = localStorage.getItem('neberku_access_token');
-            if (!token) {
-                console.error('❌ No JWT token found, cannot approve post');
-                this.showError('Authentication token not found. Please log in again.');
-                return;
-            }
-
-            const headers = {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            };
-            
-            const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.GUEST_POST_DETAIL.replace('{id}', postId)}/approve/`, {
-                method: 'POST',
-                headers: headers
+            // Use centralized API request with automatic auth error handling
+            await API_UTILS.request(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.GUEST_POST_DETAIL.replace('{id}', postId)}/approve/`, {
+                method: 'POST'
             });
 
-            if (response.ok) {
-                console.log('✅ Post approved successfully');
-                this.showSuccess('Post approved successfully!');
-                
-                // Update the post in our local array
-                const postIndex = this.guestPosts.findIndex(p => p.id === postId);
-                if (postIndex !== -1) {
-                    this.guestPosts[postIndex].is_approved = true;
-                }
-                
-                this.applyFilters();
-            } else {
-                const errorData = await response.json();
-                console.error('❌ Error approving post:', errorData);
-                this.showError(`Error approving post: ${errorData.detail || 'Unknown error'}`);
+            console.log('✅ Post approved successfully');
+            this.showSuccess('Post approved successfully!');
+            
+            // Update the post in our local array
+            const postIndex = this.guestPosts.findIndex(p => p.id === postId);
+            if (postIndex !== -1) {
+                this.guestPosts[postIndex].is_approved = true;
             }
+            
+            this.applyFilters();
+            
         } catch (error) {
             console.error('❌ Error approving post:', error);
             this.showError('Unable to approve post. Please check your connection and try again.');
@@ -1090,14 +1032,6 @@ class EventDetail {
         try {
             console.log('📡 Updating event:', this.eventId);
             
-            // Get JWT token for authentication
-            const token = localStorage.getItem('neberku_access_token');
-            if (!token) {
-                console.error('❌ No JWT token found, cannot update event');
-                this.showError('Authentication token not found. Please log in again.');
-                return false;
-            }
-
             // Create FormData for multipart/form-data request
             const formData = new FormData();
             
@@ -1127,32 +1061,21 @@ class EventDetail {
             // Debug: Log all form data keys
             console.log('📋 Form data keys:', Array.from(formData.keys()));
 
-            const headers = {
-                'Authorization': `Bearer ${token}`
-                // Don't set Content-Type header - let browser set it with boundary for FormData
-            };
-            
-            const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.EVENT_DETAIL.replace('{id}', this.eventId)}`, {
+            // Use centralized API request with automatic auth error handling
+            const updatedEvent = await API_UTILS.request(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.EVENT_DETAIL.replace('{id}', this.eventId)}`, {
                 method: 'PUT',
-                headers: headers,
                 body: formData
+                // Don't set Content-Type header - let browser set it with boundary for FormData
             });
 
-            if (response.ok) {
-                const updatedEvent = await response.json();
-                console.log('✅ Event updated successfully:', updatedEvent);
-                console.log('🖼️ Updated event banner:', updatedEvent.event_banner);
-                console.log('📸 Updated event thumbnail:', updatedEvent.event_thumbnail);
-                this.event = updatedEvent;
-                this.renderEventDetail();
-                this.showSuccess('Event updated successfully!');
-                return true;
-            } else {
-                const errorData = await response.json();
-                console.error('❌ Error updating event:', errorData);
-                this.showError(`Error updating event: ${errorData.detail || 'Unknown error'}`);
-                return false;
-            }
+            console.log('✅ Event updated successfully:', updatedEvent);
+            console.log('🖼️ Updated event banner:', updatedEvent.event_banner);
+            console.log('📸 Updated event thumbnail:', updatedEvent.event_thumbnail);
+            this.event = updatedEvent;
+            this.renderEventDetail();
+            this.showSuccess('Event updated successfully!');
+            return true;
+            
         } catch (error) {
             console.error('❌ Error updating event:', error);
             this.showError('Unable to update event. Please check your connection and try again.');

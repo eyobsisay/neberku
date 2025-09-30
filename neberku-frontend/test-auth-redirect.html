@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Authentication Redirect - Neberku</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0">
+                            <i class="bi bi-shield-check"></i>
+                            Authentication Redirect Test
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <h5><i class="bi bi-info-circle"></i> Test Instructions</h5>
+                            <p>This page tests the automatic redirect to login when JWT tokens are invalid or expired.</p>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6><i class="bi bi-key"></i> Current Token Status</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="tokenStatus">
+                                            <div class="spinner-border spinner-border-sm" role="status">
+                                                <span class="visually-hidden">Loading...</span>
+                                            </div>
+                                            Checking token...
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6><i class="bi bi-tools"></i> Test Actions</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="d-grid gap-2">
+                                            <button class="btn btn-warning" onclick="testInvalidToken()">
+                                                <i class="bi bi-exclamation-triangle"></i>
+                                                Test Invalid Token
+                                            </button>
+                                            <button class="btn btn-danger" onclick="testExpiredToken()">
+                                                <i class="bi bi-clock-history"></i>
+                                                Test Expired Token
+                                            </button>
+                                            <button class="btn btn-info" onclick="testValidToken()">
+                                                <i class="bi bi-check-circle"></i>
+                                                Test Valid Token
+                                            </button>
+                                            <button class="btn btn-secondary" onclick="clearTokens()">
+                                                <i class="bi bi-trash"></i>
+                                                Clear All Tokens
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6><i class="bi bi-list-check"></i> Test Results</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="testResults">
+                                        <p class="text-muted">No tests run yet. Click a test button above to see results.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6><i class="bi bi-info-square"></i> How It Works</h6>
+                                </div>
+                                <div class="card-body">
+                                    <ol>
+                                        <li><strong>Token Validation:</strong> The system checks JWT token structure and expiration</li>
+                                        <li><strong>API Interceptor:</strong> All API requests are intercepted for auth errors</li>
+                                        <li><strong>Error Detection:</strong> Detects 401, 403, and specific JWT error messages</li>
+                                        <li><strong>Automatic Redirect:</strong> Clears tokens and redirects to login page</li>
+                                        <li><strong>User Notification:</strong> Shows friendly error message before redirect</li>
+                                    </ol>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include required scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    
+    <script>
+        // Test functions
+        function updateTokenStatus() {
+            const tokenStatusDiv = document.getElementById('tokenStatus');
+            const token = localStorage.getItem('neberku_access_token');
+            
+            if (!token) {
+                tokenStatusDiv.innerHTML = '<span class="badge bg-danger">No Token</span>';
+                return;
+            }
+            
+            if (window.NEBERKU_AUTH && window.NEBERKU_AUTH.validateJWTToken) {
+                const isValid = window.NEBERKU_AUTH.validateJWTToken(token);
+                if (isValid) {
+                    tokenStatusDiv.innerHTML = '<span class="badge bg-success">Valid Token</span>';
+                } else {
+                    tokenStatusDiv.innerHTML = '<span class="badge bg-warning">Invalid/Expired Token</span>';
+                }
+            } else {
+                tokenStatusDiv.innerHTML = '<span class="badge bg-info">Token Present</span>';
+            }
+        }
+        
+        function addTestResult(message, type = 'info') {
+            const resultsDiv = document.getElementById('testResults');
+            const timestamp = new Date().toLocaleTimeString();
+            const alertClass = `alert-${type}`;
+            
+            resultsDiv.innerHTML = `
+                <div class="alert ${alertClass} alert-dismissible fade show">
+                    <strong>[${timestamp}]</strong> ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            ` + resultsDiv.innerHTML;
+        }
+        
+        function testInvalidToken() {
+            addTestResult('Setting invalid token...', 'warning');
+            
+            // Set an invalid token (malformed JWT)
+            localStorage.setItem('neberku_access_token', 'invalid.token.here');
+            localStorage.setItem('neberku_user', JSON.stringify({username: 'testuser'}));
+            
+            updateTokenStatus();
+            
+            // Test API call
+            testAPIWithCurrentToken('Invalid Token Test');
+        }
+        
+        function testExpiredToken() {
+            addTestResult('Setting expired token...', 'warning');
+            
+            // Create an expired token (expired 1 hour ago)
+            const expiredTime = Math.floor(Date.now() / 1000) - 3600; // 1 hour ago
+            const header = btoa(JSON.stringify({alg: 'HS256', typ: 'JWT'}));
+            const payload = btoa(JSON.stringify({exp: expiredTime, user_id: 1}));
+            const signature = 'expired_signature';
+            const expiredToken = `${header}.${payload}.${signature}`;
+            
+            localStorage.setItem('neberku_access_token', expiredToken);
+            localStorage.setItem('neberku_user', JSON.stringify({username: 'testuser'}));
+            
+            updateTokenStatus();
+            
+            // Test API call
+            testAPIWithCurrentToken('Expired Token Test');
+        }
+        
+        function testValidToken() {
+            addTestResult('Setting valid token...', 'info');
+            
+            // Create a valid token (expires in 1 hour)
+            const validTime = Math.floor(Date.now() / 1000) + 3600; // 1 hour from now
+            const header = btoa(JSON.stringify({alg: 'HS256', typ: 'JWT'}));
+            const payload = btoa(JSON.stringify({exp: validTime, user_id: 1}));
+            const signature = 'valid_signature';
+            const validToken = `${header}.${payload}.${signature}`;
+            
+            localStorage.setItem('neberku_access_token', validToken);
+            localStorage.setItem('neberku_user', JSON.stringify({username: 'testuser'}));
+            
+            updateTokenStatus();
+            
+            // Test API call
+            testAPIWithCurrentToken('Valid Token Test');
+        }
+        
+        function clearTokens() {
+            addTestResult('Clearing all tokens...', 'secondary');
+            
+            localStorage.removeItem('neberku_user');
+            localStorage.removeItem('neberku_access_token');
+            localStorage.removeItem('neberku_refresh_token');
+            
+            updateTokenStatus();
+            
+            // Test API call
+            testAPIWithCurrentToken('No Token Test');
+        }
+        
+        async function testAPIWithCurrentToken(testName) {
+            try {
+                addTestResult(`Making API request for ${testName}...`, 'info');
+                
+                // Use the centralized API request
+                const result = await API_UTILS.request(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.EVENTS}`, {
+                    method: 'GET'
+                });
+                
+                addTestResult(`${testName}: API request succeeded!`, 'success');
+                
+            } catch (error) {
+                if (error.message.includes('Token is invalid or expired') || 
+                    error.message.includes('Token invalid or expired') ||
+                    error.message.includes('Access denied')) {
+                    addTestResult(`${testName}: Authentication error detected - redirect should occur`, 'warning');
+                } else {
+                    addTestResult(`${testName}: API request failed: ${error.message}`, 'danger');
+                }
+            }
+        }
+        
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            updateTokenStatus();
+            addTestResult('Authentication redirect test page loaded', 'info');
+        });
+    </script>
+</body>
+</html>

@@ -260,12 +260,50 @@ async function logoutUser() {
     }
 }
 
-// Check if user is authenticated - JWT version
+// Check if user is authenticated - JWT version with token validation
 function isAuthenticated() {
-    // For JWT authentication, we check if we have both user data and access token
+    // For JWT authentication, we check if we have both user data and valid access token
     const user = localStorage.getItem('neberku_user');
     const accessToken = localStorage.getItem('neberku_access_token');
-    return !!(user && accessToken);
+    
+    if (!user || !accessToken) {
+        return false;
+    }
+    
+    // Validate token structure and expiration
+    return validateJWTToken(accessToken);
+}
+
+// Validate JWT token structure and expiration
+function validateJWTToken(token) {
+    if (!token) {
+        console.log('❌ No token provided for validation');
+        return false;
+    }
+    
+    try {
+        // Basic JWT structure validation (check if it has 3 parts separated by dots)
+        const parts = token.split('.');
+        if (parts.length !== 3) {
+            console.log('❌ Invalid JWT token structure');
+            return false;
+        }
+        
+        // Decode payload to check expiration
+        const payload = JSON.parse(atob(parts[1]));
+        const currentTime = Math.floor(Date.now() / 1000);
+        
+        if (payload.exp && payload.exp < currentTime) {
+            console.log('❌ JWT token has expired');
+            return false;
+        }
+        
+        console.log('✅ JWT token is valid');
+        return true;
+    } catch (error) {
+        console.log('❌ Error validating JWT token:', error);
+        return false;
+    }
 }
 
 // Get current user
@@ -295,10 +333,18 @@ function getRefreshToken() {
 // Require authentication for protected pages
 function requireAuth() {
     if (!isAuthenticated()) {
-        showAlert('Please log in to access this page.', 'warning');
-        setTimeout(() => {
-            window.location.href = 'login.html';
-        }, 2000);
+        console.log('🔒 Authentication required - redirecting to login');
+        
+        // Use centralized auth error handling
+        if (window.API_UTILS && window.API_UTILS.handleAuthError) {
+            API_UTILS.handleAuthError('Please log in to access this page.');
+        } else {
+            // Fallback if API_UTILS is not available
+            showAlert('Please log in to access this page.', 'warning');
+            setTimeout(() => {
+                window.location.href = 'login.html';
+            }, 2000);
+        }
         return false;
     }
     return true;
@@ -314,22 +360,19 @@ async function refreshJWTToken() {
         
         console.log('🔄 Refreshing JWT token...');
         
-        const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.TOKEN_REFRESH}`, {
+        // Use centralized API request with automatic auth error handling
+        const data = await API_UTILS.request(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.TOKEN_REFRESH}`, {
             method: 'POST',
+            body: JSON.stringify({ refresh: refreshToken }),
             headers: {
                 'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ refresh: refreshToken })
+            }
         });
         
-        if (response.ok) {
-            const data = await response.json();
-            localStorage.setItem('neberku_access_token', data.access);
-            console.log('✅ JWT token refreshed successfully');
-            return data.access;
-        } else {
-            throw new Error('Token refresh failed');
-        }
+        localStorage.setItem('neberku_access_token', data.access);
+        console.log('✅ JWT token refreshed successfully');
+        return data.access;
+        
     } catch (error) {
         console.error('❌ Token refresh error:', error);
         // If refresh fails, logout the user
@@ -357,10 +400,23 @@ function setupTokenExpiry() {
 // Initialize authentication
 function initAuth() {
     // Check if we're on a protected page
-    const protectedPages = ['dashboard.html', 'profile.html'];
+    const protectedPages = ['dashboard.html', 'profile.html', 'event-detail.html', 'guest-posts.html', 'post-detail.html'];
     const currentPage = window.location.pathname.split('/').pop();
     
     if (protectedPages.includes(currentPage)) {
+        console.log('🔒 Protected page detected:', currentPage);
+        
+        // Validate token before requiring auth
+        if (!validateJWTToken(getAuthToken())) {
+            console.log('❌ Invalid or expired token on protected page');
+            if (window.API_UTILS && window.API_UTILS.handleAuthError) {
+                API_UTILS.handleAuthError('Invalid or expired token');
+            } else {
+                logoutUser();
+            }
+            return;
+        }
+        
         if (!requireAuth()) {
             return;
         }
@@ -429,6 +485,7 @@ if (typeof module !== 'undefined' && module.exports) {
         getRefreshToken,
         refreshJWTToken,
         requireAuth,
+        validateJWTToken,
         showAlert
     };
 } else {
@@ -441,6 +498,7 @@ if (typeof module !== 'undefined' && module.exports) {
         getRefreshToken,
         refreshJWTToken,
         requireAuth,
+        validateJWTToken,
         showAlert
     };
 } 

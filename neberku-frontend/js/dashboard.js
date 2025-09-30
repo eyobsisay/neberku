@@ -72,113 +72,61 @@ class Dashboard {
 
     async loadEvents() {
         try {
-            // Get JWT token for authentication
-            const token = localStorage.getItem('neberku_access_token');
-            if (!token) {
-                console.error('❌ No JWT token found, cannot load events');
-                this.showAlert('Authentication token not found. Please log in again.', 'error');
-                setTimeout(() => {
-                    window.location.replace('login.html');
-                }, 3000);
-                return;
-            }
-
-            const headers = {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            };
-            
             console.log('🌐 Making request to:', `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.EVENTS}`);
-            console.log('🔑 Headers:', headers);
             
-            const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.EVENTS}`, {
+            // Use centralized API request with automatic auth error handling
+            const eventsData = await API_UTILS.request(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.EVENTS}`, {
                 method: 'GET',
-                headers: headers,
-                mode: 'cors'  // Explicitly set CORS mode
+                mode: 'cors'
             });
 
-            console.log('📡 Response status:', response.status);
-            console.log('📡 Response headers:', response.headers);
-
-            if (response.ok) {
-                const eventsData = await response.json();
-                console.log('✅ Events fetched successfully:', eventsData);
-                
-                // Extract events and stats from the response
-                if (eventsData.results && Array.isArray(eventsData.results)) {
-                    this.events = eventsData.results;
-                    console.log('📊 Extracted events from paginated response:', this.events.length);
-                } else if (Array.isArray(eventsData)) {
-                    // Direct array response
-                    this.events = eventsData;
-                    console.log('📊 Direct events array response:', this.events.length);
-                } else {
-                    console.warn('⚠️ Unexpected response format:', eventsData);
-                    this.events = [];
-                }
-                
-                // Sort events to show active events first, then by creation date
-                this.events.sort((a, b) => {
-                    const statusA = this.getEventStatus(a).toLowerCase();
-                    const statusB = this.getEventStatus(b).toLowerCase();
-                    
-                    // Active events first
-                    if (statusA.includes('active') && !statusB.includes('active')) return -1;
-                    if (!statusA.includes('active') && statusB.includes('active')) return 1;
-                    
-                    // Then sort by creation date (newest first)
-                    const dateA = new Date(a.created_at || a.event_date);
-                    const dateB = new Date(b.created_at || b.event_date);
-                    return dateB - dateA;
-                });
-                
-                console.log('📅 Events sorted with active events first:', this.events.map(e => ({
-                    title: e.title,
-                    status: this.getEventStatus(e),
-                    created_at: e.created_at
-                })));
-                
-                // Extract stats from the API response
-                this.eventStats = eventsData.stats || eventsData.counts || null;
-                if (this.eventStats) {
-                    console.log('📈 API provided event stats:', this.eventStats);
-                } else {
-                    console.log('📊 No stats provided by API, will calculate locally');
-                }
-                
-                this.renderEvents();
-                this.updateStatistics();
-            } else if (response.status === 401) {
-                // Unauthorized - redirect to login
-                console.log('🔒 Unauthorized - redirecting to login');
-                this.showAlert('Unauthorized access. Redirecting to login...', 'warning');
-                setTimeout(() => {
-                    window.location.href = 'login.html';
-                }, 3000); // 3 second delay
-                return;
-            } else if (response.status === 403) {
-                // Forbidden - likely session expired or not authenticated
-                console.log('🚫 Forbidden - session may have expired');
-                const errorText = await response.text();
-                console.error('❌ 403 Error Response:', errorText);
-                
-                // Clear stored user data and redirect to login
-                localStorage.removeItem('neberku_user');
-                this.showAlert(`Session expired: ${errorText}. Redirecting to login...`, 'warning');
-                setTimeout(() => {
-                    window.location.href = 'login.html';
-                }, 5000); // 5 second delay to read the error
-                return;
-            } else if (response.status === 404) {
-                console.log('📭 No events found (404)');
-                this.events = [];
-                this.renderEvents();
-                this.showAlert('No events found. Create your first event to get started!', 'info');
+            console.log('✅ Events fetched successfully:', eventsData);
+            
+            // Extract events and stats from the response
+            if (eventsData.results && Array.isArray(eventsData.results)) {
+                this.events = eventsData.results;
+                console.log('📊 Extracted events from paginated response:', this.events.length);
+            } else if (Array.isArray(eventsData)) {
+                // Direct array response
+                this.events = eventsData;
+                console.log('📊 Direct events array response:', this.events.length);
             } else {
-                const errorText = await response.text();
-                console.error('❌ API Error Response:', errorText);
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                console.warn('⚠️ Unexpected response format:', eventsData);
+                this.events = [];
             }
+            
+            // Sort events to show active events first, then by creation date
+            this.events.sort((a, b) => {
+                const statusA = this.getEventStatus(a).toLowerCase();
+                const statusB = this.getEventStatus(b).toLowerCase();
+                
+                // Active events first
+                if (statusA.includes('active') && !statusB.includes('active')) return -1;
+                if (!statusA.includes('active') && statusB.includes('active')) return 1;
+                
+                // Then sort by creation date (newest first)
+                const dateA = new Date(a.created_at || a.event_date);
+                const dateB = new Date(b.created_at || b.event_date);
+                return dateB - dateA;
+            });
+            
+            console.log('📅 Events sorted with active events first:', this.events.map(e => ({
+                title: e.title,
+                status: this.getEventStatus(e),
+                created_at: e.created_at
+            })));
+            
+            // Extract stats from the API response
+            this.eventStats = eventsData.stats || eventsData.counts || null;
+            if (this.eventStats) {
+                console.log('📈 API provided event stats:', this.eventStats);
+            } else {
+                console.log('📊 No stats provided by API, will calculate locally');
+            }
+            
+            this.renderEvents();
+            this.updateStatistics();
+            
         } catch (error) {
             console.error('❌ Error loading events:', error);
             
@@ -564,46 +512,24 @@ class Dashboard {
         }
 
         try {
-            // Get JWT token for authentication
-            const token = localStorage.getItem('neberku_access_token');
-            if (!token) {
-                console.error('❌ No JWT token found, cannot create event');
-                this.showAlert('Authentication token not found. Please log in again.', 'error');
-                setTimeout(() => {
-                    window.location.replace('login.html');
-                }, 3000);
-                return;
-            }
-
-            const headers = {
-                'Authorization': `Bearer ${token}`
-            };
+            console.log('📡 Creating event with FormData...');
             
-            // Note: Don't set Content-Type header when using FormData
-            // The browser will set it automatically with the boundary
-            
-            const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.EVENTS}`, {
+            // Use centralized API request with automatic auth error handling
+            const newEvent = await API_UTILS.request(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.EVENTS}`, {
                 method: 'POST',
-                headers: headers,
                 body: formData
+                // Note: Don't set Content-Type header when using FormData
+                // The browser will set it automatically with the boundary
             });
 
-            console.log('📡 Create event response status:', response.status);
-
-            if (response.ok) {
-                const newEvent = await response.json();
-                console.log('✅ Event created successfully:', newEvent);
-                this.events.push(newEvent);
-                
-                this.renderEvents();
-                this.updateStatistics();
-                this.resetForm();
-                this.showAlert('Event created successfully!', 'success');
-            } else {
-                const errorText = await response.text();
-                console.error('❌ Create event error response:', errorText);
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
+            console.log('✅ Event created successfully:', newEvent);
+            this.events.push(newEvent);
+            
+            this.renderEvents();
+            this.updateStatistics();
+            this.resetForm();
+            this.showAlert('Event created successfully!', 'success');
+            
         } catch (error) {
             console.error('❌ Error creating event:', error);
             if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
