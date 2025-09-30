@@ -6,7 +6,6 @@
 class EventDetailGuestManager {
     constructor() {
         this.currentEvent = null;
-        this.API_BASE_URL = 'http://localhost:8000/api';
         this.init();
     }
 
@@ -133,7 +132,7 @@ class EventDetailGuestManager {
             // If we have a contributor code, use it to access the event
             if (contributorCode) {
                 console.log('🔑 Using contributor code to access event:', contributorCode);
-                const response = await fetch(`${this.API_BASE_URL}/guest/event/?code=${contributorCode}`);
+                const response = await fetch(`${API_CONFIG.BASE_URL}/api/guest/event/?code=${contributorCode}`);
                 
                 if (response.ok) {
                     const eventData = await response.json();
@@ -149,7 +148,7 @@ class EventDetailGuestManager {
             }
             
             // Try to get event details using the event ID directly (for public events)
-            const response = await fetch(`${this.API_BASE_URL}/guest/event-by-id/${eventId}/`);
+            const response = await fetch(`${API_CONFIG.BASE_URL}/api/guest/event-by-id/${eventId}/`);
             
             if (response.ok) {
                 const eventData = await response.json();
@@ -526,7 +525,7 @@ class EventDetailGuestManager {
         try {
             this.showLoading(true);
             
-            const response = await fetch(`${this.API_BASE_URL}/guest-post-create/`, {
+            const response = await fetch(`${API_CONFIG.BASE_URL}/api/guest-post-create/`, {
                 method: 'POST',
                 body: formData
             });
@@ -799,7 +798,7 @@ class EventDetailGuestManager {
         try {
             this.showLoading(true);
             
-            const response = await fetch(`${this.API_BASE_URL}/guest/event/?code=${contributorCode}`);
+            const response = await fetch(`${API_CONFIG.BASE_URL}/api/guest/event/?code=${contributorCode}`);
             const data = await response.json();
 
             if (response.ok) {

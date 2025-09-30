@@ -6,7 +6,6 @@
 class GuestContributionManager {
     constructor() {
         this.currentEvent = null;
-        this.API_BASE_URL = 'http://localhost:8000/api';
         this.wasDirectAccess = false;
         this.init();
     }
@@ -40,7 +39,7 @@ class GuestContributionManager {
             this.showAlert('Loading event details...', 'info');
             
             // Try to get event details using the event ID
-            const response = await fetch(`${this.API_BASE_URL}/guest/event-by-id/${eventId}/`);
+            const response = await fetch(`${API_CONFIG.BASE_URL}/api/guest/event-by-id/${eventId}/`);
             
             if (response.ok) {
                 const eventData = await response.json();
@@ -202,7 +201,7 @@ class GuestContributionManager {
         try {
             this.showLoading(true);
             
-            const url = `${this.API_BASE_URL}/guest/event/?code=${contributorCode}`;
+            const url = `${API_CONFIG.BASE_URL}/api/guest/event/?code=${contributorCode}`;
             const response = await fetch(url);
             const data = await response.json();
 
@@ -224,7 +223,7 @@ class GuestContributionManager {
         try {
             this.showLoading(true);
             
-            const response = await fetch(`${this.API_BASE_URL}/guest/public-events/`);
+            const response = await fetch(`${API_CONFIG.BASE_URL}/api/guest/public-events/`);
             const data = await response.json();
 
             if (response.ok) {
