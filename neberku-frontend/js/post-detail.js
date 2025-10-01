@@ -95,13 +95,7 @@ class PostDetail {
         // Post content
         document.getElementById('wishText').textContent = this.post.wish_text || 'No content';
 
-        // Event information
-        if (this.post.event) {
-            document.getElementById('eventTitle').textContent = this.post.event.title || 'Unknown Event';
-            document.getElementById('eventDate').textContent = this.formatDate(this.post.event.event_date);
-            document.getElementById('eventLocation').textContent = this.post.event.location || 'Unknown';
-            document.getElementById('eventType').textContent = this.post.event.event_type?.name || 'Unknown';
-        }
+        // Event information - removed since Event Details section was removed from HTML
 
         // Post statistics
         document.getElementById('createdAt').textContent = this.formatDate(this.post.created_at);
