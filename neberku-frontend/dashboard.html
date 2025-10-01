@@ -410,8 +410,41 @@
             color: rgba(255,255,255,0.9) !important;
         }
         
-        .display-4 {
+        /* Pagination Styling - Celebration Theme */
+        .pagination .page-link {
+            background: rgba(255,255,255,0.1) !important;
+            border: 1px solid rgba(255,255,255,0.2) !important;
             color: var(--ink) !important;
+            transition: all 0.3s ease !important;
+        }
+        
+        .pagination .page-link:hover {
+            background: linear-gradient(135deg, var(--primary-start), var(--primary-end)) !important;
+            border-color: var(--primary-start) !important;
+            color: white !important;
+            transform: translateY(-1px) !important;
+            box-shadow: 0 4px 12px rgba(245,158,11,0.3) !important;
+        }
+        
+        .pagination .page-item.active .page-link {
+            background: linear-gradient(135deg, var(--primary-start), var(--primary-end)) !important;
+            border-color: var(--primary-start) !important;
+            color: white !important;
+            box-shadow: 0 4px 12px rgba(245,158,11,0.4) !important;
+        }
+        
+        .pagination .page-item.disabled .page-link {
+            background: rgba(255,255,255,0.05) !important;
+            border-color: rgba(255,255,255,0.1) !important;
+            color: rgba(255,255,255,0.3) !important;
+        }
+        
+        .pagination-info {
+            color: var(--ink) !important;
+        }
+        
+        .pagination-info .text-muted {
+            color: rgba(255,255,255,0.7) !important;
         }
         
         h1, h2, h3, h4, h5, h6 {
@@ -639,11 +672,11 @@
             </div>
         </div>
 
-        <!-- Create New Event -->
-        <div class="row mb-4">
+        <!-- Create New Event - Hidden Card -->
+        <div class="row mb-4" style="display: none;">
             <div class="col-12">
                 <div class="card">
-                    <div class="card-header">
+                    <div class="card-header" style="background: linear-gradient(135deg, var(--primary-start), var(--primary-end)) !important; border: none !important; color: white; padding: 1.5rem;">
                         <h5 class="mb-0">
                             <i class="bi bi-plus-circle"></i> Create New Event
                         </h5>
@@ -791,6 +824,17 @@
                             </div>
                         </form>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Create Event Button - Centered Below Stats -->
+        <div class="row mb-4">
+            <div class="col-12 text-center">
+                <div id="floatingCreateButton">
+                    <button type="button" class="btn btn-primary btn-lg" onclick="dashboard.showCreateEventForm()" style="border-radius: 50px; padding: 1rem 1.5rem; box-shadow: 0 8px 25px rgba(245,158,11,0.4);">
+                        <i class="bi bi-plus-circle me-2"></i>Create New Event
+                    </button>
                 </div>
             </div>
         </div>

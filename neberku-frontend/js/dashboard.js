@@ -559,6 +559,16 @@ class Dashboard {
     }
     
     showCreateEventForm() {
+        // Hide the centered button
+        document.getElementById('floatingCreateButton').style.display = 'none';
+        
+        // Show the hidden card with form
+        const createEventCard = document.querySelector('.row.mb-4[style*="display: none"]');
+        if (createEventCard) {
+            createEventCard.style.display = 'block';
+        }
+        
+        // Hide the button and show the form
         document.getElementById('createEventButton').style.display = 'none';
         document.getElementById('createEventForm').style.display = 'block';
         
@@ -567,8 +577,18 @@ class Dashboard {
     }
     
     hideCreateEventForm() {
+        // Hide the form and show the button
         document.getElementById('createEventForm').style.display = 'none';
         document.getElementById('createEventButton').style.display = 'block';
+        
+        // Hide the card again
+        const createEventCard = document.querySelector('.row.mb-4[style*="display: block"]');
+        if (createEventCard) {
+            createEventCard.style.display = 'none';
+        }
+        
+        // Show centered button again
+        document.getElementById('floatingCreateButton').style.display = 'block';
     }
 
     updateStatistics() {
