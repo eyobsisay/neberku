@@ -7,10 +7,307 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
     <link href="css/custom.css" rel="stylesheet">
+    <style>
+        /* Celebration palette from event-detail-guest.html */
+        :root{
+            --primary-start:#92400e; /* much softer amber - minimal brightness */
+            --primary-end:#ec4899;   /* pink */
+            --accent:#a855f7;        /* purple */
+            --confetti-1:#f43f5e;    /* rose */
+            --confetti-2:#22c55e;    /* green */
+            --confetti-3:#fde047;    /* yellow */
+            --ink:#fff7ed;           /* warm off-white */
+            --muted:#f3e8ff;         /* soft lilac */
+            --panel-1:rgba(24, 19, 35, .62);
+            --panel-2:rgba(24, 19, 35, .44);
+            --line:rgba(250, 204, 21, .22); /* golden line */
+        }
+        
+        body {
+            background: radial-gradient(1200px 600px at 10% -10%, rgba(236,72,153,0.10), transparent 60%),
+                        radial-gradient(900px 500px at 110% 0%, rgba(245,158,11,0.10), transparent 40%),
+                        linear-gradient(180deg, #120c1b 0%, #1a1327 100%);
+            background-size: 160% 160%, 140% 140%, 100% 100%;
+            animation: bgShift 18s ease-in-out infinite;
+            color: var(--ink);
+            min-height: 100vh;
+        }
+        
+        .navbar {
+            background: linear-gradient(90deg, var(--primary-start) 0%, var(--primary-end) 45%, var(--accent) 100%) !important;
+            box-shadow: 0 6px 24px rgba(0,0,0,0.25);
+        }
+        
+        .navbar-brand {
+            font-weight: 700;
+            letter-spacing: .3px;
+        }
+        
+        /* Stats Cards with celebration colors */
+        .card.bg-primary {
+            background: linear-gradient(135deg, var(--primary-start), var(--primary-end)) !important;
+        }
+        
+        .card.bg-success {
+            background: linear-gradient(135deg, var(--confetti-2), #16a34a) !important;
+        }
+        
+        .card.bg-info {
+            background: linear-gradient(135deg, var(--accent), #7c3aed) !important;
+        }
+        
+        .card.bg-warning {
+            background: linear-gradient(135deg, var(--confetti-3), #eab308) !important;
+        }
+        
+        /* Events Gallery Card with celebration styling */
+        .events-gallery-card {
+            background: linear-gradient(135deg, var(--panel-1), var(--panel-2)) !important;
+            backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid var(--line) !important;
+            box-shadow: 0 20px 60px rgba(2,6,23,.3) !important;
+        }
+        
+        .events-gallery-card .card-header {
+            background: linear-gradient(135deg, var(--primary-start), var(--primary-end)) !important;
+            border: none !important;
+        }
+        
+        .events-gallery-card .card-body {
+            background: linear-gradient(135deg, rgba(255,255,255,.05), rgba(255,255,255,.02)) !important;
+        }
+        
+        /* Filter buttons with celebration styling */
+        .filter-btn {
+            background: rgba(255,255,255,0.1) !important;
+            border: 1px solid rgba(255,255,255,0.2) !important;
+            color: white !important;
+            transition: all 0.3s ease;
+        }
+        
+        .filter-btn:hover {
+            background: rgba(255,255,255,0.2) !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        .filter-btn.active {
+            background: rgba(255,255,255,0.3) !important;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            transform: translateY(-2px);
+        }
+        
+        .filter-btn .badge {
+            background: rgba(255,255,255,0.3) !important;
+            color: white !important;
+        }
+        
+        /* Event cards with celebration styling */
+        .event-card .card {
+            background: linear-gradient(135deg, var(--panel-1), var(--panel-2)) !important;
+            backdrop-filter: blur(15px) saturate(140%);
+            border: 1px solid var(--line) !important;
+            box-shadow: 0 8px 25px rgba(2,6,23,.4) !important;
+        }
+        
+        .event-card .card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 15px 40px rgba(2,6,23,.6) !important;
+        }
+        
+        .event-card .card-title {
+            color: var(--ink) !important;
+        }
+        
+        .event-card .card-text {
+            color: var(--muted) !important;
+        }
+        
+        .event-card .badge {
+            background: linear-gradient(135deg, var(--primary-start), var(--primary-end)) !important;
+            color: white !important;
+        }
+        
+        .event-card .btn-outline-primary {
+            border-color: var(--primary-start) !important;
+            color: var(--primary-start) !important;
+        }
+        
+        .event-card .btn-outline-primary:hover {
+            background: var(--primary-start) !important;
+            color: white !important;
+        }
+        
+        .event-card .btn-outline-info {
+            border-color: var(--accent) !important;
+            color: var(--accent) !important;
+        }
+        
+        .event-card .btn-outline-info:hover {
+            background: var(--accent) !important;
+            color: white !important;
+        }
+        
+        .event-card .btn-outline-success {
+            border-color: var(--confetti-2) !important;
+            color: var(--confetti-2) !important;
+        }
+        
+        .event-card .btn-outline-success:hover {
+            background: var(--confetti-2) !important;
+            color: white !important;
+        }
+        
+        /* Create Event Card */
+        .card {
+            background: linear-gradient(135deg, var(--panel-1), var(--panel-2)) !important;
+            backdrop-filter: blur(15px) saturate(140%);
+            border: 1px solid var(--line) !important;
+            box-shadow: 0 8px 25px rgba(2,6,23,.4) !important;
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, rgba(255,255,255,.1), rgba(255,255,255,.05)) !important;
+            border-bottom: 1px solid var(--line) !important;
+        }
+        
+        .card-header h5 {
+            color: var(--ink) !important;
+        }
+        
+        /* Form elements */
+        .form-control {
+            background: rgba(2,6,23,.35) !important;
+            border: 1px solid rgba(148,163,184,.15) !important;
+            color: var(--ink) !important;
+        }
+        
+        .form-control:focus {
+            background: rgba(2,6,23,.45) !important;
+            border-color: var(--primary-start) !important;
+            box-shadow: 0 0 0 0.2rem rgba(245,158,11,.25) !important;
+            color: var(--ink) !important;
+        }
+        
+        .form-label {
+            color: var(--muted) !important;
+        }
+        
+        /* Text visibility fixes */
+        .text-muted {
+            color: rgba(255,255,255,0.7) !important;
+        }
+        
+        .card-text {
+            color: rgba(255,255,255,0.8) !important;
+        }
+        
+        .lead {
+            color: rgba(255,255,255,0.9) !important;
+        }
+        
+        .display-4 {
+            color: var(--ink) !important;
+        }
+        
+        h1, h2, h3, h4, h5, h6 {
+            color: var(--ink) !important;
+        }
+        
+        p {
+            color: rgba(255,255,255,0.8) !important;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-start), var(--primary-end)) !important;
+            border: none !important;
+            box-shadow: 0 10px 24px rgba(245,158,11,.28) !important;
+        }
+        
+        .btn-primary:hover {
+            filter: brightness(1.05);
+            transform: translateY(-1px);
+            box-shadow: 0 14px 30px rgba(236,72,153,.38) !important;
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, rgba(148,163,184,.15), rgba(148,163,184,.1)) !important;
+            border: 1px solid rgba(148,163,184,.2) !important;
+            color: rgba(255,255,255,0.8) !important;
+        }
+        
+        /* Animations */
+        @keyframes bgShift{
+            0%,100%{ background-position: 0% 0%, 100% 0%, 0% 0%; }
+            50%{ background-position: 20% 10%, 90% 8%, 0% 0%; }
+        }
+        
+        /* Create Event Button Animations */
+        @keyframes pulseGlow {
+            0%, 100% {
+                box-shadow: 0 10px 24px rgba(245,158,11,.28), 0 0 0 0 rgba(245,158,11,.4);
+            }
+            50% {
+                box-shadow: 0 10px 24px rgba(245,158,11,.28), 0 0 0 10px rgba(245,158,11,.1);
+            }
+        }
+        
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-3px);
+            }
+        }
+        
+        @keyframes iconSpin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+        
+        #createEventButton .btn-primary {
+            animation: pulseGlow 2s ease-in-out infinite, float 3s ease-in-out infinite;
+            transition: all 0.3s ease;
+        }
+        
+        #createEventButton .btn-primary:hover {
+            animation: none;
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 15px 35px rgba(245,158,11,.4), 0 0 0 15px rgba(245,158,11,.1);
+        }
+        
+        #createEventButton .btn-primary:hover i {
+            animation: iconSpin 0.6s ease-in-out;
+        }
+        
+        @keyframes gradientPulse{
+            0%,100%{ background-position: 0% 50%; }
+            50%{ background-position: 100% 50%; }
+        }
+        
+        /* Footer */
+        footer {
+            background: linear-gradient(135deg, var(--panel-1), var(--panel-2)) !important;
+            border-top: 1px solid var(--line) !important;
+        }
+        
+        footer a {
+            color: var(--muted) !important;
+        }
+        
+        footer a:hover {
+            color: var(--primary-start) !important;
+        }
+    </style>
 </head>
 <body>
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
         <div class="container">
             <a class="navbar-brand" href="index.html">
                 <i class="bi bi-camera-video"></i> Neberku
@@ -51,41 +348,49 @@
             </div>
         </div>
 
-        <!-- Stats Cards -->
-        <div class="row mb-4">
-            <div class="col-md-3 mb-3">
-                <div class="card bg-primary text-white h-100">
-                    <div class="card-body text-center">
-                        <i class="bi bi-calendar-event display-4"></i>
-                        <h3 class="card-title" id="totalEvents">0</h3>
-                        <p class="card-text">Total Events</p>
+        <!-- Stats Cards - Ultra Minimized -->
+        <div class="row mb-2">
+            <div class="col-md-3 mb-1">
+                <div class="card bg-primary text-white">
+                    <div class="card-body text-center py-1 px-2">
+                        <div class="d-flex align-items-center justify-content-center">
+                            <i class="bi bi-calendar-event me-1" style="font-size: 0.9rem;"></i>
+                            <span class="fw-bold" id="totalEvents" style="font-size: 0.9rem;">0</span>
+                            <small class="ms-1" style="font-size: 0.7rem;">Events</small>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="col-md-3 mb-3">
-                <div class="card bg-success text-white h-100">
-                    <div class="card-body text-center">
-                        <i class="bi bi-image display-4"></i>
-                        <h3 class="card-title" id="totalPhotos">0</h3>
-                        <p class="card-text">Photos Collected</p>
+            <div class="col-md-3 mb-1">
+                <div class="card bg-success text-white">
+                    <div class="card-body text-center py-1 px-2">
+                        <div class="d-flex align-items-center justify-content-center">
+                            <i class="bi bi-image me-1" style="font-size: 0.9rem;"></i>
+                            <span class="fw-bold" id="totalPhotos" style="font-size: 0.9rem;">0</span>
+                            <small class="ms-1" style="font-size: 0.7rem;">Photos</small>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="col-md-3 mb-3">
-                <div class="card bg-info text-white h-100">
-                    <div class="card-body text-center">
-                        <i class="bi bi-camera-video display-4"></i>
-                        <h3 class="card-title" id="totalVideos">0</h3>
-                        <p class="card-text">Videos Collected</p>
+            <div class="col-md-3 mb-1">
+                <div class="card bg-info text-white">
+                    <div class="card-body text-center py-1 px-2">
+                        <div class="d-flex align-items-center justify-content-center">
+                            <i class="bi bi-camera-video me-1" style="font-size: 0.9rem;"></i>
+                            <span class="fw-bold" id="totalVideos" style="font-size: 0.9rem;">0</span>
+                            <small class="ms-1" style="font-size: 0.7rem;">Videos</small>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="col-md-3 mb-3">
-                <div class="card bg-warning text-white h-100">
-                    <div class="card-body text-center">
-                        <i class="bi bi-people display-4"></i>
-                        <h3 class="card-title" id="totalGuests">0</h3>
-                        <p class="card-text">Guest Contributors</p>
+            <div class="col-md-3 mb-1">
+                <div class="card bg-warning text-white">
+                    <div class="card-body text-center py-1 px-2">
+                        <div class="d-flex align-items-center justify-content-center">
+                            <i class="bi bi-people me-1" style="font-size: 0.9rem;"></i>
+                            <span class="fw-bold" id="totalGuests" style="font-size: 0.9rem;">0</span>
+                            <small class="ms-1" style="font-size: 0.7rem;">Guests</small>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -247,112 +552,46 @@
             </div>
         </div>
 
-        <!-- Event Status Overview -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card event-status-overview">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">
-                            <i class="bi bi-activity"></i> Event Status Overview
-                        </h5>
-                        <div class="btn-group status-filter-buttons" role="group">
-                            <button type="button" class="btn btn-outline-warning btn-sm" onclick="dashboard.debugEventData()">
-                                <i class="bi bi-bug"></i> Debug
-                            </button>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
-                                <div class="status-card all text-center" onclick="dashboard.filterEvents('all')" style="cursor: pointer;">
-                                    <div class="status-icon">
-                                        <i class="bi bi-list-ul"></i>
-                                    </div>
-                                    <div class="status-count" id="allEventsCount">0</div>
-                                    <div class="status-label">All Events</div>
-                                </div>
-                            </div>
-                            <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
-                                <div class="status-card active text-center" onclick="dashboard.filterEvents('active')" style="cursor: pointer;">
-                                    <div class="status-icon">
-                                        <i class="bi bi-calendar-check"></i>
-                                    </div>
-                                    <div class="status-count" id="activeEvents">0</div>
-                                    <div class="status-label">Active Events</div>
-                                </div>
-                            </div>
-                            <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
-                                <div class="status-card pending text-center" onclick="dashboard.filterEvents('pending')" style="cursor: pointer;">
-                                    <div class="status-icon">
-                                        <i class="bi bi-clock"></i>
-                                    </div>
-                                    <div class="status-count" id="pendingEvents">0</div>
-                                    <div class="status-label">Pending Events</div>
-                                </div>
-                            </div>
-                            <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
-                                <div class="status-card completed text-center" onclick="dashboard.filterEvents('completed')" style="cursor: pointer;">
-                                    <div class="status-icon">
-                                        <i class="bi bi-check-circle"></i>
-                                    </div>
-                                    <div class="status-count" id="completedEvents">0</div>
-                                    <div class="status-label">Completed Events</div>
-                                </div>
-                            </div>
-                            <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
-                                <div class="status-card draft text-center" onclick="dashboard.filterEvents('draft')" style="cursor: pointer;">
-                                    <div class="status-icon">
-                                        <i class="bi bi-calendar-plus"></i>
-                                    </div>
-                                    <div class="status-count" id="draftEvents">0</div>
-                                    <div class="status-label">Draft Events</div>
-                                </div>
-                            </div>
-                            <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
-                                <div class="status-card cancelled text-center" onclick="dashboard.filterEvents('cancelled')" style="cursor: pointer;">
-                                    <div class="status-icon">
-                                        <i class="bi bi-exclamation-triangle"></i>
-                                    </div>
-                                    <div class="status-count" id="cancelledEvents">0</div>
-                                    <div class="status-label">Cancelled Events</div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        <!-- Events List -->
+        <!-- Events Gallery -->
         <div class="row">
             <div class="col-12">
-                <div class="card">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">
-                            <i class="bi bi-list-ul"></i> Your Events
-                            <small class="text-muted ms-2">(Active events shown by default)</small>
-                        </h5>
-                        <div class="btn-group" role="group">
-                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="dashboard.filterEvents('all')">
-                                All Events
-                            </button>
-                            <button type="button" class="btn btn-outline-success btn-sm" onclick="dashboard.filterEvents('active')">
-                                Active
-                            </button>
-                            <button type="button" class="btn btn-outline-warning btn-sm" onclick="dashboard.filterEvents('pending')">
-                                Pending
-                            </button>
-                            <button type="button" class="btn btn-outline-success btn-sm" onclick="dashboard.filterEvents('completed')">
-                                Completed
-                            </button>
-                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="dashboard.filterEvents('cancelled')">
-                                Cancelled
-                            </button>
+                <div class="card events-gallery-card" style="border: none; box-shadow: 0 4px 20px rgba(0,0,0,0.1); border-radius: 20px; overflow: hidden;">
+                    <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 1.5rem;">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3" style="background: rgba(255,255,255,0.2); padding: 0.5rem; border-radius: 50%;">
+                                    <i class="bi bi-calendar-event" style="font-size: 1.5rem;"></i>
+                                </div>
+                                <div>
+                                    <h4 class="mb-0" style="font-weight: 600;">Your Events</h4>
+                                    <small style="opacity: 0.8;">Manage and explore your event collection</small>
+                                </div>
+                            </div>
+                            <div class="btn-group" role="group" style="background: rgba(255,255,255,0.1); border-radius: 25px; padding: 0.25rem;">
+                                <button type="button" class="btn btn-sm filter-btn" data-filter="all" onclick="dashboard.filterEvents('all')" style="font-size: 0.7rem; padding: 0.3rem 0.6rem; border: none; background: transparent; color: white; border-radius: 20px;">
+                                    All <span class="badge ms-1" id="allEventsCount" style="font-size: 0.6rem; background: rgba(255,255,255,0.3);">0</span>
+                                </button>
+                                <button type="button" class="btn btn-sm filter-btn" data-filter="active" onclick="dashboard.filterEvents('active')" style="font-size: 0.7rem; padding: 0.3rem 0.6rem; border: none; background: transparent; color: white; border-radius: 20px;">
+                                    Active <span class="badge ms-1" id="activeEvents" style="font-size: 0.6rem; background: rgba(255,255,255,0.3);">0</span>
+                                </button>
+                                <button type="button" class="btn btn-sm filter-btn" data-filter="pending" onclick="dashboard.filterEvents('pending')" style="font-size: 0.7rem; padding: 0.3rem 0.6rem; border: none; background: transparent; color: white; border-radius: 20px;">
+                                    Pending <span class="badge ms-1" id="pendingEvents" style="font-size: 0.6rem; background: rgba(255,255,255,0.3);">0</span>
+                                </button>
+                                <button type="button" class="btn btn-sm filter-btn" data-filter="completed" onclick="dashboard.filterEvents('completed')" style="font-size: 0.7rem; padding: 0.3rem 0.6rem; border: none; background: transparent; color: white; border-radius: 20px;">
+                                    Done <span class="badge ms-1" id="completedEvents" style="font-size: 0.6rem; background: rgba(255,255,255,0.3);">0</span>
+                                </button>
+                                <button type="button" class="btn btn-sm filter-btn" data-filter="cancelled" onclick="dashboard.filterEvents('cancelled')" style="font-size: 0.7rem; padding: 0.3rem 0.6rem; border: none; background: transparent; color: white; border-radius: 20px;">
+                                    Cancel <span class="badge ms-1" id="cancelledEvents" style="font-size: 0.6rem; background: rgba(255,255,255,0.3);">0</span>
+                                </button>
+                                <button type="button" class="btn btn-sm filter-btn" data-filter="draft" onclick="dashboard.filterEvents('draft')" style="font-size: 0.7rem; padding: 0.3rem 0.6rem; border: none; background: transparent; color: white; border-radius: 20px;">
+                                    Draft <span class="badge ms-1" id="draftEvents" style="font-size: 0.6rem; background: rgba(255,255,255,0.3);">0</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
-                    <div class="card-body">
-                        <div id="eventsList" class="row">
+                    <div class="card-body" style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); padding: 2rem;">
+                        <div id="eventsList" class="row g-3">
                             <!-- Events will be loaded here -->
                         </div>
                         

@@ -4,7 +4,7 @@ class Dashboard {
         this.events = [];
         this.currentPage = 1;
         this.eventsPerPage = 6;
-        this.filteredEvents = [];
+        this.filteredEvents = null; // null means no filter applied, [] means filter applied but empty results
         this.init();
     }
 
@@ -60,8 +60,8 @@ class Dashboard {
         try {
             await this.loadEvents();
             this.updateStatistics();
-            // Initialize filtered events to all events first
-            this.filteredEvents = [...this.events];
+            // Initialize filtered events to null (no filter applied initially)
+            this.filteredEvents = null;
             // Apply active filter by default (without showing alert)
             this.filterEvents('active', false);
         } catch (error) {
@@ -152,26 +152,19 @@ class Dashboard {
         const eventsList = document.getElementById('eventsList');
         if (!eventsList) return;
 
-        // Use filteredEvents if available, otherwise use all events
-        const eventsToRender = this.filteredEvents.length > 0 ? this.filteredEvents : this.events;
+        // Use filteredEvents if filtering is active, otherwise use all events
+        const eventsToRender = this.filteredEvents !== null ? this.filteredEvents : this.events;
+        
         
         if (eventsToRender.length === 0) {
             eventsList.innerHTML = `
                 <div class="col-12 text-center py-5">
                     <i class="bi bi-calendar-x display-1 text-muted"></i>
-                    <h4 class="text-muted mt-3">No events yet</h4>
-                    <p class="text-muted mb-3">Create your first event to get started!</p>
+                    <h4 class="text-muted mt-3">No events found</h4>
+                    <p class="text-muted mb-3">No events match the current filter criteria.</p>
                     <div class="alert alert-info">
-                        <strong>💡 Tip:</strong> If you're not seeing any events, make sure:
-                        <ul class="text-start mt-2 mb-0">
-                            <li>The Django backend is running on port 8000</li>
-                            <li>You're logged in with a valid account</li>
-                            <li>There are events in the database</li>
-                        </ul>
+                        <strong>💡 Tip:</strong> Try selecting a different filter or create a new event!
                     </div>
-                    <p class="text-muted mt-3">
-                        <small>Check the browser console for connection details</small>
-                    </p>
                 </div>
             `;
             this.renderPagination(0);
@@ -191,7 +184,7 @@ class Dashboard {
             const statusIcon = this.getStatusIcon(status);
             
             return `
-                <div class="col-md-6 col-lg-4 mb-4 event-card" data-event-id="${event.id}">
+                <div class="col-md-6 col-lg-4 mb-2 event-card" data-event-id="${event.id}">
                     <div class="card h-100 shadow-sm">
                         ${event.event_thumbnail ? `
                             <div class="card-img-top-container" style="height: 200px; overflow: hidden;">
@@ -203,56 +196,53 @@ class Dashboard {
                         ` : `
                             <div class="card-img-top-container bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
                                 <div class="text-center text-muted">
-                                    <i class="bi bi-image display-4"></i>
+                                    <i class="bi bi-image" style="font-size: 2rem;"></i>
                                     <div class="small mt-2">No thumbnail</div>
                                 </div>
                             </div>
                         `}
-                        <div class="card-header bg-transparent border-0 pb-0">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <span class="badge ${statusClass} rounded-pill">
-                                    <i class="bi ${statusIcon}"></i> ${status}
+                        <div class="card-body py-2">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="badge ${statusClass} rounded-pill" style="font-size: 0.7rem; padding: 0.2rem 0.4rem;">
+                                    <i class="bi ${statusIcon}" style="font-size: 0.7rem;"></i> ${status}
                                 </span>
-                                <small class="text-muted">${this.formatDate(event.event_date)}</small>
+                                <small class="text-muted" style="font-size: 0.75rem;">${this.formatDate(event.event_date)}</small>
                             </div>
-                        </div>
-                        <div class="card-body">
-                            <h5 class="card-title text-primary">${event.title}</h5>
-                            <p class="card-text text-muted">
-                                <i class="bi bi-geo-alt"></i> ${event.location}
+                            <h6 class="card-title text-primary mb-2" style="font-size: 0.9rem; line-height: 1.2;">${this.truncateText(event.title, 30)}</h6>
+                            <p class="card-text text-muted mb-2" style="font-size: 0.8rem;">
+                                <i class="bi bi-geo-alt"></i> ${this.truncateText(event.location || 'N/A', 20)}
                             </p>
-                            <p class="card-text">${event.description}</p>
                             
-                            <div class="row text-center mb-3">
+                            <div class="row text-center mb-2">
                                 <div class="col-4">
                                     <div class="text-primary">
-                                        <i class="bi bi-image"></i>
-                                        <div class="small">${event.photo_count || 0}</div>
+                                        <i class="bi bi-image" style="font-size: 0.8rem;"></i>
+                                        <div style="font-size: 0.75rem;">${event.photo_count || 0}</div>
                                     </div>
                                 </div>
                                 <div class="col-4">
                                     <div class="text-info">
-                                        <i class="bi bi-camera-video"></i>
-                                        <div class="small">${event.video_count || 0}</div>
+                                        <i class="bi bi-camera-video" style="font-size: 0.8rem;"></i>
+                                        <div style="font-size: 0.75rem;">${event.video_count || 0}</div>
                                     </div>
                                 </div>
                                 <div class="col-4">
                                     <div class="text-success">
-                                        <i class="bi bi-people"></i>
-                                        <div class="small">${event.total_guest_posts || 0}</div>
+                                        <i class="bi bi-people" style="font-size: 0.8rem;"></i>
+                                        <div style="font-size: 0.75rem;">${event.total_guest_posts || 0}</div>
                                     </div>
                                 </div>
                             </div>
                             
-                            <div class="d-grid gap-2">
-                                <button class="btn btn-outline-primary btn-sm" onclick="dashboard.viewEvent('${event.id}')">
-                                    <i class="bi bi-eye"></i> View Details
+                            <div class="d-flex gap-1">
+                                <button class="btn btn-outline-primary btn-sm flex-fill" onclick="dashboard.viewEvent('${event.id}')" style="font-size: 0.75rem; padding: 0.25rem 0.4rem;">
+                                    <i class="bi bi-eye"></i> View
                                 </button>
-                                <button class="btn btn-outline-info btn-sm" onclick="dashboard.viewEventPosts('${event.id}')">
-                                    <i class="bi bi-chat-dots"></i> View Posts
+                                <button class="btn btn-outline-info btn-sm flex-fill" onclick="dashboard.viewEventPosts('${event.id}')" style="font-size: 0.75rem; padding: 0.25rem 0.4rem;">
+                                    <i class="bi bi-chat-dots"></i> Posts
                                 </button>
-                                <button class="btn btn-outline-success btn-sm" onclick="dashboard.shareEvent('${event.id}')">
-                                    <i class="bi bi-share"></i> Share Link
+                                <button class="btn btn-outline-success btn-sm flex-fill" onclick="dashboard.shareEvent('${event.id}')" style="font-size: 0.75rem; padding: 0.25rem 0.4rem;">
+                                    <i class="bi bi-share"></i> Share
                                 </button>
                             </div>
                         </div>
@@ -387,7 +377,7 @@ class Dashboard {
     }
 
     goToPage(pageNumber) {
-        const totalEvents = this.filteredEvents.length > 0 ? this.filteredEvents.length : this.events.length;
+        const totalEvents = this.filteredEvents !== null ? this.filteredEvents.length : this.events.length;
         const totalPages = Math.ceil(totalEvents / this.eventsPerPage);
         
         if (pageNumber >= 1 && pageNumber <= totalPages) {
@@ -590,17 +580,20 @@ class Dashboard {
         console.log('📊 Updating statistics:', {
             totalEvents: totalEvents,
             eventsArray: this.events.length,
-            eventsData: this.events.map(e => ({ id: e.id, title: e.title }))
+            eventsData: this.events.map(e => ({ id: e.id, title: e.title, status: e.status }))
         });
 
         document.getElementById('totalEvents').textContent = totalEvents;
-        document.getElementById('allEventsCount').textContent = totalEvents;
         document.getElementById('totalPhotos').textContent = totalPhotos;
         document.getElementById('totalVideos').textContent = totalVideos;
         document.getElementById('totalGuests').textContent = totalGuests;
 
-        // Update event status overview using API stats
+        // Update event status overview - this will handle allEventsCount
         this.updateEventStatusOverview();
+        
+        console.log('📊 Status counts updated, checking DOM elements...');
+        console.log('allEventsCount element:', document.getElementById('allEventsCount'));
+        console.log('activeEvents element:', document.getElementById('activeEvents'));
     }
     
     
@@ -674,6 +667,9 @@ class Dashboard {
         if (this.eventStats) {
             console.log('📊 Using API stats for event status counts:', this.eventStats);
             
+            const totalEvents = this.eventStats.active + this.eventStats.pending + this.eventStats.completed + this.eventStats.draft + this.eventStats.cancelled;
+            
+            document.getElementById('allEventsCount').textContent = totalEvents;
             document.getElementById('activeEvents').textContent = this.eventStats.active || 0;
             document.getElementById('pendingEvents').textContent = this.eventStats.pending || 0;
             document.getElementById('completedEvents').textContent = this.eventStats.completed || 0;
@@ -693,45 +689,24 @@ class Dashboard {
         let cancelledEvents = 0;
         
         this.events.forEach(event => {
-            const status = this.getEventStatus(event);
-            const statusLower = status.toLowerCase();
+            const category = this.getEventCategory(event);
             
-            // Use partial matching for more flexible categorization
-            if (statusLower.includes('active') || statusLower.includes('today') || statusLower.includes('ongoing')) {
-                activeEvents++;
-            } else if (statusLower.includes('pending') || statusLower.includes('payment') || 
-                       statusLower.includes('tomorrow') || statusLower.includes('scheduled') ||
-                       statusLower.includes('future') || statusLower.includes('planned')) {
-                pendingEvents++;
-            } else if (statusLower.includes('completed') || statusLower.includes('finished') || 
-                       statusLower.includes('done')) {
-                completedEvents++;
-            } else if (statusLower.includes('draft') || statusLower.includes('created') || 
-                       statusLower.includes('new')) {
-                draftEvents++;
-            } else if (statusLower.includes('cancelled') || statusLower.includes('canceled')) {
-                cancelledEvents++;
-            } else {
-                // If status doesn't match any category, try to determine from date
-                if (!event.event_date) {
+            switch (category) {
+                case 'active':
+                    activeEvents++;
+                    break;
+                case 'pending':
+                    pendingEvents++;
+                    break;
+                case 'completed':
+                    completedEvents++;
+                    break;
+                case 'draft':
                     draftEvents++;
-                } else {
-                    const now = new Date();
-                    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                    const eventDate = new Date(event.event_date);
-                    const eventDay = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
-                    
-                    if (eventDay < today) {
-                        completedEvents++;
-                    } else if (eventDay.getTime() === today.getTime()) {
-                        activeEvents++;
-                    } else if (eventDay.getTime() >= today.getTime() + (24 * 60 * 60 * 1000)) {
-                        pendingEvents++;
-                    } else {
-                        // Events beyond tomorrow are now considered pending
-                        pendingEvents++;
-                    }
-                }
+                    break;
+                case 'cancelled':
+                    cancelledEvents++;
+                    break;
             }
         });
         
@@ -744,6 +719,9 @@ class Dashboard {
             total: this.events.length
         });
         
+        const totalEvents = activeEvents + pendingEvents + completedEvents + draftEvents + cancelledEvents;
+        
+        document.getElementById('allEventsCount').textContent = totalEvents;
         document.getElementById('activeEvents').textContent = activeEvents;
         document.getElementById('pendingEvents').textContent = pendingEvents;
         document.getElementById('completedEvents').textContent = completedEvents;
@@ -769,6 +747,49 @@ class Dashboard {
         if (eventDay.getTime() === today.getTime()) return 'Active';
         if (eventDay.getTime() >= today.getTime() + (24 * 60 * 60 * 1000)) return 'Pending';
         return 'Pending'; // Default to pending for any future events
+    }
+    
+    // Centralized function to categorize events by status
+    getEventCategory(event) {
+        const status = this.getEventStatus(event);
+        const statusLower = status.toLowerCase();
+        
+        // Use the same logic for both counting and filtering
+        if (statusLower.includes('active') || statusLower.includes('today') || statusLower.includes('ongoing')) {
+            return 'active';
+        } else if (statusLower.includes('pending') || statusLower.includes('payment') || 
+                   statusLower.includes('tomorrow') || statusLower.includes('scheduled') ||
+                   statusLower.includes('future') || statusLower.includes('planned')) {
+            return 'pending';
+        } else if (statusLower.includes('completed') || statusLower.includes('finished') || 
+                   statusLower.includes('done')) {
+            return 'completed';
+        } else if (statusLower.includes('draft') || statusLower.includes('created') || 
+                   statusLower.includes('new')) {
+            return 'draft';
+        } else if (statusLower.includes('cancelled') || statusLower.includes('canceled')) {
+            return 'cancelled';
+        } else {
+            // If status doesn't match any category, try to determine from date
+            if (!event.event_date) {
+                return 'draft';
+            } else {
+                const now = new Date();
+                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                const eventDate = new Date(event.event_date);
+                const eventDay = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
+                
+                if (eventDay < today) {
+                    return 'completed';
+                } else if (eventDay.getTime() === today.getTime()) {
+                    return 'active';
+                } else if (eventDay.getTime() >= today.getTime() + (24 * 60 * 60 * 1000)) {
+                    return 'pending';
+                } else {
+                    return 'pending';
+                }
+            }
+        }
     }
     
     getStatusClass(status) {
@@ -828,68 +849,30 @@ class Dashboard {
     }
     
     filterEvents(filterType, showAlert = true) {
-        // First, filter the events based on status
+        // Use centralized categorization logic to ensure consistency with counting
         this.filteredEvents = this.events.filter(event => {
-            const status = this.getEventStatus(event);
-            let shouldInclude = false;
-            
-            switch (filterType) {
-                case 'all':
-                    shouldInclude = true;
-                    break;
-                case 'active':
-                    shouldInclude = status.toLowerCase().includes('active') || 
-                                status.toLowerCase().includes('today') || 
-                                status.toLowerCase().includes('ongoing');
-                    break;
-                case 'pending':
-                    shouldInclude = status.toLowerCase().includes('pending') || 
-                                status.toLowerCase().includes('payment') ||
-                                status.toLowerCase().includes('tomorrow') || 
-                                status.toLowerCase().includes('scheduled') ||
-                                status.toLowerCase().includes('future') ||
-                                status.toLowerCase().includes('planned');
-                    break;
-                case 'completed':
-                    shouldInclude = status.toLowerCase().includes('completed') || 
-                                status.toLowerCase().includes('finished') ||
-                                status.toLowerCase().includes('done');
-                    break;
-                case 'draft':
-                    shouldInclude = status.toLowerCase().includes('draft') || 
-                                status.toLowerCase().includes('created') || 
-                                status.toLowerCase().includes('new');
-                    break;
-                case 'cancelled':
-                    shouldInclude = status.toLowerCase().includes('cancelled') || 
-                                status.toLowerCase().includes('canceled');
-                    break;
-                default:
-                    shouldInclude = true;
+            if (filterType === 'all') {
+                return true;
             }
-            
-            return shouldInclude;
+            return this.getEventCategory(event) === filterType;
         });
         
         // Reset to first page when filtering
         this.currentPage = 1;
         
-        // Update status card visual feedback
-        document.querySelectorAll('.status-card').forEach(card => {
-            card.classList.remove('active-status');
+        // Update filter button visual feedback
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.classList.remove('active');
         });
         
-        // Add visual feedback to clicked status card
-        const clickedCard = document.querySelector(`.status-card[onclick*="${filterType}"]`);
-        if (clickedCard) {
-            clickedCard.classList.add('active-status');
+        // Add visual feedback to clicked filter button
+        const clickedBtn = document.querySelector(`.filter-btn[data-filter="${filterType}"]`);
+        if (clickedBtn) {
+            clickedBtn.classList.add('active');
         }
         
         // Render the filtered events with pagination
         this.renderEvents();
-        
-        // Log filtering results for debugging
-        console.log(`🔍 Filter '${filterType}' applied: ${this.filteredEvents.length} events found`);
         
         // Show feedback message only if showAlert is true
         if (showAlert) {

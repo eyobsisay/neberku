@@ -577,6 +577,48 @@ footer a:hover {
     color: #6c757d;
 }
 
+/* Creative Filter Button Active State */
+.filter-btn.active {
+    background: rgba(255,255,255,0.3) !important;
+    color: white !important;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    transform: translateY(-1px);
+}
+
+/* Events Gallery Card Styling */
+.events-gallery-card {
+    transition: all 0.3s ease;
+}
+
+.events-gallery-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.15) !important;
+}
+
+/* Creative Event Cards */
+.event-card {
+    transition: all 0.3s ease;
+    border-radius: 15px;
+    overflow: hidden;
+}
+
+.event-card:hover {
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+}
+
+.event-card .card {
+    border-radius: 15px;
+    border: none;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+}
+
+.event-card .card:hover {
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
 /* Responsive pagination */
 @media (max-width: 768px) {
     .pagination {
