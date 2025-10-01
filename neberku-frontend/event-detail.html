@@ -151,13 +151,36 @@
         .stats-card {
             background: linear-gradient(135deg, var(--panel-1), var(--panel-2)) !important;
             border: 1px solid var(--line) !important;
-            border-radius: 10px;
-            padding: 1.5rem;
+            border-radius: 8px;
+            padding: 0.5rem;
             text-align: center;
             backdrop-filter: blur(10px);
-            box-shadow: 0 8px 25px rgba(2,6,23,.4) !important;
+            box-shadow: 0 4px 15px rgba(2,6,23,.3) !important;
             position: relative;
             overflow: hidden;
+        }
+        
+        /* Mobile responsive stats cards */
+        @media (max-width: 768px) {
+            .stats-card {
+                padding: 0.3rem !important;
+                margin-bottom: 0.5rem !important;
+            }
+            
+            .stats-card h5 {
+                font-size: 1rem !important;
+                margin-bottom: 0.1rem !important;
+            }
+            
+            .stats-card small {
+                font-size: 0.7rem !important;
+            }
+            
+            .row .col-md-3 {
+                flex: 0 0 25% !important;
+                max-width: 25% !important;
+                padding: 0.2rem !important;
+            }
         }
         
         .stats-card::before {
@@ -535,25 +558,25 @@
                     <div class="row">
                         <div class="col-md-3">
                             <div class="stats-card">
-                                <h3 id="totalPhotos" class="mb-1">0</h3>
+                                <h5 id="totalPhotos" class="mb-0">0</h5>
                                 <small>Photos</small>
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="stats-card">
-                                <h3 id="totalVideos" class="mb-1">0</h3>
+                                <h5 id="totalVideos" class="mb-0">0</h5>
                                 <small>Videos</small>
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="stats-card">
-                                <h3 id="totalPosts" class="mb-1">0</h3>
+                                <h5 id="totalPosts" class="mb-0">0</h5>
                                 <small>Posts</small>
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="stats-card">
-                                <h3 id="totalGuests" class="mb-1">0</h3>
+                                <h5 id="totalGuests" class="mb-0">0</h5>
                                 <small>Guests</small>
                             </div>
                         </div>
