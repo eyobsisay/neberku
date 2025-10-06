@@ -485,72 +485,13 @@
     <section id="pricing" class="py-5">
         <div class="container">
             <h2 class="text-center mb-5">Simple Pricing</h2>
-            <div class="row justify-content-center">
-                <div class="col-lg-4 col-md-6">
-                    <div class="card text-center h-100 card-hover">
-                        <div class="card-header bg-primary text-white">
-                            <h4 class="mb-0">Basic</h4>
-                        </div>
-                        <div class="card-body">
-                            <h2 class="card-title">$19</h2>
-                            <p class="text-muted">per event</p>
-                            <ul class="list-unstyled">
-                                <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Up to 100 photos</li>
-                                <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Up to 20 videos</li>
-                                <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Unlimited guest posts</li>
-                                <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Basic moderation tools</li>
-                                <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Event gallery</li>
-                            </ul>
-                            <div class="d-grid">
-                                <a href="register.html" class="btn btn-primary">Get Started</a>
-                            </div>
-                        </div>
+            <div id="pricing-container" class="row justify-content-center">
+                <!-- Loading state -->
+                <div class="col-12 text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading packages...</span>
                     </div>
-                </div>
-                <div class="col-lg-4 col-md-6">
-                    <div class="card text-center h-100 card-hover border-primary">
-                        <div class="card-header bg-primary text-white">
-                            <h4 class="mb-0">Premium</h4>
-                            <span class="badge bg-warning">Most Popular</span>
-                        </div>
-                        <div class="card-body">
-                            <h2 class="card-title">$39</h2>
-                            <p class="text-muted">per event</p>
-                            <ul class="list-unstyled">
-                                <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Up to 500 photos</li>
-                                <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Up to 100 videos</li>
-                                <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Unlimited guest posts</li>
-                                <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Advanced moderation</li>
-                                <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Custom branding</li>
-                                <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Priority support</li>
-                            </ul>
-                            <div class="d-grid">
-                                <a href="register.html" class="btn btn-primary">Get Started</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-4 col-md-6">
-                    <div class="card text-center h-100 card-hover">
-                        <div class="card-header bg-primary text-white">
-                            <h4 class="mb-0">Enterprise</h4>
-                        </div>
-                        <div class="card-body">
-                            <h2 class="card-title">$99</h2>
-                            <p class="text-muted">per event</p>
-                            <ul class="list-unstyled">
-                                <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Unlimited photos & videos</li>
-                                <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Unlimited guest posts</li>
-                                <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Advanced analytics</li>
-                                <li class="mb-2"><i class="bi bi-check text-success me-2"></i>White-label options</li>
-                                <li class="mb-2"><i class="bi bi-check text-success me-2"></i>API access</li>
-                                <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Dedicated support</li>
-                            </ul>
-                            <div class="d-grid">
-                                <a href="dashboard.html" class="btn btn-primary">Contact Sales</a>
-                            </div>
-                        </div>
-                    </div>
+                    <p class="mt-2">Loading pricing packages...</p>
                 </div>
             </div>
         </div>
@@ -634,5 +575,189 @@
     <!-- Custom JavaScript -->
     <script src="js/config.js"></script>
     <script src="js/main.js"></script>
+    <script>
+        // Package loading functionality for index page
+        document.addEventListener('DOMContentLoaded', function() {
+            loadPackagesForPricing();
+        });
+
+        async function loadPackagesForPricing() {
+            try {
+                console.log('📦 Loading packages for pricing section...');
+                
+                const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PACKAGES}`, {
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const packagesData = await response.json();
+                    console.log('📦 Packages response:', packagesData);
+                    
+                    // Handle different response structures
+                    let packages = packagesData;
+                    if (packagesData.results) {
+                        packages = packagesData.results; // Django REST Framework pagination
+                        console.log('📦 Using paginated results:', packages.length, 'packages');
+                    } else if (packagesData.data) {
+                        packages = packagesData.data; // Some APIs wrap in data field
+                        console.log('📦 Using data field:', packages.length, 'packages');
+                    } else if (!Array.isArray(packagesData)) {
+                        console.error('❌ Unexpected packages response structure:', packagesData);
+                        packages = [];
+                    } else {
+                        console.log('📦 Using direct array:', packages.length, 'packages');
+                    }
+                    
+                    console.log('📦 Processed packages:', packages);
+                    console.log('📦 Packages is array:', Array.isArray(packages));
+                    console.log('📦 Packages length:', packages.length);
+                    
+                    if (Array.isArray(packages) && packages.length > 0) {
+                        console.log('📦 Calling displayPackagesInPricing with:', packages);
+                        displayPackagesInPricing(packages);
+                    } else {
+                        console.log('⚠️ No packages available, using fallback pricing');
+                        showFallbackPricing();
+                    }
+                } else {
+                    console.error('❌ Failed to load packages:', response.status, response.statusText);
+                    showFallbackPricing();
+                }
+            } catch (error) {
+                console.error('❌ Error loading packages:', error);
+                showFallbackPricing();
+            }
+        }
+
+        function displayPackagesInPricing(packages) {
+            console.log('📦 displayPackagesInPricing called with:', packages);
+            const pricingContainer = document.getElementById('pricing-container');
+            if (!pricingContainer) {
+                console.error('❌ Pricing container not found');
+                return;
+            }
+            console.log('📦 Found pricing container:', pricingContainer);
+
+            // Sort packages by price
+            packages.sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
+            console.log('📦 Sorted packages:', packages);
+
+            // Create pricing cards dynamically
+            const pricingCards = packages.map((pkg, index) => {
+                const isPopular = index === Math.floor(packages.length / 2); // Middle package is popular
+                
+                return `
+                    <div class="col-lg-4 col-md-6">
+                        <div class="card text-center h-100 card-hover ${isPopular ? 'border-primary' : ''}">
+                            <div class="card-header bg-primary text-white">
+                                <h4 class="mb-0">${pkg.name}</h4>
+                                ${isPopular ? '<span class="badge bg-warning">Most Popular</span>' : ''}
+                            </div>
+                            <div class="card-body">
+                                <h2 class="card-title">${parseFloat(pkg.price).toLocaleString()} ETB</h2>
+                                ${pkg.description ? `<p class="card-text">${pkg.description}</p>` : ''}
+                                <ul class="list-unstyled">
+                                    ${pkg.features ? (Array.isArray(pkg.features) ? 
+                                        pkg.features.map(feature => 
+                                            `<li class="mb-2"><i class="bi bi-check text-success me-2"></i>${feature}</li>`
+                                        ).join('') : 
+                                        Object.values(pkg.features).map(feature => 
+                                            `<li class="mb-2"><i class="bi bi-check text-success me-2"></i>${feature}</li>`
+                                        ).join('')
+                                    ) : ''}
+                                    ${pkg.max_photos ? `<li class="mb-2"><i class="bi bi-check text-success me-2"></i>Up to ${parseInt(pkg.max_photos).toLocaleString()} photos</li>` : ''}
+                                    ${pkg.max_videos ? `<li class="mb-2"><i class="bi bi-check text-success me-2"></i>Up to ${parseInt(pkg.max_videos).toLocaleString()} videos</li>` : ''}
+                                    ${pkg.max_guests ? `<li class="mb-2"><i class="bi bi-check text-success me-2"></i>Up to ${parseInt(pkg.max_guests).toLocaleString()} guests</li>` : ''}
+                                </ul>
+                                <div class="d-grid">
+                                    <a href="register.html" class="btn btn-primary">Get Started</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Replace the pricing container content
+            console.log('📦 Generated pricing cards HTML:', pricingCards);
+            pricingContainer.innerHTML = pricingCards;
+            console.log(`✅ Displayed ${packages.length} packages dynamically`);
+            console.log('📦 Pricing container innerHTML after update:', pricingContainer.innerHTML);
+        }
+
+        function showFallbackPricing() {
+            const pricingContainer = document.getElementById('pricing-container');
+            if (!pricingContainer) return;
+
+            pricingContainer.innerHTML = `
+                <div class="col-lg-4 col-md-6">
+                    <div class="card text-center h-100 card-hover">
+                        <div class="card-header bg-primary text-white">
+                            <h4 class="mb-0">Basic</h4>
+                        </div>
+                        <div class="card-body">
+                            <h2 class="card-title">19 ETB</h2>
+                            <ul class="list-unstyled">
+                                <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Up to 100 photos</li>
+                                <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Up to 20 videos</li>
+                                <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Unlimited guest posts</li>
+                                <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Basic moderation tools</li>
+                                <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Event gallery</li>
+                            </ul>
+                            <div class="d-grid">
+                                <a href="register.html" class="btn btn-primary">Get Started</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6">
+                    <div class="card text-center h-100 card-hover border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <h4 class="mb-0">Premium</h4>
+                            <span class="badge bg-warning">Most Popular</span>
+                        </div>
+                        <div class="card-body">
+                            <h2 class="card-title">39 ETB</h2>
+                            <ul class="list-unstyled">
+                                <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Up to 500 photos</li>
+                                <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Up to 100 videos</li>
+                                <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Unlimited guest posts</li>
+                                <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Advanced moderation</li>
+                                <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Custom branding</li>
+                                <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Priority support</li>
+                            </ul>
+                            <div class="d-grid">
+                                <a href="register.html" class="btn btn-primary">Get Started</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6">
+                    <div class="card text-center h-100 card-hover">
+                        <div class="card-header bg-primary text-white">
+                            <h4 class="mb-0">Enterprise</h4>
+                        </div>
+                        <div class="card-body">
+                            <h2 class="card-title">99 ETB</h2>
+                            <ul class="list-unstyled">
+                                <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Unlimited photos & videos</li>
+                                <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Unlimited guest posts</li>
+                                <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Advanced analytics</li>
+                                <li class="mb-2"><i class="bi bi-check text-success me-2"></i>White-label options</li>
+                                <li class="mb-2"><i class="bi bi-check text-success me-2"></i>API access</li>
+                                <li class="mb-2"><i class="bi bi-check text-success me-2"></i>Dedicated support</li>
+                            </ul>
+                            <div class="d-grid">
+                                <a href="dashboard.html" class="btn btn-primary">Contact Sales</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            console.log('⚠️ Using fallback pricing due to API error');
+        }
+    </script>
 </body>
 </html> 

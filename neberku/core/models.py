@@ -28,14 +28,23 @@ class EventType(models.Model):
 
 class Package(models.Model):
     """Event packages with different features and pricing"""
-    name = models.CharField(max_length=100)
-    description = models.TextField()
-    price = models.DecimalField(max_digits=10, decimal_places=2)
-    max_guests = models.PositiveIntegerField()
-    max_photos = models.PositiveIntegerField()
-    max_videos = models.PositiveIntegerField()
-    features = models.JSONField(default=list)  # List of features
-    is_active = models.BooleanField(default=True)
+    name = models.CharField(max_length=100, help_text="Package name (e.g., Basic, Premium, Enterprise)")
+    description = models.TextField(null=True, blank=True, help_text="Package description for customers")
+    price = models.DecimalField(max_digits=10, decimal_places=2, help_text="Package price in ETB")
+    max_guests = models.PositiveIntegerField(
+        null=True, blank=True,
+        help_text="Maximum number of guests allowed. Leave empty for unlimited."
+    )
+    max_photos = models.PositiveIntegerField(
+        null=True, blank=True,
+        help_text="Maximum number of photos allowed. Leave empty for unlimited."
+    )
+    max_videos = models.PositiveIntegerField(
+        null=True, blank=True,
+        help_text="Maximum number of videos allowed. Leave empty for unlimited."
+    )
+    features = models.JSONField(default=list, null=True, blank=True, help_text="List of features as JSON array (e.g., ['QR Code', 'Analytics', 'Support'])")
+    is_active = models.BooleanField(default=True, help_text="Whether this package is available for selection")
     created_at = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Packages API</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1>Test Packages API</h1>
+        <div class="row">
+            <div class="col-md-6">
+                <button id="testPackages" class="btn btn-primary">Test Packages API</button>
+            </div>
+        </div>
+        <div class="row mt-4">
+            <div class="col-12">
+                <div id="result" class="alert" style="display: none;"></div>
+            </div>
+        </div>
+        <div class="row mt-4">
+            <div class="col-12">
+                <h3>Packages Data:</h3>
+                <pre id="packagesData" class="bg-light p-3"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script>
+        async function testPackagesAPI() {
+            const resultDiv = document.getElementById('result');
+            const packagesDataDiv = document.getElementById('packagesData');
+            
+            try {
+                console.log('Testing packages API...');
+                console.log('API URL:', `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PACKAGES}`);
+                
+                const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PACKAGES}`, {
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Packages response:', data);
+                    
+                    showResult('✅ Packages API Test', `Success! Found ${Array.isArray(data) ? data.length : data.results?.length || 0} packages`);
+                    packagesDataDiv.textContent = JSON.stringify(data, null, 2);
+                } else {
+                    const errorText = await response.text();
+                    showResult('❌ Packages API Test', `Failed: ${response.status} ${response.statusText}\n${errorText}`);
+                    packagesDataDiv.textContent = `Error: ${response.status} ${response.statusText}\n${errorText}`;
+                }
+            } catch (error) {
+                console.error('Error testing packages API:', error);
+                showResult('❌ Packages API Test', `Error: ${error.message}`);
+                packagesDataDiv.textContent = `Error: ${error.message}`;
+            }
+        }
+
+        function showResult(title, message) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = 'alert alert-info';
+            resultDiv.innerHTML = `<strong>${title}</strong><br>${message}`;
+            resultDiv.style.display = 'block';
+        }
+
+        document.getElementById('testPackages').addEventListener('click', testPackagesAPI);
+    </script>
+</body>
+</html>

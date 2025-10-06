@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Packages Loading</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1>Debug Packages Loading</h1>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <button id="testPackages" class="btn btn-primary">Test Packages API</button>
+                <button id="loadPackages" class="btn btn-success ms-2">Load Packages for Pricing</button>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-12">
+                <div id="result" class="alert" style="display: none;"></div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-12">
+                <h3>API Response:</h3>
+                <pre id="apiResponse" class="bg-light p-3"></pre>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-12">
+                <h3>Pricing Section Preview:</h3>
+                <div id="pricing-preview" class="row justify-content-center">
+                    <div class="col-12 text-center">
+                        <p class="text-muted">Pricing will appear here...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script>
+        async function testPackagesAPI() {
+            const resultDiv = document.getElementById('result');
+            const apiResponseDiv = document.getElementById('apiResponse');
+            
+            try {
+                console.log('Testing packages API...');
+                console.log('API URL:', `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PACKAGES}`);
+                
+                const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PACKAGES}`, {
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Packages response:', data);
+                    
+                    showResult('✅ Packages API Test', `Success! Found ${Array.isArray(data) ? data.length : data.results?.length || 0} packages`);
+                    apiResponseDiv.textContent = JSON.stringify(data, null, 2);
+                } else {
+                    const errorText = await response.text();
+                    showResult('❌ Packages API Test', `Failed: ${response.status} ${response.statusText}\n${errorText}`);
+                    apiResponseDiv.textContent = `Error: ${response.status} ${response.statusText}\n${errorText}`;
+                }
+            } catch (error) {
+                console.error('Error testing packages API:', error);
+                showResult('❌ Packages API Test', `Error: ${error.message}`);
+                apiResponseDiv.textContent = `Error: ${error.message}`;
+            }
+        }
+
+        async function loadPackagesForPricing() {
+            const resultDiv = document.getElementById('result');
+            const pricingPreview = document.getElementById('pricing-preview');
+            
+            try {
+                console.log('📦 Loading packages for pricing section...');
+                
+                const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PACKAGES}`, {
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const packagesData = await response.json();
+                    console.log('📦 Packages response:', packagesData);
+                    
+                    // Handle different response structures
+                    let packages = packagesData;
+                    if (packagesData.results) {
+                        packages = packagesData.results; // Django REST Framework pagination
+                    } else if (packagesData.data) {
+                        packages = packagesData.data; // Some APIs wrap in data field
+                    } else if (!Array.isArray(packagesData)) {
+                        console.error('❌ Unexpected packages response structure:', packagesData);
+                        packages = [];
+                    }
+                    
+                    if (Array.isArray(packages) && packages.length > 0) {
+                        displayPackagesInPricing(packages);
+                        showResult('✅ Packages Loaded', `Successfully loaded ${packages.length} packages`);
+                    } else {
+                        console.log('⚠️ No packages available');
+                        showResult('⚠️ No Packages', 'No packages found in API response');
+                    }
+                } else {
+                    console.error('❌ Failed to load packages:', response.status, response.statusText);
+                    showResult('❌ API Error', `Failed to load packages: ${response.status} ${response.statusText}`);
+                }
+            } catch (error) {
+                console.error('❌ Error loading packages:', error);
+                showResult('❌ Error', `Error loading packages: ${error.message}`);
+            }
+        }
+
+        function displayPackagesInPricing(packages) {
+            const pricingPreview = document.getElementById('pricing-preview');
+            if (!pricingPreview) {
+                console.error('❌ Pricing preview container not found');
+                return;
+            }
+
+            // Sort packages by price
+            packages.sort((a, b) => a.price - b.price);
+
+            // Create pricing cards dynamically
+            const pricingCards = packages.map((pkg, index) => {
+                const isPopular = index === Math.floor(packages.length / 2); // Middle package is popular
+                
+                return `
+                    <div class="col-lg-4 col-md-6">
+                        <div class="card text-center h-100 card-hover ${isPopular ? 'border-primary' : ''}">
+                            <div class="card-header bg-primary text-white">
+                                <h4 class="mb-0">${pkg.name}</h4>
+                                ${isPopular ? '<span class="badge bg-warning">Most Popular</span>' : ''}
+                            </div>
+                            <div class="card-body">
+                                <h2 class="card-title">$${pkg.price}</h2>
+                                <p class="text-muted">per event</p>
+                                <p class="card-text">${pkg.description || 'Perfect for your event needs'}</p>
+                                <ul class="list-unstyled">
+                                    ${pkg.features ? pkg.features.map(feature => 
+                                        `<li class="mb-2"><i class="bi bi-check text-success me-2"></i>${feature}</li>`
+                                    ).join('') : ''}
+                                    ${pkg.max_photos ? `<li class="mb-2"><i class="bi bi-check text-success me-2"></i>Up to ${pkg.max_photos} photos</li>` : ''}
+                                    ${pkg.max_videos ? `<li class="mb-2"><i class="bi bi-check text-success me-2"></i>Up to ${pkg.max_videos} videos</li>` : ''}
+                                    ${pkg.max_guests ? `<li class="mb-2"><i class="bi bi-check text-success me-2"></i>Up to ${pkg.max_guests} guests</li>` : ''}
+                                </ul>
+                                <div class="d-grid">
+                                    <a href="register.html" class="btn btn-primary">Get Started</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Replace the pricing preview content
+            pricingPreview.innerHTML = pricingCards;
+            console.log(`✅ Displayed ${packages.length} packages dynamically`);
+        }
+
+        function showResult(title, message) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = 'alert alert-info';
+            resultDiv.innerHTML = `<strong>${title}</strong><br>${message}`;
+            resultDiv.style.display = 'block';
+        }
+
+        document.getElementById('testPackages').addEventListener('click', testPackagesAPI);
+        document.getElementById('loadPackages').addEventListener('click', loadPackagesForPricing);
+    </script>
+</body>
+</html>
