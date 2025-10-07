@@ -170,7 +170,7 @@ class EventViewSet(viewsets.ModelViewSet):
             return Event.objects.none()
         
         user = self.request.user
-        if user.is_staff:
+        if user.is_superuser:
             return Event.objects.all()
         return Event.objects.filter(host=user)
     
@@ -535,7 +535,7 @@ class GuestPostViewSet(viewsets.ModelViewSet):
         user = self.request.user
         
         if user.is_authenticated:
-            if user.is_staff:
+            if user.is_superuser:
                 return GuestPost.objects.all()
             return GuestPost.objects.filter(event__host=user)
         
@@ -596,15 +596,16 @@ class GuestPostViewSet(viewsets.ModelViewSet):
             if not event.is_live:
                 raise Http404("Event not found or not live")
             
-            # For event hosts, show all posts (approved and pending)
-            # For public users, show only approved posts
-            if request.user.is_authenticated and event.host == request.user:
+            # For superusers, show all posts (approved and pending)
+            # For all other users (authenticated or not), show only approved posts
+            if request.user.is_authenticated and request.user.is_superuser:
                 posts = GuestPost.objects.filter(
                     event=event
                 ).order_by('-created_at')
             else:
                 posts = GuestPost.objects.filter(
                     event=event,
+                    event__host=request.user,
                     is_approved=True
                 ).order_by('-created_at')
             
@@ -854,15 +855,15 @@ def api_login(request):
     user = authenticate(username=username, password=password)
     
     if user is not None:
-        print(f"✅ User authenticated successfully: {user.username}")
-        print(f"🔐 User is active: {user.is_active}")
-        print(f"🔐 User is staff: {user.is_staff}")
+        # print(f"✅ User authenticated successfully: {user.username}")
+        # print(f"🔐 User is active: {user.is_active}")
+        # print(f"🔐 User is staff: {user.is_staff}")
         
         # Generate JWT tokens
         refresh = RefreshToken.for_user(user)
         access_token = refresh.access_token
         
-        print(f"🔐 JWT tokens generated for user: {user.username}")
+        # print(f"🔐 JWT tokens generated for user: {user.username}")
         
         return Response({
             'success': True,
@@ -878,7 +879,7 @@ def api_login(request):
             'message': 'Login successful'
         })
     else:
-        print(f"❌ Authentication failed for user: {username}")
+        # print(f"❌ Authentication failed for user: {username}")
         return Response(
             {'error': 'Invalid credentials'},
             status=status.HTTP_401_UNAUTHORIZED

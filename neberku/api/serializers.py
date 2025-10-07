@@ -168,19 +168,15 @@ class GuestPostCreateSerializer(serializers.Serializer):
         if not event.allow_photos and not event.allow_videos:
             raise serializers.ValidationError("This event does not allow media uploads.")
         
-        # Check package max guests limit for NEW guests only; if exceeded, mark for unapproval
+        # Check package max guests limit - count posts instead of guests
         try:
             package = getattr(event, 'package', None)
             if package and package.max_guests is not None:
-                is_new_guest = not Guest.objects.filter(event=event, phone=guest_phone).exists()
-                if is_new_guest:
-                    current_guest_count = Guest.objects.filter(event=event).count()
-                    if current_guest_count >= package.max_guests:
-                        data['package_guest_limit_exceeded'] = True
-                    else:
-                        data['package_guest_limit_exceeded'] = False
+                # Count total posts from GuestPost model
+                current_post_count = GuestPost.objects.filter(event=event).count()
+                if current_post_count >= package.max_guests:
+                    data['package_guest_limit_exceeded'] = True
                 else:
-                    # Existing guests are not constrained by package max guests for approval purposes
                     data['package_guest_limit_exceeded'] = False
             else:
                 data['package_guest_limit_exceeded'] = False
@@ -255,10 +251,10 @@ class EventSerializer(serializers.ModelSerializer):
         source='event_type'
     )
     settings = EventSettingsSerializer(read_only=True)
-    total_guest_posts = serializers.ReadOnlyField()
-    total_media_files = serializers.ReadOnlyField()
-    photo_count = serializers.ReadOnlyField()
-    video_count = serializers.ReadOnlyField()
+    total_guest_posts = serializers.SerializerMethodField()
+    total_media_files = serializers.SerializerMethodField()
+    photo_count = serializers.SerializerMethodField()
+    video_count = serializers.SerializerMethodField()
     is_live = serializers.ReadOnlyField()
     
     class Meta:
@@ -275,6 +271,41 @@ class EventSerializer(serializers.ModelSerializer):
                            'share_link', 'created_at', 'updated_at', 'published_at',
                            'settings', 'total_guest_posts', 'total_media_files', 'photo_count', 'video_count', 'is_live',
                            'contributor_code']
+    
+    def get_total_guest_posts(self, obj):
+        """Count guest posts based on user permissions"""
+        request = self.context.get('request')
+        if request and request.user.is_authenticated and request.user.is_superuser:
+            return obj.guest_posts.count()
+        else:
+            return obj.guest_posts.filter(is_approved=True).count()
+    
+    def get_total_media_files(self, obj):
+        """Count media files based on user permissions"""
+        request = self.context.get('request')
+        if request and request.user.is_authenticated and request.user.is_superuser:
+            return obj.media_files.count()
+        else:
+            # For non-superusers, count media files from approved posts only
+            return obj.media_files.filter(post__is_approved=True).count()
+    
+    def get_photo_count(self, obj):
+        """Count photos based on user permissions"""
+        request = self.context.get('request')
+        if request and request.user.is_authenticated and request.user.is_superuser:
+            return obj.media_files.filter(media_type='photo').count()
+        else:
+            # For non-superusers, count photos from approved posts only
+            return obj.media_files.filter(media_type='photo', post__is_approved=True).count()
+    
+    def get_video_count(self, obj):
+        """Count videos based on user permissions"""
+        request = self.context.get('request')
+        if request and request.user.is_authenticated and request.user.is_superuser:
+            return obj.media_files.filter(media_type='video').count()
+        else:
+            # For non-superusers, count videos from approved posts only
+            return obj.media_files.filter(media_type='video', post__is_approved=True).count()
 
 class EventCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating events"""
