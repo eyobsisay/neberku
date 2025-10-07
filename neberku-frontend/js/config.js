@@ -110,10 +110,13 @@ const API_UTILS = {
     },
     
     // Get default headers for API requests - JWT version
-    getDefaultHeaders: (includeAuth = true) => {
-        const headers = {
-            'Content-Type': 'application/json'
-        };
+    getDefaultHeaders: (includeAuth = true, isFormData = false) => {
+        const headers = {};
+        
+        // Only set Content-Type for non-FormData requests
+        if (!isFormData) {
+            headers['Content-Type'] = 'application/json';
+        }
         
         if (includeAuth) {
             const token = localStorage.getItem('neberku_access_token');
@@ -261,10 +264,13 @@ const API_UTILS = {
                 return;
             }
             
+            // Check if body is FormData
+            const isFormData = options.body instanceof FormData;
+            
             const response = await fetch(url, {
                 ...options,
                 headers: {
-                    ...API_UTILS.getDefaultHeaders(options.includeAuth !== false),
+                    ...API_UTILS.getDefaultHeaders(options.includeAuth !== false, isFormData),
                     ...options.headers
                 }
             });

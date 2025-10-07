@@ -31,28 +31,50 @@
             animation: bgShift 18s ease-in-out infinite;
             color: var(--ink);
             min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            overflow-x: hidden;
         }
+        /* Mobile App Navigation */
         .navbar {
             background: linear-gradient(90deg, var(--primary-start) 0%, var(--primary-end) 45%, var(--accent) 100%) !important;
-            box-shadow: 0 6px 24px rgba(0,0,0,0.25);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 0.8rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
         }
+        
         .brand-logo {
             display: inline-flex;
             align-items: center;
-            gap: .5rem;
+            gap: 0.5rem;
             font-weight: 700;
-            letter-spacing: .3px;
+            font-size: 1.2rem;
+            color: #ffffff;
         }
         
-        /* Event Header Styles */
+        .nav-link {
+            color: rgba(255, 255, 255, 0.9) !important;
+            font-weight: 500;
+            padding: 0.5rem 1rem !important;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+        
+        .nav-link:hover {
+            color: #ffffff !important;
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        /* Mobile App Event Header */
         .event-header {
             position: relative;
             overflow: hidden;
             border-radius: 0;
             background: linear-gradient(135deg, rgba(245,158,11,0.22), rgba(236,72,153,0.20));
             border: none;
-            box-shadow: 0 10px 40px rgba(2,6,23,.45);
-            margin-bottom: 2rem;
+            margin-bottom: 1rem;
             margin-left: calc(-50vw + 50%);
             margin-right: calc(-50vw + 50%);
             width: 100vw;
@@ -86,10 +108,10 @@
         }
         .event-header > * { position: relative; z-index: 1; }
         
-        /* Banner Container */
+        /* Mobile App Banner */
         .banner-container {
             position: relative;
-            height: 250px;
+            height: 200px;
             overflow: hidden;
             border-radius: 0;
         }
@@ -101,81 +123,84 @@
             border-radius: 0;
         }
         
-        /* Event Info Cards Container */
+        /* Mobile App Event Info */
         .event-info-cards {
-            margin-top: -50px;
+            margin-top: -30px;
             position: relative;
             z-index: 10;
             padding: 0 1rem;
         }
         
-        /* Title Card */
         .title-card {
             background: linear-gradient(135deg, var(--panel-1), var(--panel-2));
             backdrop-filter: blur(20px);
             border: 1px solid var(--line);
-            border-radius: 20px;
-            padding: 2rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 15px 40px rgba(2,6,23,.6);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 8px 32px rgba(2,6,23,.4);
+            position: relative;
+            overflow: hidden;
         }
         
         .event-title {
-            font-size: 2rem;
-            font-weight: 800;
+            font-size: 1.8rem;
+            font-weight: 700;
             background: linear-gradient(90deg, var(--primary-start), var(--confetti-3), var(--primary-end));
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
             background-size: 200% 200%;
             animation: gradientPulse 8s ease-in-out infinite;
-            margin-bottom: 1rem;
-            line-height: 1.2;
+            margin-bottom: 0.8rem;
+            line-height: 1.3;
+            text-align: center;
         }
         
         .event-description {
             color: var(--muted);
-            font-size: 1.1rem;
-            line-height: 1.6;
+            font-size: 1rem;
+            line-height: 1.5;
             margin: 0;
+            text-align: center;
         }
         
-        /* Meta Cards Grid */
+        /* Mobile App Meta Cards */
         .meta-cards-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 1rem;
-            margin-bottom: 1.5rem;
+            gap: 0.8rem;
+            margin-bottom: 1rem;
         }
         
         .meta-card {
             background: linear-gradient(135deg, var(--panel-1), var(--panel-2));
             backdrop-filter: blur(15px);
             border: 1px solid var(--line);
-            border-radius: 16px;
-            padding: 1.5rem;
+            border-radius: 12px;
+            padding: 1rem;
             display: flex;
             align-items: center;
-            gap: 1rem;
-            transition: all 0.3s ease;
-            box-shadow: 0 8px 25px rgba(2,6,23,.4);
+            gap: 0.8rem;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 16px rgba(2,6,23,.3);
         }
         
         .meta-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 35px rgba(2,6,23,.6);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(2,6,23,.4);
         }
         
         .meta-icon {
-            width: 50px;
-            height: 50px;
+            width: 40px;
+            height: 40px;
             background: linear-gradient(135deg, var(--primary-start), var(--primary-end));
-            border-radius: 12px;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            font-size: 1.2rem;
+            font-size: 1rem;
             flex-shrink: 0;
         }
         
@@ -184,17 +209,41 @@
         }
         
         .meta-label {
-            font-size: 0.8rem;
+            font-size: 0.7rem;
             color: var(--muted);
             text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 0.25rem;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.2rem;
+            font-weight: 600;
         }
         
         .meta-value {
-            font-size: 1rem;
+            font-size: 0.9rem;
             font-weight: 600;
             color: var(--ink);
+            line-height: 1.2;
+        }
+        
+        /* Original Color Coding */
+        .meta-card.date-card .meta-icon {
+            background: linear-gradient(135deg, #f59e0b, #f97316);
+        }
+        
+        .meta-card.location-card .meta-icon {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+        
+        .meta-card.type-card .meta-icon {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        }
+        
+        .meta-card.access-card .meta-icon {
+            background: linear-gradient(135deg, #ec4899, #db2777);
+        }
+        
+        .meta-card.access-card .meta-value {
+            color: #10b981;
+            font-weight: 700;
         }
         
         /* Stats Cards Grid */
@@ -499,16 +548,16 @@
             display: block;
         }
         
-        /* Creative Contribution Styles */
+        /* Original Contribution Styles */
         .contribution-card {
             background: linear-gradient(135deg, var(--panel-1) 0%, var(--panel-2) 100%);
             backdrop-filter: blur(20px) saturate(180%);
             border: 1px solid var(--line);
-            border-radius: 24px;
-            box-shadow: 0 20px 60px rgba(2,6,23,.3);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(2,6,23,.3);
             position: relative;
             overflow: hidden;
-            margin: 2rem 0;
+            margin: 1.5rem 0;
         }
         
         .contribution-card::before {
@@ -524,29 +573,23 @@
         }
         
         .contribution-header {
-            padding: 3rem 2rem 2rem;
+            padding: 2rem 1.5rem 1.5rem;
             text-align: center;
             position: relative;
         }
         
-        .contribution-icon-wrapper {
-            position: relative;
-            display: inline-block;
-            margin-bottom: 2rem;
-        }
-        
         .contribution-icon {
-            width: 80px;
-            height: 80px;
+            width: 60px;
+            height: 60px;
             background: linear-gradient(135deg, var(--primary-start), var(--primary-end));
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 2rem;
+            font-size: 1.5rem;
             color: white;
-            box-shadow: 0 15px 40px rgba(245,158,11,.4);
-            animation: iconPulse 2s ease-in-out infinite;
+            box-shadow: 0 8px 24px rgba(245,158,11,.3);
+            margin: 0 auto 1rem;
         }
         
         .floating-hearts {
@@ -572,29 +615,28 @@
         .heart-5 { bottom: 20%; right: 10%; animation-delay: 4s; }
         
         .contribution-title {
-            font-size: 2.5rem;
-            font-weight: 800;
+            font-size: 1.8rem;
+            font-weight: 700;
             background: linear-gradient(135deg, var(--primary-start), var(--confetti-3), var(--primary-end));
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
             background-size: 200% 200%;
             animation: gradientPulse 6s ease-in-out infinite;
-            margin-bottom: 1rem;
-            text-shadow: 0 0 30px rgba(253,224,71,.3);
+            margin-bottom: 0.8rem;
         }
         
         .contribution-subtitle {
-            font-size: 1.2rem;
+            font-size: 1rem;
             color: var(--muted);
-            margin-bottom: 2rem;
-            font-weight: 500;
+            margin-bottom: 1.5rem;
+            font-weight: 400;
         }
         
         .contribution-stats {
             display: flex;
             justify-content: center;
-            gap: 2rem;
+            gap: 1rem;
             flex-wrap: wrap;
         }
         
@@ -602,20 +644,20 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            padding: 0.75rem 1.5rem;
+            padding: 0.6rem 1rem;
             background: linear-gradient(135deg, rgba(255,255,255,.1), rgba(255,255,255,.05));
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255,255,255,.2);
-            border-radius: 25px;
+            border-radius: 20px;
             color: var(--ink);
-            font-size: 0.95rem;
-            font-weight: 600;
-            transition: all 0.3s ease;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
         }
         
         .stat-item:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0,0,0,.2);
+            transform: translateY(-1px);
+            background: linear-gradient(135deg, rgba(255,255,255,.15), rgba(255,255,255,.1));
         }
         
         .stat-item i {
@@ -731,34 +773,35 @@
         }
         
         .media-upload-section {
-            margin: 3rem 0;
+            margin: 2rem 0;
         }
         
         .upload-header {
             text-align: center;
-            margin-bottom: 2rem;
+            margin-bottom: 1.2rem;
         }
         
         .upload-header h4 {
             color: var(--ink);
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 0.3rem;
         }
         
         .upload-header p {
             color: var(--muted);
-            font-size: 1rem;
+            font-size: 0.9rem;
         }
         
         .upload-area {
-            border: 3px dashed var(--line);
-            border-radius: 20px;
-            padding: 3rem 2rem;
+            border: 2px dashed rgba(245,158,11,.3);
+            border-radius: 15px;
+            padding: 1.5rem 1rem;
             text-align: center;
             cursor: pointer;
             transition: all 0.3s ease;
-            background: linear-gradient(135deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+            background: linear-gradient(135deg, rgba(18,12,27,.6), rgba(26,19,39,.6));
+            backdrop-filter: blur(15px);
             position: relative;
             overflow: hidden;
         }
@@ -776,37 +819,410 @@
         }
         
         .upload-icon {
-            font-size: 3rem;
+            font-size: 2rem;
             color: var(--primary-start);
-            margin-bottom: 1rem;
+            margin-bottom: 0.8rem;
             animation: bounceUpload 2s ease-in-out infinite;
         }
         
         .upload-area h5 {
             color: var(--ink);
-            font-size: 1.3rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.4rem;
         }
         
         .upload-area p {
             color: var(--muted);
-            margin-bottom: 1rem;
+            font-size: 0.85rem;
+            margin-bottom: 0.8rem;
         }
         
         .upload-limit {
-            padding: 0.75rem 1.5rem;
-            background: linear-gradient(135deg, rgba(255,255,255,.1), rgba(255,255,255,.05));
-            border-radius: 15px;
+            padding: 0.5rem 1rem;
+            background: linear-gradient(135deg, rgba(245,158,11,.15), rgba(236,72,153,.15));
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(245,158,11,.3);
+            border-radius: 12px;
             display: inline-block;
             backdrop-filter: blur(5px);
+            font-size: 0.8rem;
+        }
+        
+        .upload-info {
+            margin-top: 0.8rem;
+            padding: 0.6rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .upload-limit-info {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--primary-start);
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        
+        .upload-limit-info i {
+            color: var(--primary-start);
+            font-size: 0.9rem;
+        }
+        
+        .upload-limit-info strong {
+            color: var(--primary-end);
+            font-weight: 600;
         }
         
         .file-preview-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
             gap: 1rem;
-            margin-top: 2rem;
+            margin-top: 1.5rem;
+        }
+        
+        .file-preview-item {
+            background: linear-gradient(135deg, var(--panel-1), var(--panel-2));
+            backdrop-filter: blur(15px);
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: 0.4rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 16px rgba(2,6,23,.3);
+            position: relative;
+            overflow: hidden;
+            width: 100px;
+            height: 80px;
+            display: inline-block;
+            margin-right: 6px;
+            margin-bottom: 6px;
+            vertical-align: top;
+        }
+        
+        .file-preview-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(2,6,23,.4);
+            border-color: var(--primary-start);
+        }
+        
+        .file-preview-image {
+            width: 100%;
+            height: 35px;
+            object-fit: cover;
+            border-radius: 3px;
+            margin-bottom: 2px;
+            background: rgba(255,255,255,.1);
+        }
+        
+        .file-preview-icon {
+            width: 100%;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--primary-start), var(--primary-end));
+            border-radius: 3px;
+            margin-bottom: 2px;
+            color: white;
+            font-size: 1rem;
+        }
+        
+        .file-preview-name {
+            font-size: 0.65rem;
+            color: var(--ink);
+            font-weight: 500;
+            margin-bottom: 1px;
+            word-break: break-word;
+            line-height: 1.1;
+        }
+        
+        .file-preview-size {
+            font-size: 0.55rem;
+            color: var(--muted);
+            font-weight: 400;
+        }
+        
+        .file-remove-btn {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 18px;
+            height: 18px;
+            background: rgba(239, 68, 68, 0.9);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 0.6rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            opacity: 0;
+            transform: scale(0.8);
+        }
+        
+        .file-preview-item:hover .file-remove-btn {
+            opacity: 1;
+            transform: scale(1);
+        }
+        
+        .file-remove-btn:hover {
+            background: rgba(239, 68, 68, 1);
+            transform: scale(1.1);
+        }
+        
+        .file-preview-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--primary-start), var(--primary-end));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .file-preview-item:hover::before {
+            opacity: 1;
+        }
+        
+        /* Upload Status Display */
+        .upload-status {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: linear-gradient(135deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,.1);
+            border-radius: 12px;
+            animation: slideDown 0.3s ease-out;
+        }
+        
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0.8rem;
+            background: rgba(255,255,255,.05);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--ink);
+            flex: 1;
+            justify-content: center;
+        }
+        
+        .status-item.main-limit {
+            background: linear-gradient(135deg, rgba(245,158,11,.15), rgba(236,72,153,.1));
+            border: 1px solid rgba(245,158,11,.3);
+            font-weight: 600;
+            font-size: 0.9rem;
+            flex: none;
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .status-item.main-limit i {
+            color: var(--primary-start);
+            font-size: 1rem;
+        }
+        
+        .remaining-files {
+            font-size: 0.8rem;
+            color: rgba(255,255,255,.7);
+            margin-left: 0.5rem;
+            font-weight: 400;
+        }
+        
+        .remaining-files.warning {
+            color: #f59e0b;
+            font-weight: 500;
+        }
+        
+        .remaining-files.error {
+            color: #ef4444;
+            font-weight: 600;
+        }
+        
+        /* Pre-Upload Information */
+        .pre-upload-info {
+            margin: 1rem 0;
+            animation: slideDown 0.3s ease-out;
+        }
+        
+        .info-card {
+            background: linear-gradient(135deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,.1);
+            border-radius: 12px;
+            padding: 1rem;
+        }
+        
+        .info-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.8rem;
+            font-weight: 600;
+            color: var(--primary-start);
+            font-size: 0.9rem;
+        }
+        
+        .info-header i {
+            font-size: 1rem;
+        }
+        
+        .info-content {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+        }
+        
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.5rem 0.7rem;
+            background: rgba(255,255,255,.05);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: var(--ink);
+        }
+        
+        .info-item i {
+            color: var(--primary-start);
+            font-size: 0.9rem;
+            min-width: 16px;
+        }
+        
+        .info-item strong {
+            color: var(--primary-start);
+            font-weight: 600;
+        }
+        
+        .status-item i {
+            color: var(--primary-start);
+            font-size: 0.9rem;
+        }
+        
+        .status-progress {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+        
+        .progress-bar {
+            flex: 1;
+            height: 6px;
+            background: rgba(255,255,255,.1);
+            border-radius: 3px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-start), var(--primary-end));
+            border-radius: 3px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+        
+        .progress-text {
+            font-size: 0.8rem;
+            color: var(--muted);
+            font-weight: 500;
+            min-width: 60px;
+            text-align: right;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Guest Status Display */
+        .guest-status {
+            margin-top: 0.8rem;
+            padding: 0.8rem;
+            background: linear-gradient(135deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,.1);
+            border-radius: 12px;
+            animation: slideDown 0.3s ease-out;
+        }
+        
+        .guest-count-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0.8rem;
+            background: rgba(255,255,255,.05);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--ink);
+            justify-content: center;
+            position: relative;
+        }
+        
+        .guest-count-item i {
+            color: var(--primary-start);
+            font-size: 0.9rem;
+        }
+        
+        .guest-warning {
+            position: absolute;
+            right: 0.5rem;
+            color: #f59e0b;
+            font-size: 0.8rem;
+            animation: pulse 2s infinite;
+        }
+        
+        .guest-count-item.warning {
+            border: 1px solid #f59e0b;
+            background: rgba(245, 158, 11, 0.1);
+        }
+        
+        .guest-count-item.error {
+            border: 1px solid #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+        }
+        
+        .guest-count-item.error i {
+            color: #ef4444;
+        }
+        
+        .guest-count-item.error .guest-warning {
+            color: #ef4444;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.7;
+                transform: scale(1.1);
+            }
         }
         
         .error-container {
@@ -815,6 +1231,16 @@
             border-radius: 12px;
             padding: 1rem;
             margin: 1rem 0;
+        }
+        
+        .error-container .text-success {
+            background: linear-gradient(135deg, rgba(16,185,129,.1), rgba(16,185,129,.05));
+            border: 1px solid rgba(16,185,129,.3);
+        }
+        
+        .error-container .text-success,
+        .error-container .text-success i {
+            color: #10b981 !important;
         }
         
         .submit-section {
@@ -1033,6 +1459,102 @@
             .file-preview-grid {
                 grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
             }
+            
+            /* Mobile Upload Area */
+            .upload-area {
+                padding: 1rem 0.8rem;
+                border-radius: 12px;
+            }
+            
+            .upload-icon {
+                font-size: 1.5rem;
+                margin-bottom: 0.6rem;
+            }
+            
+            .upload-area h5 {
+                font-size: 0.9rem;
+                margin-bottom: 0.3rem;
+            }
+            
+            .upload-area p {
+                font-size: 0.8rem;
+                margin-bottom: 0.6rem;
+            }
+            
+            .upload-limit {
+                padding: 0.4rem 0.8rem;
+                font-size: 0.75rem;
+                border-radius: 10px;
+            }
+            
+            .upload-header {
+                margin-bottom: 1rem;
+            }
+            
+            .upload-header h4 {
+                font-size: 1.1rem;
+                margin-bottom: 0.2rem;
+            }
+            
+            .upload-header p {
+                font-size: 0.85rem;
+            }
+            
+            .media-upload-section {
+                margin: 1.5rem 0;
+            }
+            
+            /* Mobile File Preview */
+            .file-preview-grid {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+                gap: 0.8rem;
+                margin-top: 1rem;
+            }
+            
+            .file-preview-item {
+                padding: 0.4rem;
+            }
+            
+            .file-preview-image,
+            .file-preview-icon {
+                height: 35px;
+            }
+            
+            .file-preview-name {
+                font-size: 0.7rem;
+            }
+            
+            .file-preview-size {
+                font-size: 0.65rem;
+            }
+            
+            .file-remove-btn {
+                width: 20px;
+                height: 20px;
+                font-size: 0.6rem;
+            }
+            
+            /* Mobile Upload Status */
+            .status-row {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            
+            .status-item {
+                font-size: 0.8rem;
+                padding: 0.4rem 0.6rem;
+            }
+            
+            .status-progress {
+                flex-direction: column;
+                gap: 0.5rem;
+                align-items: stretch;
+            }
+            
+            .progress-text {
+                text-align: center;
+                min-width: auto;
+            }
         }
         
         /* Glass Card Styles */
@@ -1216,11 +1738,34 @@
             }
             
             .event-title {
-                font-size: 2.5rem;
+                font-size: 2.8rem;
+            }
+            
+            .event-description {
+                font-size: 1.2rem;
             }
             
             .meta-cards-grid {
                 grid-template-columns: repeat(4, 1fr);
+                gap: 1.5rem;
+            }
+            
+            .meta-card {
+                padding: 2rem;
+            }
+            
+            .meta-icon {
+                width: 60px;
+                height: 60px;
+                font-size: 1.4rem;
+            }
+            
+            .meta-label {
+                font-size: 0.8rem;
+            }
+            
+            .meta-value {
+                font-size: 1.1rem;
             }
             
             .stats-cards-grid {
@@ -1314,6 +1859,277 @@
             font-size: 1.1rem;
         }
         
+        /* Original Floating Button */
+        .floating-action-btn {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            background: linear-gradient(135deg, var(--primary-start) 0%, var(--primary-end) 100%);
+            border: none;
+            border-radius: 25px;
+            padding: 0.8rem 1.5rem;
+            color: white;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 8px 24px rgba(245,158,11,.4), 0 4px 12px rgba(236,72,153,.3);
+            transition: all 0.2s ease;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            min-width: 160px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            text-transform: none;
+            letter-spacing: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        .floating-action-btn:hover {
+            transform: translateX(-50%) translateY(-2px) scale(1.02);
+            box-shadow: 0 12px 32px rgba(245,158,11,.5), 0 6px 16px rgba(236,72,153,.4);
+            background-position: 100% 0;
+        }
+        
+        .floating-action-btn:active {
+            transform: translateX(-50%) translateY(0) scale(0.98);
+            transition: all 0.1s ease;
+        }
+        
+        .floating-action-btn i {
+            font-size: 1rem;
+        }
+        
+        /* Improved Form Visibility */
+        .contribution-card {
+            background: linear-gradient(135deg, rgba(18,12,27,.95) 0%, rgba(26,19,39,.95) 100%);
+            backdrop-filter: blur(25px) saturate(180%);
+            border: 2px solid rgba(245,158,11,.3);
+            border-radius: 24px;
+            box-shadow: 0 25px 60px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.1);
+            position: relative;
+            overflow: hidden;
+            margin: 2rem 0;
+        }
+        
+        .contribution-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-start), var(--confetti-3), var(--primary-end));
+            background-size: 200% 200%;
+            animation: gradientFlow 3s ease-in-out infinite;
+        }
+        
+        .contribution-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 24px;
+            background: radial-gradient(800px 200px at -10% -40%, rgba(245,158,11,.08), transparent 60%);
+            pointer-events: none;
+        }
+        
+        /* Enhanced Form Fields */
+        .form-field input,
+        .form-field textarea {
+            background: linear-gradient(135deg, rgba(18,12,27,.8), rgba(26,19,39,.8));
+            backdrop-filter: blur(15px);
+            border: 2px solid rgba(245,158,11,.2);
+            color: #ffffff;
+            font-weight: 500;
+            box-shadow: 0 8px 25px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.1);
+        }
+        
+        .form-field input:focus,
+        .form-field textarea:focus {
+            border-color: var(--primary-start);
+            box-shadow: 0 0 0 4px rgba(245,158,11,.2), 0 12px 35px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.2);
+            background: linear-gradient(135deg, rgba(18,12,27,.9), rgba(26,19,39,.9));
+        }
+        
+        .form-field label {
+            background: linear-gradient(135deg, rgba(18,12,27,.95), rgba(26,19,39,.95));
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(245,158,11,.2);
+            border-radius: 6px;
+            padding: 0.3rem 0.8rem;
+        }
+        
+        .form-field label.active {
+            background: linear-gradient(135deg, rgba(245,158,11,.2), rgba(236,72,153,.2));
+            border-color: var(--primary-start);
+            color: var(--confetti-3);
+            font-weight: 600;
+        }
+        
+        /* Enhanced Upload Area */
+        .upload-area {
+            background: linear-gradient(135deg, rgba(18,12,27,.6), rgba(26,19,39,.6));
+            backdrop-filter: blur(15px);
+            border: 2px dashed rgba(245,158,11,.3);
+            border-radius: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .upload-area:hover {
+            border-color: var(--primary-start);
+            background: linear-gradient(135deg, rgba(245,158,11,.1), rgba(236,72,153,.1));
+            box-shadow: 0 8px 30px rgba(245,158,11,.2);
+        }
+        
+        .upload-area.dragover {
+            border-color: var(--primary-start);
+            background: linear-gradient(135deg, rgba(245,158,11,.2), rgba(236,72,153,.2));
+            transform: scale(1.02);
+            box-shadow: 0 12px 40px rgba(245,158,11,.3);
+        }
+        
+        /* Enhanced Submit Button */
+        .submit-btn {
+            background: linear-gradient(135deg, var(--primary-start) 0%, var(--primary-end) 100%);
+            border: 2px solid rgba(255,255,255,.2);
+            border-radius: 25px;
+            padding: 1.5rem 3.5rem;
+            color: white;
+            font-size: 1.3rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 20px 50px rgba(245,158,11,.5), 0 8px 25px rgba(236,72,153,.3);
+            min-height: 70px;
+            backdrop-filter: blur(20px);
+            width: fit-content;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            background-size: 200% 200%;
+            animation: gradientPulse 3s ease-in-out infinite;
+        }
+        
+        .submit-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,.4), transparent);
+            transition: left 0.6s ease;
+        }
+        
+        .submit-btn:hover {
+            transform: translateY(-6px) scale(1.05);
+            box-shadow: 0 25px 60px rgba(245,158,11,.6), 0 12px 35px rgba(236,72,153,.4);
+            background-position: 100% 0;
+            border-color: rgba(255,255,255,.3);
+        }
+        
+        .submit-btn:hover::before {
+            left: 100%;
+        }
+        
+        .submit-btn:active {
+            transform: translateY(-3px) scale(1.02);
+            transition: all 0.15s ease;
+        }
+        
+        .submit-btn.disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+            background: linear-gradient(135deg, rgba(148,163,184,.4), rgba(148,163,184,.3));
+            box-shadow: 0 8px 20px rgba(0,0,0,.2);
+            border-color: rgba(148,163,184,.3);
+        }
+        
+        .submit-btn.disabled:hover {
+            transform: none;
+            box-shadow: 0 8px 20px rgba(0,0,0,.2);
+        }
+        
+        /* Enhanced Character Count */
+        .character-count {
+            background: linear-gradient(135deg, rgba(18,12,27,.8), rgba(26,19,39,.8));
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(245,158,11,.2);
+            border-radius: 8px;
+            padding: 0.3rem 0.8rem;
+            color: var(--muted);
+            font-weight: 500;
+        }
+        
+        /* Enhanced Upload Limit */
+        .upload-limit {
+            background: linear-gradient(135deg, rgba(245,158,11,.15), rgba(236,72,153,.15));
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(245,158,11,.3);
+            border-radius: 15px;
+            padding: 1rem 1.5rem;
+            color: var(--ink);
+            font-weight: 600;
+        }
+        
+        /* Enhanced Error Container */
+        .error-container {
+            background: linear-gradient(135deg, rgba(239,68,68,.15), rgba(220,38,38,.15));
+            border: 2px solid rgba(239,68,68,.4);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            backdrop-filter: blur(15px);
+            box-shadow: 0 8px 25px rgba(239,68,68,.2);
+        }
+        
+        /* Enhanced Submit Note */
+        .submit-note {
+            background: linear-gradient(135deg, rgba(245,158,11,.1), rgba(236,72,153,.1));
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(245,158,11,.3);
+            border-radius: 15px;
+            padding: 1.2rem 2rem;
+            color: var(--ink);
+            font-weight: 500;
+            box-shadow: 0 8px 25px rgba(0,0,0,.2);
+        }
+        
+        .submit-note i {
+            color: var(--primary-start);
+            font-size: 1.1rem;
+        }
+        
+        /* Hide contribution section initially */
+        .contribution-section {
+            display: none;
+            margin-top: 2rem;
+        }
+        
+        .contribution-section.show {
+            display: block;
+            animation: slideUpFade 0.5s ease-out;
+        }
+        
+        @keyframes slideUpFade {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
         /* Respect reduced motion */
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after { animation: none !important; transition: none !important; }
@@ -1382,42 +2198,42 @@
 
             <!-- Meta Info Cards -->
             <div class="meta-cards-grid animate-slide-up delay-1">
-                <div class="meta-card">
+                <div class="meta-card date-card">
                     <div class="meta-icon">
-                        <i class="fas fa-calendar"></i>
+                        <i class="fas fa-calendar-alt"></i>
                     </div>
                     <div class="meta-content">
-                        <div class="meta-label">Date</div>
+                        <div class="meta-label">Event Date</div>
                         <div class="meta-value" id="eventDate">Loading...</div>
                     </div>
                 </div>
                 
-                <div class="meta-card">
+                <div class="meta-card location-card">
                     <div class="meta-icon">
                         <i class="fas fa-map-marker-alt"></i>
                     </div>
                     <div class="meta-content">
-                        <div class="meta-label">Location</div>
+                        <div class="meta-label">Venue</div>
                         <div class="meta-value" id="eventLocation">Loading...</div>
                     </div>
                 </div>
                 
-                <div class="meta-card">
+                <div class="meta-card type-card">
                     <div class="meta-icon">
-                        <i class="fas fa-tag"></i>
+                        <i class="fas fa-gift"></i>
                     </div>
                     <div class="meta-content">
-                        <div class="meta-label">Type</div>
+                        <div class="meta-label">Event Type</div>
                         <div class="meta-value" id="eventType">Loading...</div>
                     </div>
                 </div>
                 
-                <div class="meta-card">
+                <div class="meta-card access-card">
                     <div class="meta-icon">
-                        <i class="fas fa-users"></i>
+                        <i class="fas fa-globe"></i>
                     </div>
                     <div class="meta-content">
-                        <div class="meta-label">Access</div>
+                        <div class="meta-label">Access Level</div>
                         <div class="meta-value" id="eventStatus">Loading...</div>
                     </div>
                 </div>
@@ -1465,25 +2281,22 @@
 
         </div>
 
+        <!-- Floating Action Button -->
+        <button class="floating-action-btn" id="floatingActionBtn" onclick="toggleContributionForm()">
+            <i class="fas fa-heart"></i>
+            Share Your Moment
+        </button>
+
         <!-- Contribution Section -->
-        <div class="contribution-section">
+        <div class="contribution-section" id="contributionSection">
             <div class="row">
                 <div class="col-lg-8 mx-auto">
                     <div class="contribution-card animate-slide-up">
                         <div class="contribution-header">
-                            <div class="contribution-icon-wrapper">
                                 <div class="contribution-icon">
                                     <i class="fas fa-heart"></i>
                                 </div>
-                                <div class="floating-hearts">
-                                    <div class="heart heart-1">💖</div>
-                                    <div class="heart heart-2">✨</div>
-                                    <div class="heart heart-3">🌟</div>
-                                    <div class="heart heart-4">💝</div>
-                                    <div class="heart heart-5">🎉</div>
-                                </div>
-                            </div>
-                            <h2 class="contribution-title">Share Your Contribution</h2>
+                            <h2 class="contribution-title">Share Your Moment</h2>
                             <p class="contribution-subtitle">Express yourself and be part of this special moment</p>
                             <div class="contribution-stats">
                                 <div class="stat-item">
@@ -1492,7 +2305,7 @@
                                 </div>
                                 <div class="stat-item">
                                     <i class="fas fa-clock"></i>
-                                    <span>Contribute now</span>
+                                    <span>Share now</span>
                                 </div>
                             </div>
                         </div>
@@ -1542,8 +2355,50 @@
                                                 <h5>Drag & Drop or Click to Upload</h5>
                                                 <p>Images (JPG & Videos (MP4, MOV, AVI)</p>
                                                 <div class="upload-limit">
-                                                    <small>Guest Limits: <span id="packageLimits">Loading...</span> • Max 10MB per file</small>
+                                                    <small>Max 10MB per file</small>
                                                 </div>
+                                                <div class="upload-info">
+                                                    <div class="upload-limit-info">
+                                                        <i class="fas fa-info-circle"></i>
+                                                        <span>You can upload up to <strong id="maxFilesDisplay">6</strong> files per post</span>
+                                                    </div>
+                                                </div>
+                                        
+                                        <!-- Pre-Upload Information -->
+                                        <div class="pre-upload-info" id="preUploadInfo" style="display: none;">
+                                            <div class="info-card">
+                                                <div class="info-header">
+                                                    <i class="fas fa-info-circle"></i>
+                                                    <span>Upload Information</span>
+                                                </div>
+                                                <div class="info-content">
+                                                    <div class="info-item">
+                                                        <i class="fas fa-upload"></i>
+                                                        <span>You can upload up to <strong id="maxFilesAllowed">6</strong> media files per post</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Upload Status Display -->
+                                        <div class="upload-status" id="uploadStatus" style="display: none;">
+                                            <div class="status-row">
+                                                <div class="status-item main-limit">
+                                                    <i class="fas fa-upload"></i>
+                                                    <span>Media Files: <span id="totalFileCount">0</span>/<span id="mediaPerPostLimit">∞</span></span>
+                                                    <span class="remaining-files" id="remainingFiles" style="display: none;">
+                                                        (<span id="remainingCount">∞</span> remaining)
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div class="status-progress">
+                                                <div class="progress-bar">
+                                                    <div class="progress-fill" id="progressFill"></div>
+                                                </div>
+                                                <span class="progress-text" id="progressText">0% used</span>
+                                            </div>
+                                        </div>
+                                        
                                             </div>
                                         </div>
                                         <input type="file" id="mediaFiles" multiple accept="image/*,video/*" hidden>
@@ -1562,7 +2417,7 @@
                                         <button type="submit" class="submit-btn">
                                             <span class="btn-text">
                                                 <i class="fas fa-heart"></i>
-                                                Share Your Love
+                                                Share Your Moment
                                             </span>
                                             <div class="btn-loading" style="display: none;">
                                                 <div class="loading-hearts">
@@ -1603,5 +2458,731 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/config.js"></script>
     <script src="js/event-detail-guest.js"></script>
+    
+    <!-- Floating Button Toggle Script -->
+    <script>
+        function toggleContributionForm() {
+            const contributionSection = document.getElementById('contributionSection');
+            const floatingBtn = document.getElementById('floatingActionBtn');
+            
+            if (contributionSection.classList.contains('show')) {
+                // Hide the form
+                contributionSection.classList.remove('show');
+                floatingBtn.innerHTML = '<i class="fas fa-heart"></i>Share Your Moment';
+                floatingBtn.style.transform = 'translateX(-50%)';
+                
+                // Scroll to top of form area
+                setTimeout(() => {
+                    contributionSection.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'start' 
+                    });
+                }, 100);
+            } else {
+                // Show the form
+                contributionSection.classList.add('show');
+                floatingBtn.innerHTML = '<i class="fas fa-times"></i>Close Form';
+                floatingBtn.style.transform = 'translateX(-50%)';
+                
+                // Scroll to the form
+                setTimeout(() => {
+                    contributionSection.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'start' 
+                    });
+                }, 300);
+            }
+        }
+        
+        // Close form when clicking outside
+        document.addEventListener('click', function(event) {
+            const contributionSection = document.getElementById('contributionSection');
+            const floatingBtn = document.getElementById('floatingActionBtn');
+            
+            if (contributionSection.classList.contains('show') && 
+                !contributionSection.contains(event.target) && 
+                !floatingBtn.contains(event.target)) {
+                contributionSection.classList.remove('show');
+                floatingBtn.innerHTML = '<i class="fas fa-heart"></i>Share Your Moment';
+            }
+        });
+        
+        // Handle ESC key to close form
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                const contributionSection = document.getElementById('contributionSection');
+                const floatingBtn = document.getElementById('floatingActionBtn');
+                
+                if (contributionSection.classList.contains('show')) {
+                    contributionSection.classList.remove('show');
+                    floatingBtn.innerHTML = '<i class="fas fa-heart"></i>Share Your Moment';
+                }
+            }
+        });
+        
+        // External JavaScript file handles all functionality
+        /*
+        
+        
+        function initializeFilePreview() {
+            console.log('Initializing file preview...');
+            const fileInput = document.getElementById('mediaFiles');
+            const fileList = document.getElementById('fileList');
+            const uploadArea = document.getElementById('uploadArea');
+            
+            console.log('Elements found:', {
+                fileInput: !!fileInput,
+                fileList: !!fileList,
+                uploadArea: !!uploadArea
+            });
+            
+            if (!fileInput || !fileList || !uploadArea) {
+                console.error('Required elements not found');
+                return;
+            }
+            
+            // Load package limits
+            loadPackageLimits();
+            
+            // Handle file selection
+            fileInput.addEventListener('change', function(e) {
+                console.log('File input changed, files:', e.target.files.length);
+                handleFiles(e.target.files);
+            });
+            
+            // Handle drag and drop
+            uploadArea.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+            
+            uploadArea.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+            });
+            
+            uploadArea.addEventListener('drop', function(e) {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                handleFiles(e.dataTransfer.files);
+            });
+            
+            // Click to upload
+            uploadArea.addEventListener('click', function() {
+                console.log('Upload area clicked, triggering file input');
+                fileInput.click();
+            });
+        }
+        
+        async function loadPackageLimits() {
+            try {
+                // Get event data from URL parameters or API
+                const urlParams = new URLSearchParams(window.location.search);
+                const eventId = urlParams.get('event');
+                
+                if (eventId) {
+                    // Fetch real event data from API using guest endpoint
+                    const response = await fetch(`${API_CONFIG.BASE_URL}/api/guest/event-by-id/${eventId}/`);
+                    if (response.ok) {
+                        const eventData = await response.json();
+                        
+                        packageLimits = {
+                            maxPhotos: eventData.package_max_photos || null,
+                            maxVideos: eventData.package_max_videos || null,
+                            maxGuests: null, // Not provided in API response
+                            guestMaxMediaPerPost: eventData.guest_max_media_per_post || null
+                        };
+                        
+                        // Store event statistics for display
+                        window.eventStats = {
+                            totalGuestPosts: eventData.total_guest_posts || 0,
+                            totalMediaFiles: eventData.total_media_files || 0,
+                            photoCount: eventData.photo_count || 0,
+                            videoCount: eventData.video_count || 0
+                        };
+                        
+                        console.log('Loaded package limits from API:', packageLimits);
+                        console.log('Loaded event statistics:', window.eventStats);
+                    } else {
+                        throw new Error('Failed to fetch event data');
+                    }
+                } else {
+                    // Fallback to sample data if no event ID
+                    packageLimits = {
+                        maxPhotos: 50,
+                        maxVideos: 50,
+                        maxGuests: null,
+                        guestMaxMediaPerPost: 6 // Based on API response
+                    };
+                }
+                
+                updatePackageLimitsDisplay();
+            } catch (error) {
+                console.error('Error loading package limits:', error);
+                // Fallback to sample data
+                packageLimits = {
+                    maxPhotos: 50,
+                    maxVideos: 50,
+                    maxGuests: null,
+                    guestMaxMediaPerPost: 6 // Based on API response
+                };
+                updatePackageLimitsDisplay();
+            }
+        }
+        
+        function updatePackageLimitsDisplay() {
+            // Update limit displays for status panels
+            const mediaPerPostLimitElement = document.getElementById('mediaPerPostLimit');
+            
+            if (mediaPerPostLimitElement) {
+                mediaPerPostLimitElement.textContent = packageLimits.guestMaxMediaPerPost || '∞';
+            }
+            
+            // Update pre-upload information
+            updatePreUploadInfo();
+        }
+        
+        function updatePreUploadInfo() {
+            const preUploadInfo = document.getElementById('preUploadInfo');
+            const maxFilesAllowed = document.getElementById('maxFilesAllowed');
+            
+            if (!preUploadInfo) return;
+            
+            // Update the information with actual data
+            if (maxFilesAllowed) {
+                maxFilesAllowed.textContent = packageLimits.guestMaxMediaPerPost || '∞';
+            }
+            
+            // Show the pre-upload info if we have limits
+            if (packageLimits.guestMaxMediaPerPost) {
+                preUploadInfo.style.display = 'block';
+            } else {
+                preUploadInfo.style.display = 'none';
+            }
+        }
+        
+        function handleFiles(files) {
+            const fileList = document.getElementById('fileList');
+            if (!fileList) return;
+            
+            // Add new files to existing selection
+            const newFiles = Array.from(files);
+            const totalFilesAfterAdd = selectedFiles.length + newFiles.length;
+            
+            // Check if adding these files would exceed the limit
+            if (packageLimits.guestMaxMediaPerPost && totalFilesAfterAdd > packageLimits.guestMaxMediaPerPost) {
+                const remaining = packageLimits.guestMaxMediaPerPost - selectedFiles.length;
+                const message = remaining > 0 
+                    ? `You can only add ${remaining} more files. You're trying to add ${newFiles.length} files.`
+                    : `You've already reached the maximum of ${packageLimits.guestMaxMediaPerPost} files.`;
+                showUploadError(message);
+                return;
+            }
+            
+            // Add new files to the selection
+            selectedFiles = [...selectedFiles, ...newFiles];
+            
+            // Debug: Log updated selected files
+            console.log('Updated selectedFiles:', selectedFiles);
+            console.log('Total files now:', selectedFiles.length);
+            
+            // Update counters
+            currentUploads.photos = 0;
+            currentUploads.videos = 0;
+            currentUploads.totalFiles = selectedFiles.length;
+            
+            // Count file types
+            selectedFiles.forEach(file => {
+                if (file.type.startsWith('image/')) {
+                    currentUploads.photos++;
+                } else if (file.type.startsWith('video/')) {
+                    currentUploads.videos++;
+                }
+            });
+            
+            // Clear existing previews and recreate all
+            fileList.innerHTML = '';
+            
+            selectedFiles.forEach((file, index) => {
+                const fileItem = createFilePreview(file, index);
+                fileList.appendChild(fileItem);
+            });
+            
+            // Show file list with animation
+            if (selectedFiles.length > 0) {
+                fileList.style.display = 'grid';
+                fileList.style.opacity = '0';
+                fileList.style.transform = 'translateY(20px)';
+                
+                setTimeout(() => {
+                    fileList.style.transition = 'all 0.3s ease';
+                    fileList.style.opacity = '1';
+                    fileList.style.transform = 'translateY(0)';
+                }, 100);
+                
+                // Show upload status with remaining count
+                showUploadStatus();
+            } else {
+                hideUploadStatus();
+            }
+            
+            // Clear the file input so it can be used again
+            const fileInput = document.getElementById('mediaFiles');
+            if (fileInput) {
+                fileInput.value = '';
+            }
+        }
+        
+        function checkUploadLimits() {
+            // Main validation: Check guestMaxMediaPerPost (total media files per post)
+            if (packageLimits.guestMaxMediaPerPost && currentUploads.totalFiles > packageLimits.guestMaxMediaPerPost) {
+                const remaining = packageLimits.guestMaxMediaPerPost - currentUploads.totalFiles;
+                return {
+                    allowed: false,
+                    message: `You can only upload ${packageLimits.guestMaxMediaPerPost} media files per post. You've selected ${currentUploads.totalFiles} files. ${remaining < 0 ? `Please remove ${Math.abs(remaining)} files.` : `${remaining} files remaining.`}`
+                };
+            }
+            
+            return { allowed: true };
+        }
+        
+        function getRemainingFiles() {
+            if (!packageLimits.guestMaxMediaPerPost) return null;
+            return Math.max(0, packageLimits.guestMaxMediaPerPost - currentUploads.totalFiles);
+        }
+        
+        
+        function showUploadError(message) {
+            const errorContainer = document.getElementById('errorContainer');
+            if (errorContainer) {
+                errorContainer.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                        <span>${message}</span>
+                    </div>
+                `;
+                errorContainer.style.display = 'block';
+            }
+        }
+        
+        function showUploadStatus() {
+            const uploadStatus = document.getElementById('uploadStatus');
+            if (!uploadStatus) return;
+            
+            // Update counts
+            document.getElementById('totalFileCount').textContent = currentUploads.totalFiles;
+            
+            // Update remaining files display
+            const remainingFilesElement = document.getElementById('remainingFiles');
+            const remainingCountElement = document.getElementById('remainingCount');
+            
+            if (remainingFilesElement && remainingCountElement) {
+                const remaining = getRemainingFiles();
+                
+                if (remaining !== null && packageLimits.guestMaxMediaPerPost) {
+                    remainingCountElement.textContent = remaining;
+                    remainingFilesElement.style.display = 'inline';
+                    
+                    // Update styling based on remaining count
+                    remainingFilesElement.classList.remove('warning', 'error');
+                    if (remaining === 0) {
+                        remainingFilesElement.classList.add('error');
+                    } else if (remaining <= 2) {
+                        remainingFilesElement.classList.add('warning');
+                    }
+                } else {
+                    remainingFilesElement.style.display = 'none';
+                }
+            }
+            
+            // Calculate progress based on the main limit (guestMaxMediaPerPost)
+            const totalLimit = packageLimits.guestMaxMediaPerPost || Math.max(packageLimits.maxPhotos || 0, packageLimits.maxVideos || 0);
+            const totalCurrent = currentUploads.totalFiles;
+            
+            let progressPercentage = 0;
+            if (totalLimit > 0) {
+                progressPercentage = Math.min((totalCurrent / totalLimit) * 100, 100);
+            }
+            
+            // Update progress bar
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            
+            if (progressFill) {
+                progressFill.style.width = `${progressPercentage}%`;
+            }
+            
+            if (progressText) {
+                if (totalLimit > 0) {
+                    progressText.textContent = `${Math.round(progressPercentage)}% used`;
+                } else {
+                    progressText.textContent = `${totalCurrent} files selected`;
+                }
+            }
+            
+            // Show status
+            uploadStatus.style.display = 'block';
+        }
+        
+        function hideUploadStatus() {
+            const uploadStatus = document.getElementById('uploadStatus');
+            if (uploadStatus) {
+                uploadStatus.style.display = 'none';
+            }
+        }
+        
+        function createFilePreview(file, index) {
+            const fileItem = document.createElement('div');
+            fileItem.className = 'file-preview-item';
+            fileItem.style.animationDelay = `${index * 0.1}s`;
+            
+            const isImage = file.type.startsWith('image/');
+            const isVideo = file.type.startsWith('video/');
+            
+            let previewContent = '';
+            
+            if (isImage) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = fileItem.querySelector('.file-preview-image');
+                    if (img) img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+                
+                previewContent = `
+                    <img class="file-preview-image" src="" alt="Preview" style="display: none;">
+                    <div class="file-preview-icon" style="display: flex;">
+                        <i class="fas fa-image"></i>
+                    </div>
+                `;
+            } else if (isVideo) {
+                previewContent = `
+                    <div class="file-preview-icon">
+                        <i class="fas fa-video"></i>
+                    </div>
+                `;
+            } else {
+                previewContent = `
+                    <div class="file-preview-icon">
+                        <i class="fas fa-file"></i>
+                    </div>
+                `;
+            }
+            
+            fileItem.innerHTML = `
+                ${previewContent}
+                <div class="file-preview-name">${file.name}</div>
+                <div class="file-preview-size">${formatFileSize(file.size)}</div>
+                <button class="file-remove-btn" onclick="removeFile(this, ${index})" title="Remove file">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            
+            // Show image preview after load
+            if (isImage) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = fileItem.querySelector('.file-preview-image');
+                    const icon = fileItem.querySelector('.file-preview-icon');
+                    if (img && icon) {
+                        img.src = e.target.result;
+                        img.style.display = 'block';
+                        icon.style.display = 'none';
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+            
+            return fileItem;
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+        
+        function removeFile(button, index) {
+            const fileItem = button.closest('.file-preview-item');
+            if (fileItem) {
+                // Remove file from selectedFiles array
+                selectedFiles.splice(index, 1);
+                
+                // Update counters
+                currentUploads.photos = 0;
+                currentUploads.videos = 0;
+                currentUploads.totalFiles = selectedFiles.length;
+                
+                // Recount file types
+                selectedFiles.forEach(file => {
+                    if (file.type.startsWith('image/')) {
+                        currentUploads.photos++;
+                    } else if (file.type.startsWith('video/')) {
+                        currentUploads.videos++;
+                    }
+                });
+                
+                // Animate removal
+                fileItem.style.transition = 'all 0.3s ease';
+                fileItem.style.opacity = '0';
+                fileItem.style.transform = 'translateY(-20px) scale(0.8)';
+                
+                setTimeout(() => {
+                    fileItem.remove();
+                    
+                    // Update status or hide if no files
+                    if (currentUploads.totalFiles === 0) {
+                        hideUploadStatus();
+                    } else {
+                        showUploadStatus();
+                    }
+                }, 300);
+            }
+        }
+        
+        async function submitContribution() {
+            // Prevent double submission
+            if (isSubmitting) {
+                console.log('Already submitting, ignoring duplicate call');
+                return;
+            }
+            
+            isSubmitting = true;
+            
+            // Show loading state
+            const submitBtn = document.querySelector('button[type="submit"]');
+            let originalText = '';
+            if (submitBtn) {
+                originalText = submitBtn.textContent;
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+            }
+            
+            try {
+                
+                // Check if files are selected
+                if (selectedFiles.length === 0) {
+                    throw new Error('Please select at least one file to upload');
+                }
+                
+                // Get form data
+                const formData = new FormData();
+                
+                // Debug: Log selected files
+                console.log('Selected files:', selectedFiles);
+                console.log('Number of files:', selectedFiles.length);
+                
+                // Add files with unique field names
+                selectedFiles.forEach((file, index) => {
+                    if (file.type.startsWith('image/')) {
+                        formData.append(`photos`, file);
+                    } else if (file.type.startsWith('video/')) {
+                        formData.append(`videos`, file);
+                    }
+                });
+                
+                // Add other form fields with correct names
+                const nameInput = document.querySelector('#guestName');
+                const messageInput = document.querySelector('#wishText');
+                
+                if (nameInput && nameInput.value.trim()) {
+                    formData.append('guest_name', nameInput.value.trim());
+                }
+                
+                if (messageInput && messageInput.value.trim()) {
+                    formData.append('wish_text', messageInput.value.trim());
+                }
+                
+                // Add guest phone (required field)
+                formData.append('guest_phone', '0000000000'); // Default phone for now
+                
+                // Get event ID from URL first
+                const urlParams = new URLSearchParams(window.location.search);
+                const eventId = urlParams.get('event');
+                
+                if (!eventId) {
+                    throw new Error('Event ID not found in URL');
+                }
+                
+                // Add event ID to FormData (serializer expects 'event' field)
+                formData.append('event', eventId);
+                
+                // Add unique submission ID to prevent double submissions
+                const submissionId = Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                
+                // Check if this submission ID was already processed
+                if (processedSubmissions.has(submissionId)) {
+                    console.log('Submission ID already processed, skipping');
+                    return;
+                }
+                
+                processedSubmissions.add(submissionId);
+                formData.append('submission_id', submissionId);
+                console.log('Submission ID:', submissionId);
+                
+                // Debug: Log FormData contents
+                console.log('FormData contents:');
+                for (let [key, value] of formData.entries()) {
+                    if (value instanceof File) {
+                        console.log(key, `File: ${value.name} (${value.size} bytes, ${value.type})`);
+                    } else {
+                        console.log(key, value);
+                    }
+                }
+                
+                // Submit to API
+                const response = await fetch(`${API_CONFIG.BASE_URL}/api/guest-post-create/`, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        // Don't set Content-Type header, let browser set it with boundary for FormData
+                    }
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('Upload successful:', result);
+                    
+                    // Show success message
+                    showUploadSuccess('Your contribution has been uploaded successfully!');
+                    
+                    // Reset form
+                    resetForm();
+                    
+                } else {
+                    let errorMessage = 'Upload failed';
+                    try {
+                        const errorData = await response.json();
+                        errorMessage = errorData.message || errorData.detail || errorMessage;
+                    } catch (e) {
+                        // If response is not JSON (like HTML error page), use status text
+                        errorMessage = `Upload failed: ${response.status} ${response.statusText}`;
+                    }
+                    throw new Error(errorMessage);
+                }
+                
+            } catch (error) {
+                console.error('Upload error:', error);
+                showUploadError(`Upload failed: ${error.message}`);
+            } finally {
+                // Reset button state and submission flag
+                isSubmitting = false;
+                const submitBtn = document.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                }
+            }
+        }
+        
+        function showUploadSuccess(message) {
+            const errorContainer = document.getElementById('errorContainer');
+            if (errorContainer) {
+                errorContainer.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        <span class="text-success">${message}</span>
+                    </div>
+                `;
+                errorContainer.style.display = 'block';
+                
+                // Hide after 5 seconds
+                setTimeout(() => {
+                    errorContainer.style.display = 'none';
+                }, 5000);
+            }
+        }
+        
+        function resetForm() {
+            // Clear selected files
+            selectedFiles = [];
+            currentUploads.photos = 0;
+            currentUploads.videos = 0;
+            currentUploads.totalFiles = 0;
+            
+            // Clear file preview
+            const fileList = document.getElementById('fileList');
+            if (fileList) {
+                fileList.innerHTML = '';
+                fileList.style.display = 'none';
+            }
+            
+            // Clear form fields
+            const nameInput = document.querySelector('#guestName');
+            const messageInput = document.querySelector('#wishText');
+            
+            if (nameInput) nameInput.value = '';
+            if (messageInput) messageInput.value = '';
+            
+            // Hide upload status
+            hideUploadStatus();
+            
+            // Clear file input
+            const fileInput = document.getElementById('mediaFiles');
+            if (fileInput) {
+                fileInput.value = '';
+            }
+        }
+        
+        // Initialize file preview when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, initializing...');
+            
+            try {
+                initializeFilePreview();
+                console.log('File preview initialized');
+            } catch (error) {
+                console.error('Error initializing file preview:', error);
+            }
+            
+            // Add form validation (prevent duplicate initialization)
+            const contributionForm = document.getElementById('contributionForm');
+            console.log('Contribution form found:', !!contributionForm);
+            
+            if (contributionForm && !formInitialized) {
+                formInitialized = true;
+                console.log('Adding form submit listener');
+                
+                contributionForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    console.log('Form submit event triggered');
+                    
+                    // Prevent double submission
+                    const submitBtn = document.querySelector('button[type="submit"]');
+                    if (submitBtn && submitBtn.disabled) {
+                        console.log('Form already submitting, ignoring duplicate submission');
+                        return;
+                    }
+                    
+                    if (isSubmitting) {
+                        console.log('Already submitting, ignoring duplicate submission');
+                        return;
+                    }
+                    
+                    // Add a small delay to prevent rapid clicking
+                    setTimeout(() => {
+                        if (isSubmitting) {
+                            console.log('Submission already started during delay, ignoring');
+                            return;
+                        }
+                    
+                        // Validate upload limits
+                        const uploadValidation = checkUploadLimits();
+                        if (!uploadValidation.allowed) {
+                            showUploadError(uploadValidation.message);
+                            return;
+                        }
+                        
+                        // If all validations pass, proceed with form submission
+                        console.log('Form validation passed. Ready to submit.');
+                        submitContribution();
+                    }, 100); // 100ms delay to prevent rapid clicking
+                });
+            }
+        });
+        */
+    </script>
 </body>
 </html>

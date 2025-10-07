@@ -6,6 +6,7 @@
 class EventDetailGuestManager {
     constructor() {
         this.currentEvent = null;
+        this.selectedFiles = []; // Array to store all selected files
         this.init();
     }
 
@@ -261,6 +262,13 @@ class EventDetailGuestManager {
                 ${maxPhotos} photos + ${maxVideos} videos total • ${perGuestLimit} files per guest post
             `;
         }
+        
+        // Update the upload area display
+        const maxFilesDisplay = document.getElementById('maxFilesDisplay');
+        if (maxFilesDisplay) {
+            const perGuestLimit = event.guest_max_media_per_post || 3;
+            maxFilesDisplay.textContent = perGuestLimit;
+        }
     }
 
     displayEventBanner(event) {
@@ -386,65 +394,120 @@ class EventDetailGuestManager {
 
 
     handleFileSelection(newFiles) {
+        console.log('handleFileSelection called with:', newFiles);
         const fileList = document.getElementById('fileList');
-        if (!fileList) return;
+        if (!fileList) {
+            console.error('fileList element not found');
+            return;
+        }
 
+        const fileInput = document.getElementById('mediaFiles');
+        if (!fileInput) {
+            console.error('mediaFiles input not found');
+            return;
+        }
+        
+        // Add new files to our accumulated list
+        const filesToAdd = Array.from(newFiles);
+        console.log('Adding files to selection:', filesToAdd.length);
+        
+        // Check limits before adding
+        const maxFiles = this.currentEvent?.guest_max_media_per_post || 6;
+        const currentCount = this.selectedFiles.length;
+        const remainingSlots = maxFiles - currentCount;
+        
+        if (filesToAdd.length > remainingSlots) {
+            alert(`You can only upload ${maxFiles} files total. You have ${remainingSlots} slots remaining.`);
+            return;
+        }
+        
+        // Add files to our accumulated list
+        this.selectedFiles = this.selectedFiles.concat(filesToAdd);
+        console.log('Total files now:', this.selectedFiles.length);
+        
+        // Update the file input to reflect all selected files
+        this.updateFileInput();
+        
+        // Render all files
+        this.renderFilePreviews();
+    }
+    
+    updateFileInput() {
         const fileInput = document.getElementById('mediaFiles');
         if (!fileInput) return;
         
-        const allFiles = Array.from(fileInput.files);
+        // Create a new FileList-like object
+        const dt = new DataTransfer();
+        this.selectedFiles.forEach(file => dt.items.add(file));
+        fileInput.files = dt.files;
+    }
+    
+    renderFilePreviews() {
+        const fileList = document.getElementById('fileList');
+        if (!fileList) return;
         
         fileList.innerHTML = '';
+        fileList.style.display = this.selectedFiles.length > 0 ? 'block' : 'none';
         
         let photoCount = 0;
         let videoCount = 0;
         
-        allFiles.forEach((file, index) => {
+        this.selectedFiles.forEach((file, index) => {
+            console.log(`Rendering file ${index}:`, file.name, file.type);
             const fileItem = document.createElement('div');
+            fileItem.className = 'file-preview-item';
+            
             const isImage = file.type.startsWith('image/');
             const isVideo = file.type.startsWith('video/');
             
-            let icon = 'fas fa-file';
-            let alertClass = 'alert-info';
-            
+            let previewContent = '';
             if (isImage) {
-                icon = 'fas fa-image';
-                alertClass = 'alert-success';
+                previewContent = `
+                    <img src="${URL.createObjectURL(file)}" alt="${file.name}" class="file-preview-image">
+                `;
                 photoCount++;
             } else if (isVideo) {
-                icon = 'fas fa-video';
-                alertClass = 'alert-warning';
+                previewContent = `
+                    <div class="file-preview-icon">
+                        <i class="fas fa-video"></i>
+                    </div>
+                `;
                 videoCount++;
+            } else {
+                previewContent = `
+                    <div class="file-preview-icon">
+                        <i class="fas fa-file"></i>
+                    </div>
+                `;
             }
             
-            fileItem.className = `alert ${alertClass} d-flex justify-content-between align-items-center file-item`;
             fileItem.innerHTML = `
-                <div class="d-flex align-items-center">
-                    <i class="${icon} me-2"></i>
-                    <span>${file.name}</span>
-                    <small class="text-muted ms-2">(${this.formatFileSize(file.size)})</small>
-                </div>
-                <button type="button" class="btn btn-sm btn-outline-danger" onclick="eventDetailManager.removeFile(${index}, this)">
+                ${previewContent}
+                <div class="file-preview-name">${file.name}</div>
+                <div class="file-preview-size">${this.formatFileSize(file.size)}</div>
+                <button type="button" class="file-remove-btn" onclick="eventDetailManager.removeFile(${index}, this)">
                     <i class="fas fa-times"></i>
                 </button>
             `;
             fileList.appendChild(fileItem);
         });
         
+        console.log(`Rendered ${this.selectedFiles.length} files. Photos: ${photoCount}, Videos: ${videoCount}`);
+        
         // Show summary
-        if (allFiles.length > 0) {
+        if (this.selectedFiles.length > 0) {
             const summaryDiv = document.createElement('div');
             summaryDiv.className = 'alert alert-primary mt-2';
             summaryDiv.innerHTML = `
                 <i class="fas fa-info-circle me-2"></i>
-                <strong>Selected Files:</strong> ${allFiles.length} total 
+                <strong>Selected Files:</strong> ${this.selectedFiles.length} total 
                 ${photoCount > 0 || videoCount > 0 ? '(' : ''}${photoCount > 0 ? `${photoCount} photo${photoCount !== 1 ? 's' : ''}` : ''}${photoCount > 0 && videoCount > 0 ? ', ' : ''}${videoCount > 0 ? `${videoCount} video${videoCount !== 1 ? 's' : ''}` : ''}${photoCount > 0 || videoCount > 0 ? ')' : ''}
             `;
             fileList.appendChild(summaryDiv);
             
             // Show remaining file count
-            const maxCount = this.currentEvent?.guest_max_media_per_post || 3;
-            const remainingCount = maxCount - allFiles.length;
+            const maxCount = this.currentEvent?.guest_max_media_per_post || 6;
+            const remainingCount = maxCount - this.selectedFiles.length;
             if (remainingCount > 0) {
                 const remainingDiv = document.createElement('div');
                 remainingDiv.className = 'alert alert-success mt-2';
@@ -479,17 +542,16 @@ class EventDetailGuestManager {
         }
         
         // Validate media files
-        const mediaFiles = document.getElementById('mediaFiles').files;
-        const guestMaxMediaPerPost = this.currentEvent.guest_max_media_per_post || 3;
+        const guestMaxMediaPerPost = this.currentEvent.guest_max_media_per_post || 6;
         
-        if (mediaFiles.length > guestMaxMediaPerPost) {
+        if (this.selectedFiles.length > guestMaxMediaPerPost) {
             this.showError(`Maximum ${guestMaxMediaPerPost} media files allowed per contribution`, 'warning');
             return;
         }
         
         // Check file sizes (max 10MB per file)
-        for (let i = 0; i < mediaFiles.length; i++) {
-            const file = mediaFiles[i];
+        for (let i = 0; i < this.selectedFiles.length; i++) {
+            const file = this.selectedFiles[i];
             if (file.size > 10 * 1024 * 1024) { // 10MB
                 this.showError(`File ${file.name} is too large. Maximum size is 10MB.`, 'warning');
                 return;
@@ -506,8 +568,8 @@ class EventDetailGuestManager {
         let photoCount = 0;
         let videoCount = 0;
         
-        for (let i = 0; i < mediaFiles.length; i++) {
-            const file = mediaFiles[i];
+        for (let i = 0; i < this.selectedFiles.length; i++) {
+            const file = this.selectedFiles[i];
             if (file.type.startsWith('image/')) {
                 formData.append('photos', file);
                 photoCount++;
@@ -518,8 +580,8 @@ class EventDetailGuestManager {
         }
         
         // Show upload summary
-        if (mediaFiles.length > 0) {
-            this.showTopRightSuccess(`Uploading ${mediaFiles.length} files (${photoCount} photos, ${videoCount} videos)...`);
+        if (this.selectedFiles.length > 0) {
+            this.showTopRightSuccess(`Uploading ${this.selectedFiles.length} files (${photoCount} photos, ${videoCount} videos)...`);
         }
 
         try {
@@ -538,6 +600,8 @@ class EventDetailGuestManager {
                 // Reset form
                 document.getElementById('contributionForm').reset();
                 document.getElementById('fileList').innerHTML = '';
+                this.selectedFiles = []; // Clear accumulated files
+                this.updateFileInput(); // Update file input
                 this.clearErrors();
                 
                 // Clear the file input
@@ -583,27 +647,22 @@ class EventDetailGuestManager {
     }
 
     removeFile(fileIndex, buttonElement) {
-        const fileInput = document.getElementById('mediaFiles');
-        if (!fileInput) return;
-
-        // Get current files
-        const currentFiles = Array.from(fileInput.files);
+        console.log('Removing file at index:', fileIndex);
         
-        // Remove the file at the specified index
-        currentFiles.splice(fileIndex, 1);
-        
-        // Create a new FileList-like object
-        const dataTransfer = new DataTransfer();
-        currentFiles.forEach(file => dataTransfer.items.add(file));
-        
-        // Update the file input
-        fileInput.files = dataTransfer.files;
-        
-        // Refresh the entire file list display
-        this.handleFileSelection([]);
-        
-        // Show success message
-        this.showTopRightSuccess('File removed successfully');
+        // Remove file from our accumulated list
+        if (fileIndex >= 0 && fileIndex < this.selectedFiles.length) {
+            this.selectedFiles.splice(fileIndex, 1);
+            console.log('Files remaining:', this.selectedFiles.length);
+            
+            // Update the file input to reflect the change
+            this.updateFileInput();
+            
+            // Re-render all file previews
+            this.renderFilePreviews();
+            
+            // Show success message
+            this.showTopRightSuccess('File removed successfully');
+        }
     }
 
     showAlert(message, type = 'info') {
@@ -865,34 +924,9 @@ class EventDetailGuestManager {
             if (files.length > 0) {
                 console.log(`${files.length} files dropped`);
                 
-                // Get current files and add new ones
-                const currentFiles = Array.from(fileInput.files);
-                const newFiles = Array.from(files);
-                
-                // Check if adding new files would exceed the limit
-                const guestMaxMedia = window.eventDetailManager?.currentEvent?.guest_max_media_per_post || 3;
-                if (currentFiles.length + newFiles.length > guestMaxMedia) {
-                    if (window.eventDetailManager) {
-                        window.eventDetailManager.showError(`Cannot add ${newFiles.length} files. You currently have ${currentFiles.length} files and maximum ${guestMaxMedia} files allowed.`, 'warning');
-                    }
-                    return;
-                }
-                
-                // Combine current and new files
-                const allFiles = [...currentFiles, ...newFiles];
-                
-                // Update the file input with combined files
-                const dataTransfer = new DataTransfer();
-                allFiles.forEach(file => dataTransfer.items.add(file));
-                fileInput.files = dataTransfer.files;
-                
-                // Trigger the change event to process files
-                const changeEvent = new Event('change', { bubbles: true });
-                fileInput.dispatchEvent(changeEvent);
-                
-                // Show success message
+                // Use the new file selection system
                 if (window.eventDetailManager) {
-                    window.eventDetailManager.showTopRightSuccess(`Successfully added ${newFiles.length} file(s)`);
+                    window.eventDetailManager.handleFileSelection(files);
                 }
             }
         }
