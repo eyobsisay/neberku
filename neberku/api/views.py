@@ -943,6 +943,7 @@ def api_register(request):
 
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def api_logout(request):
     """API endpoint for user logout - JWT version"""
     try:
@@ -950,19 +951,12 @@ def api_logout(request):
         # The client should simply discard the tokens
         # However, we can implement token blacklisting if needed
         
-        # Check if user is authenticated via JWT
-        if request.user.is_authenticated:
-            # In a more advanced implementation, you could blacklist the token here
-            # For now, we'll just return success and let the client handle token removal
-            return Response({
-                'success': True,
-                'message': 'Logout successful. Please discard your tokens on the client side.'
-            })
-        else:
-            return Response(
-                {'error': 'User not authenticated'},
-                status=status.HTTP_401_UNAUTHORIZED
-            )
+        # Always return success for logout - let the client handle token removal
+        # This allows logout to work even if the user is already logged out
+        return Response({
+            'success': True,
+            'message': 'Logout successful. Please discard your tokens on the client side.'
+        })
     except Exception as e:
         return Response(
             {'error': f'Logout error: {str(e)}'},

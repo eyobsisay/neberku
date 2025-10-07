@@ -837,8 +837,12 @@ function showAlert(message, type) {
 }
 
 function logout() {
-    // For session-based authentication, redirect to logout URL
-    window.location.href = '/logout/';
+    // Use JWT logout function instead of session-based logout
+    logoutUser();
 }
 </script>
+
+<!-- Include auth.js for JWT logout functionality -->
+<script src="../../neberku-frontend/js/config.js"></script>
+<script src="../../neberku-frontend/js/auth.js"></script>
 {% endblock %} 
