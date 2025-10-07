@@ -268,6 +268,12 @@ for _, file_obj in files:
 ### Guest Limits
 
 - **Posts per guest**: Controlled by event settings (`max_posts_per_guest`)
+  - When limit is exceeded, posts are created but marked as `is_approved=False`
+  - Event hosts can manually approve these posts if desired
+- **Guests per event**: Controlled by package (`package.max_guests`)
+  - When the package guest cap is reached, NEW guest submissions still create posts
+    but these posts are marked as `is_approved=False`
+  - Existing guests can continue posting; this cap applies only to creation by new guests
 - **Phone number**: Must be unique per event
 
 ## Error Handling

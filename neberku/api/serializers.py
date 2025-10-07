@@ -168,21 +168,25 @@ class GuestPostCreateSerializer(serializers.Serializer):
         if not event.allow_photos and not event.allow_videos:
             raise serializers.ValidationError("This event does not allow media uploads.")
         
-        # Check limits from event settings
+        # Check package max guests limit for NEW guests only; if exceeded, mark for unapproval
         try:
-            settings = event.settings
-            max_posts = settings.max_posts_per_guest
-            
-            # Check posts per guest limit
-            existing_guest = Guest.objects.filter(event=event, phone=guest_phone).first()
-            if existing_guest:
-                current_posts = existing_guest.posts.count()
-                if current_posts >= max_posts:
-                    raise serializers.ValidationError(f"Maximum posts per guest ({max_posts}) reached for this phone number.")
-                
-        except EventSettings.DoesNotExist:
-            # Use default limits if no settings exist
-            pass
+            package = getattr(event, 'package', None)
+            if package and package.max_guests is not None:
+                is_new_guest = not Guest.objects.filter(event=event, phone=guest_phone).exists()
+                if is_new_guest:
+                    current_guest_count = Guest.objects.filter(event=event).count()
+                    if current_guest_count >= package.max_guests:
+                        data['package_guest_limit_exceeded'] = True
+                    else:
+                        data['package_guest_limit_exceeded'] = False
+                else:
+                    # Existing guests are not constrained by package max guests for approval purposes
+                    data['package_guest_limit_exceeded'] = False
+            else:
+                data['package_guest_limit_exceeded'] = False
+        except Exception:
+            # If anything unexpected happens, do not block; default to not exceeded
+            data['package_guest_limit_exceeded'] = False
         
         return data
     
@@ -190,6 +194,7 @@ class GuestPostCreateSerializer(serializers.Serializer):
         """Create the guest post with associated guest"""
         guest_name = validated_data.pop('guest_name')
         guest_phone = validated_data.pop('guest_phone')
+        package_guest_limit_exceeded = validated_data.pop('package_guest_limit_exceeded', False)
         event = validated_data['event']
         
         # Get or create guest
@@ -208,11 +213,13 @@ class GuestPostCreateSerializer(serializers.Serializer):
             guest.name = guest_name
             guest.save()
         
-        # Create the post
+        # Create the post with is_approved based on limit status
         post = GuestPost.objects.create(
             guest=guest,
             event=event,
-            wish_text=validated_data['wish_text']
+            wish_text=validated_data['wish_text'],
+            # Set to False if package max guests (for new guests) exceeded
+            is_approved=not package_guest_limit_exceeded
         )
         
         return post

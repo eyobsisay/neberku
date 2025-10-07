@@ -320,6 +320,10 @@ The system automatically detects media types based on file extensions:
 - **Default Limit**: 3 media files per post if no settings configured
 - **Type Validation**: Photos only if `allow_photos=True`, videos only if `allow_videos=True`
 - **Guest Limits**: Controlled by event settings (`max_posts_per_guest`)
+  - Posts exceeding limit are created but marked as `is_approved=False`
+- **Package Guest Cap**: Controlled by `package.max_guests`
+  - When the guest cap is reached, posts from NEW guests are created but marked as `is_approved=False`
+  - Existing guests can continue posting; host can manually approve pending posts
 - **Text-Only Posts**: Supported when no media files are provided
 
 ### Response Format
