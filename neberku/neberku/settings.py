@@ -25,13 +25,13 @@ SECRET_KEY = 'django-insecure-rx7umt2qsa+snr9z*8zv8m8x#@r73k-_rq45h5k&d5al)4c0&y
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['api.koshkoshe.com', 'www.api.koshkoshe.com', 'www.koshkoshe.com', 'koshkoshe.com'] if not DEBUG else []
 
 # Site URL for generating QR codes and share links
-SITE_URL = 'http://localhost:8000' if DEBUG else 'https://yourdomain.com'
+SITE_URL = 'http://localhost:8000' if DEBUG else 'https://api.koshkoshe.com'
 
 # Frontend URL for guest contribution links
-FRONTEND_URL = 'http://localhost:3000' if DEBUG else 'https://yourdomain.com'
+FRONTEND_URL = 'http://localhost:3000' if DEBUG else 'https://koshkoshe.com'
 
 
 # Application definition
@@ -249,9 +249,9 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://localhost:8000",
-    "http://127.0.0.1:8000",
-    "http://localhost:5000",
-    "http://127.0.0.1:5000",
+     "https://koshkoshe.com",
+    "https://www.koshkoshe.com",
+    "https://api.koshkoshe.com",
 ]
 
 # Add frontend domain to CSRF trusted origins
@@ -259,9 +259,9 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://localhost:8000",
-    "http://127.0.0.1:8000",
-    "http://localhost:5000",
-    "http://127.0.0.1:5000",
+    "https://koshkoshe.com",
+    "https://www.koshkoshe.com",
+    "https://api.koshkoshe.com",
 ]
 
 # Additional CORS headers for authentication
