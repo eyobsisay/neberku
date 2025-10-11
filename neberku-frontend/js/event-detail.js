@@ -347,6 +347,11 @@ class EventDetail {
         document.getElementById('totalVideos').textContent = this.event.video_count || 0;
         document.getElementById('totalPosts').textContent = this.event.total_guest_posts || 0;
         document.getElementById('totalGuests').textContent = this.event.total_guest_posts || 0; // Using posts as guest count for now
+        
+        // Use API data for non-approved posts
+        const pendingPosts = this.event.non_approved_guest_posts || 0;
+        
+        document.getElementById('pendingPosts').textContent = pendingPosts;
 
         // Event details - update detail tab
         document.getElementById('eventType').textContent = this.event.event_type?.name || 'Unknown';
@@ -675,12 +680,25 @@ class EventDetail {
                 this.guestPosts[postIndex].is_approved = true;
             }
             
+            // Update statistics after approval
+            this.updateStatisticsAfterApproval();
             this.applyFilters();
             
         } catch (error) {
             console.error('❌ Error approving post:', error);
             this.showError('Unable to approve post. Please check your connection and try again.');
         }
+    }
+
+    updateStatisticsAfterApproval() {
+        // Update non-approved count after a post is approved
+        const pendingPosts = this.guestPosts.filter(post => !post.is_approved).length;
+        
+        document.getElementById('pendingPosts').textContent = pendingPosts;
+        
+        // Update total posts count
+        document.getElementById('totalPosts').textContent = this.guestPosts.length;
+        document.getElementById('totalGuests').textContent = this.guestPosts.length;
     }
 
     formatDate(dateString) {

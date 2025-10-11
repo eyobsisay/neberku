@@ -160,26 +160,49 @@
             overflow: hidden;
         }
         
-        /* Mobile responsive stats cards */
+        /* Special styling for pending posts card */
+        #pendingPosts {
+            color: var(--confetti-3) !important; /* Yellow for pending */
+        }
+        
+        
+        /* Mobile responsive stats cards - keep all in one line */
         @media (max-width: 768px) {
             .stats-card {
-                padding: 0.3rem !important;
-                margin-bottom: 0.5rem !important;
+                padding: 0.2rem !important;
+                margin-bottom: 0.3rem !important;
             }
             
             .stats-card h5 {
-                font-size: 1rem !important;
-                margin-bottom: 0.1rem !important;
+                font-size: 0.8rem !important;
+                margin-bottom: 0.05rem !important;
             }
             
             .stats-card small {
+                font-size: 0.5rem !important;
+            }
+            
+            .row .col {
+                flex: 0 0 20% !important;
+                max-width: 20% !important;
+                padding: 0.05rem !important;
+            }
+        }
+        
+        /* Extra small screens - still keep in one line */
+        @media (max-width: 576px) {
+            .row .col {
+                flex: 0 0 20% !important;
+                max-width: 20% !important;
+                padding: 0.05rem !important;
+            }
+            
+            .stats-card h5 {
                 font-size: 0.7rem !important;
             }
             
-            .row .col-md-3 {
-                flex: 0 0 25% !important;
-                max-width: 25% !important;
-                padding: 0.2rem !important;
+            .stats-card small {
+                font-size: 0.4rem !important;
             }
         }
         
@@ -553,34 +576,40 @@
         <div class="container">
             <div class="row align-items-center">
                 <div class="col-lg-8">
-                    <h1 id="eventTitle" class="display-4 mb-3">Loading...</h1>
-                    <p id="eventDescription" class="lead mb-4">Loading...</p>
-                    <div class="row">
-                        <div class="col-md-3">
+                    <div class="row mb-4">
+                        <div class="col">
                             <div class="stats-card">
                                 <h5 id="totalPhotos" class="mb-0">0</h5>
                                 <small>Photos</small>
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col">
                             <div class="stats-card">
                                 <h5 id="totalVideos" class="mb-0">0</h5>
                                 <small>Videos</small>
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col">
                             <div class="stats-card">
                                 <h5 id="totalPosts" class="mb-0">0</h5>
                                 <small>Posts</small>
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col">
                             <div class="stats-card">
                                 <h5 id="totalGuests" class="mb-0">0</h5>
                                 <small>Guests</small>
                             </div>
                         </div>
+                        <div class="col">
+                            <div class="stats-card">
+                                <h5 id="pendingPosts" class="mb-0">0</h5>
+                                <small>Non Approved</small>
+                            </div>
+                        </div>
                     </div>
+                    <h1 id="eventTitle" class="display-4 mb-3">Loading...</h1>
+                    <p id="eventDescription" class="lead mb-4">Loading...</p>
                 </div>
                 <div class="col-lg-4 text-lg-end">
                     <div class="mb-3">

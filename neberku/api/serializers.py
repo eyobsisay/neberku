@@ -252,6 +252,7 @@ class EventSerializer(serializers.ModelSerializer):
     )
     settings = EventSettingsSerializer(read_only=True)
     total_guest_posts = serializers.SerializerMethodField()
+    non_approved_guest_posts = serializers.SerializerMethodField()
     total_media_files = serializers.SerializerMethodField()
     photo_count = serializers.SerializerMethodField()
     video_count = serializers.SerializerMethodField()
@@ -265,7 +266,7 @@ class EventSerializer(serializers.ModelSerializer):
             'allow_photos', 'allow_videos', 'allow_wishes', 'auto_approve_posts', 'status', 'payment_status',
             'qr_code', 'share_link', 'created_at', 'updated_at', 'published_at',
             'settings', 'total_guest_posts', 'total_media_files', 'photo_count', 'video_count', 'is_live',
-            'is_public', 'contributor_code'
+            'is_public', 'contributor_code', 'non_approved_guest_posts'
         ]
         read_only_fields = ['id', 'host', 'status', 'payment_status', 'qr_code', 
                            'share_link', 'created_at', 'updated_at', 'published_at',
@@ -279,6 +280,14 @@ class EventSerializer(serializers.ModelSerializer):
             return obj.guest_posts.count()
         else:
             return obj.guest_posts.filter(is_approved=True).count()
+    
+    def get_non_approved_guest_posts(self, obj):
+        """Count non-approved guest posts based on user permissions"""
+        request = self.context.get('request')
+        if request and request.user.is_authenticated and request.user.is_superuser:
+            return obj.guest_posts.filter(is_approved=False).count()
+        else:
+            return obj.guest_posts.filter(is_approved=False).count()
     
     def get_total_media_files(self, obj):
         """Count media files based on user permissions"""
