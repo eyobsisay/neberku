@@ -133,7 +133,12 @@
         }
         
         .navbar-collapse {
-            justify-content: flex-end !important;
+            justify-content: flex-start !important;
+        }
+        
+        /* Force navbar dropdown to be left-aligned */
+        .navbar-nav {
+            margin-left: 0 !important;
         }
         
         .event-header {
@@ -582,7 +587,7 @@
             </button>
             
             <!-- Navigation menu -->
-            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+            <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav">
                     <li class="nav-item d-none d-lg-block">
                         <button class="nav-link btn btn-link text-light" onclick="openGuestView()" style="border: none; background: none;" title="Preview how this event appears to guests">
