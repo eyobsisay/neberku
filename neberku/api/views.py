@@ -213,8 +213,6 @@ class EventViewSet(viewsets.ModelViewSet):
                 }
                 
                 settings = EventSettings.objects.create(**settings_data)
-                print(f"EventSettings created successfully: {settings.id}")
-                print(f"Settings: max_posts_per_guest={settings.max_posts_per_guest}, max_media_per_post={settings.max_media_per_post}")
                 
             except Exception as e:
                 # Log error but don't fail event creation
@@ -736,9 +734,7 @@ class PublicEventViewSet(viewsets.ReadOnlyModelViewSet):
         return super().list(request, *args, **kwargs)
     
     def retrieve(self, request, *args, **kwargs):
-        print(f"Retrieve API called for event ID: {kwargs.get('pk')}")
         response = super().retrieve(request, *args, **kwargs)
-        print(f"Event data being returned: {response.data}")
         return response
     
     def get_queryset(self):
@@ -815,10 +811,6 @@ class PublicEventViewSet(viewsets.ReadOnlyModelViewSet):
 @permission_classes([AllowAny])
 def api_debug_auth(request):
     """Debug endpoint to check authentication status - JWT version"""
-    print(f"🔍 Debug auth request - Method: {request.method}")
-    print(f"🔍 Request user: {request.user}")
-    print(f"🔍 User authenticated: {request.user.is_authenticated}")
-    print(f"🔍 Headers: {dict(request.headers)}")
     
     # Check for JWT token in Authorization header
     auth_header = request.headers.get('Authorization', '')
@@ -838,32 +830,24 @@ def api_debug_auth(request):
 @permission_classes([AllowAny])
 def api_login(request):
     """API endpoint for user login - JWT version"""
-    print(f"🔐 Login attempt - Method: {request.method}")
-    print(f"🔐 Request data: {request.data}")
+   
     
     username = request.data.get('username')
     password = request.data.get('password')
     
     if not username or not password:
-        print(f"❌ Missing credentials - username: {username}, password: {'*' * len(password) if password else 'None'}")
         return Response(
             {'error': 'Username and password are required'},
             status=status.HTTP_400_BAD_REQUEST
         )
     
-    print(f"🔍 Attempting to authenticate user: {username}")
     user = authenticate(username=username, password=password)
     
     if user is not None:
-        # print(f"✅ User authenticated successfully: {user.username}")
-        # print(f"🔐 User is active: {user.is_active}")
-        # print(f"🔐 User is staff: {user.is_staff}")
-        
         # Generate JWT tokens
         refresh = RefreshToken.for_user(user)
         access_token = refresh.access_token
         
-        # print(f"🔐 JWT tokens generated for user: {user.username}")
         
         return Response({
             'success': True,
@@ -879,7 +863,6 @@ def api_login(request):
             'message': 'Login successful'
         })
     else:
-        # print(f"❌ Authentication failed for user: {username}")
         return Response(
             {'error': 'Invalid credentials'},
             status=status.HTTP_401_UNAUTHORIZED
