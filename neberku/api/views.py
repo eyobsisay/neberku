@@ -32,21 +32,23 @@ class CustomTokenObtainPairView(TokenObtainPairView):
     def post(self, request, *args, **kwargs):
         response = super().post(request, *args, **kwargs)
         if response.status_code == 200:
-            # Get the user from the validated data
-            serializer = self.get_serializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            user = serializer.validated_data['user']
+            # Get the user from the request data
+            username = request.data.get('username')
+            password = request.data.get('password')
             
-            # Add user information to the response
-            response.data.update({
-                'user': {
-                    'id': user.id,
-                    'username': user.username,
-                    'email': user.email,
-                    'first_name': user.first_name,
-                    'last_name': user.last_name,
-                }
-            })
+            if username and password:
+                user = authenticate(username=username, password=password)
+                if user:
+                    # Add user information to the response
+                    response.data.update({
+                        'user': {
+                            'id': user.id,
+                            'username': user.username,
+                            'email': user.email,
+                            'first_name': user.first_name,
+                            'last_name': user.last_name,
+                        }
+                    })
         return response
 
 class EventTypeViewSet(viewsets.ModelViewSet):
