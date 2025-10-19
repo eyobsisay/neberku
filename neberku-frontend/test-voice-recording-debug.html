@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Recording Debug Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .voice-section {
+            border: 2px solid #007bff;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .record-btn { background: #dc3545; color: white; }
+        .stop-btn { background: #6c757d; color: white; }
+        .play-btn { background: #007bff; color: white; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        audio { width: 100%; margin: 10px 0; }
+        .debug-log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .file-list {
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        .file-item {
+            background: #e9ecef;
+            padding: 5px 10px;
+            margin: 5px 0;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Voice Recording Debug Test</h1>
+    
+    <div class="voice-section">
+        <h3>Voice Recording Controls</h3>
+        <div class="controls">
+            <button id="recordButton" class="record-btn">Start Recording</button>
+            <button id="stopButton" class="stop-btn" disabled>Stop Recording</button>
+            <button id="playButton" class="play-btn" disabled>Play Recording</button>
+        </div>
+        
+        <div id="audioPreview" style="display: none;">
+            <audio id="audioPlayer" controls></audio>
+        </div>
+        
+        <div>
+            <input type="file" id="voiceFiles" accept="audio/*" multiple style="display: none;">
+            <button onclick="document.getElementById('voiceFiles').click()">Upload Audio Files</button>
+        </div>
+    </div>
+    
+    <div class="voice-section">
+        <h3>Selected Files</h3>
+        <div id="fileList" class="file-list">
+            <p>No files selected</p>
+        </div>
+    </div>
+    
+    <div class="voice-section">
+        <h3>Debug Log</h3>
+        <div id="debugLog" class="debug-log"></div>
+        <button onclick="clearDebugLog()">Clear Log</button>
+    </div>
+    
+    <div class="voice-section">
+        <h3>Test Form Submission</h3>
+        <button onclick="testFormSubmission()">Test Form Submission</button>
+        <div id="submissionResult"></div>
+    </div>
+
+    <script>
+        // Global variables
+        let selectedFiles = [];
+        let currentUploads = {
+            photos: 0,
+            videos: 0,
+            voice: 0,
+            totalFiles: 0
+        };
+
+        // Debug logging
+        function debugLog(message) {
+            const log = document.getElementById('debugLog');
+            const timestamp = new Date().toLocaleTimeString();
+            log.innerHTML += `[${timestamp}] ${message}\n`;
+            log.scrollTop = log.scrollHeight;
+            console.log(message);
+        }
+
+        function clearDebugLog() {
+            document.getElementById('debugLog').innerHTML = '';
+        }
+
+        // Voice Recording Functionality
+        class VoiceRecorder {
+            constructor() {
+                this.mediaRecorder = null;
+                this.audioChunks = [];
+                this.recordedAudio = null;
+                this.isRecording = false;
+
+                this.recordButton = document.getElementById('recordButton');
+                this.stopButton = document.getElementById('stopButton');
+                this.playButton = document.getElementById('playButton');
+                this.audioPreview = document.getElementById('audioPreview');
+                this.audioPlayer = document.getElementById('audioPlayer');
+                this.voiceFiles = document.getElementById('voiceFiles');
+
+                this.setupEventListeners();
+                debugLog('VoiceRecorder initialized');
+            }
+
+            setupEventListeners() {
+                if (this.recordButton) {
+                    this.recordButton.addEventListener('click', () => this.startRecording());
+                }
+                if (this.stopButton) {
+                    this.stopButton.addEventListener('click', () => this.stopRecording());
+                }
+                if (this.playButton) {
+                    this.playButton.addEventListener('click', () => this.playRecording());
+                }
+                if (this.voiceFiles) {
+                    this.voiceFiles.addEventListener('change', (e) => this.handleVoiceFileUpload(e));
+                }
+                debugLog('Event listeners set up');
+            }
+
+            async startRecording() {
+                try {
+                    debugLog('Starting recording...');
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    this.mediaRecorder = new MediaRecorder(stream);
+                    this.audioChunks = [];
+
+                    this.mediaRecorder.ondataavailable = (event) => {
+                        debugLog(`Audio data available: ${event.data.size} bytes`);
+                        this.audioChunks.push(event.data);
+                    };
+
+                    this.mediaRecorder.onstop = () => {
+                        debugLog('Recording stopped, processing audio chunks...');
+                        const audioBlob = new Blob(this.audioChunks, { type: 'audio/wav' });
+                        debugLog(`Created audio blob: ${audioBlob.size} bytes`);
+                        this.recordedAudio = audioBlob;
+                        this.updateUI();
+                        this.addRecordedAudioToFiles();
+                    };
+
+                    this.mediaRecorder.start();
+                    this.isRecording = true;
+                    this.updateUI();
+                    debugLog('Recording started successfully');
+
+                } catch (error) {
+                    debugLog(`Error starting recording: ${error.message}`);
+                    console.error('Error starting recording:', error);
+                }
+            }
+
+            stopRecording() {
+                if (this.mediaRecorder && this.isRecording) {
+                    debugLog('Stopping recording...');
+                    this.mediaRecorder.stop();
+                    this.isRecording = false;
+                    this.updateUI();
+                }
+            }
+
+            playRecording() {
+                if (this.recordedAudio) {
+                    debugLog('Playing recording...');
+                    const audioUrl = URL.createObjectURL(this.recordedAudio);
+                    this.audioPlayer.src = audioUrl;
+                    this.audioPlayer.play();
+                }
+            }
+
+            handleVoiceFileUpload(event) {
+                const files = Array.from(event.target.files);
+                debugLog(`Uploaded ${files.length} audio files`);
+                files.forEach(file => {
+                    if (file.type.startsWith('audio/')) {
+                        this.addVoiceFileToFiles(file);
+                    }
+                });
+            }
+
+            addRecordedAudioToFiles() {
+                if (this.recordedAudio) {
+                    debugLog('Creating file from recorded audio...');
+                    const audioFile = new File([this.recordedAudio], 'voice_recording.wav', {
+                        type: 'audio/wav'
+                    });
+                    debugLog(`Created audio file: ${audioFile.name}, ${audioFile.size} bytes, ${audioFile.type}`);
+                    this.addVoiceFileToFiles(audioFile);
+                } else {
+                    debugLog('No recorded audio to add');
+                }
+            }
+
+            addVoiceFileToFiles(audioFile) {
+                debugLog(`Adding voice file to files: ${audioFile.name}`);
+                if (window.selectedFiles) {
+                    debugLog(`selectedFiles exists, current length: ${window.selectedFiles.length}`);
+                    if (typeof window.handleFiles === 'function') {
+                        debugLog('Calling handleFiles with voice file');
+                        window.handleFiles([audioFile]);
+                    } else {
+                        debugLog('handleFiles function not available, adding manually');
+                        window.selectedFiles.push(audioFile);
+                        debugLog(`Added voice file to selectedFiles: ${audioFile.name}`);
+                        updateFileDisplay();
+                    }
+                } else {
+                    debugLog('selectedFiles does not exist!');
+                }
+            }
+
+            updateUI() {
+                if (this.isRecording) {
+                    this.recordButton.innerHTML = 'Recording...';
+                    this.recordButton.disabled = true;
+                    this.stopButton.disabled = false;
+                    this.playButton.disabled = true;
+                } else if (this.recordedAudio) {
+                    this.recordButton.innerHTML = 'Start Recording';
+                    this.recordButton.disabled = false;
+                    this.stopButton.disabled = true;
+                    this.playButton.disabled = false;
+                    this.audioPreview.style.display = 'block';
+                } else {
+                    this.recordButton.innerHTML = 'Start Recording';
+                    this.recordButton.disabled = false;
+                    this.stopButton.disabled = true;
+                    this.playButton.disabled = true;
+                    this.audioPreview.style.display = 'none';
+                }
+            }
+        }
+
+        // File handling functions
+        function handleFiles(files) {
+            debugLog(`handleFiles called with ${files.length} files`);
+            const newFiles = Array.from(files);
+            const totalFilesAfterAdd = selectedFiles.length + newFiles.length;
+            
+            debugLog(`Current files: ${selectedFiles.length}, Adding: ${newFiles.length}, Total after: ${totalFilesAfterAdd}`);
+
+            selectedFiles = [...selectedFiles, ...newFiles];
+            debugLog(`Updated selectedFiles length: ${selectedFiles.length}`);
+
+            updateCounters();
+            updateFileDisplay();
+        }
+
+        function updateCounters() {
+            currentUploads.photos = 0;
+            currentUploads.videos = 0;
+            currentUploads.voice = 0;
+            currentUploads.totalFiles = selectedFiles.length;
+
+            selectedFiles.forEach(file => {
+                if (file.type.startsWith('image/')) {
+                    currentUploads.photos++;
+                } else if (file.type.startsWith('video/')) {
+                    currentUploads.videos++;
+                } else if (file.type.startsWith('audio/')) {
+                    currentUploads.voice++;
+                }
+            });
+
+            debugLog(`Counters updated - Photos: ${currentUploads.photos}, Videos: ${currentUploads.videos}, Voice: ${currentUploads.voice}, Total: ${currentUploads.totalFiles}`);
+        }
+
+        function updateFileDisplay() {
+            const fileList = document.getElementById('fileList');
+            if (selectedFiles.length === 0) {
+                fileList.innerHTML = '<p>No files selected</p>';
+                return;
+            }
+
+            fileList.innerHTML = '';
+            selectedFiles.forEach((file, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.innerHTML = `
+                    <strong>${file.name}</strong> 
+                    (${(file.size / 1024).toFixed(1)} KB) 
+                    - ${file.type}
+                    <button onclick="removeFile(${index})" style="float: right;">Remove</button>
+                `;
+                fileList.appendChild(fileItem);
+            });
+        }
+
+        function removeFile(index) {
+            debugLog(`Removing file at index ${index}: ${selectedFiles[index].name}`);
+            selectedFiles.splice(index, 1);
+            updateCounters();
+            updateFileDisplay();
+        }
+
+        function testFormSubmission() {
+            debugLog('Testing form submission...');
+            const formData = new FormData();
+            
+            debugLog(`Selected files: ${selectedFiles.length}`);
+            selectedFiles.forEach((file, index) => {
+                if (file.type.startsWith('image/')) {
+                    formData.append('photos', file);
+                    debugLog(`Added photo: ${file.name}`);
+                } else if (file.type.startsWith('video/')) {
+                    formData.append('videos', file);
+                    debugLog(`Added video: ${file.name}`);
+                } else if (file.type.startsWith('audio/')) {
+                    formData.append('voice_recordings', file);
+                    debugLog(`Added voice recording: ${file.name}`);
+                }
+            });
+
+            // Log FormData contents
+            debugLog('FormData contents:');
+            for (let [key, value] of formData.entries()) {
+                if (value instanceof File) {
+                    debugLog(`  ${key}: ${value.name} (${value.size} bytes, ${value.type})`);
+                } else {
+                    debugLog(`  ${key}: ${value}`);
+                }
+            }
+
+            const result = document.getElementById('submissionResult');
+            result.innerHTML = `
+                <h4>Form Submission Test Results:</h4>
+                <p>Total files: ${selectedFiles.length}</p>
+                <p>Photos: ${currentUploads.photos}</p>
+                <p>Videos: ${currentUploads.videos}</p>
+                <p>Voice recordings: ${currentUploads.voice}</p>
+                <p>FormData entries: ${formData.entries().length}</p>
+            `;
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            debugLog('Page loaded, initializing...');
+            window.selectedFiles = selectedFiles;
+            window.handleFiles = handleFiles;
+            window.voiceRecorder = new VoiceRecorder();
+            debugLog('Initialization complete');
+        });
+    </script>
+</body>
+</html>

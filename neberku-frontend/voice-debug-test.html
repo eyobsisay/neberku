@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Recording Debug Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .test-section { background: white; padding: 20px; margin: 20px 0; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .success { background: #d4edda; color: #155724; padding: 10px; border-radius: 5px; margin: 10px 0; }
+        .error { background: #f8d7da; color: #721c24; padding: 10px; border-radius: 5px; margin: 10px 0; }
+        .info { background: #d1ecf1; color: #0c5460; padding: 10px; border-radius: 5px; margin: 10px 0; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; border: none; border-radius: 5px; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-info { background: #17a2b8; color: white; }
+        .log { background: #f8f9fa; border: 1px solid #dee2e6; padding: 10px; border-radius: 5px; margin: 10px 0; font-family: monospace; font-size: 12px; max-height: 400px; overflow-y: auto; }
+        .upload-area { border: 2px dashed #ccc; padding: 20px; text-align: center; margin: 10px 0; cursor: pointer; }
+        .upload-area:hover { border-color: #007bff; background: #f8f9fa; }
+        .form-group { margin: 15px 0; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input, .form-group textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Voice Recording Debug Test</h1>
+    
+    <div class="test-section">
+        <h2>1. Initialization Check</h2>
+        <button class="btn-primary" onclick="checkInitialization()">Check Initialization Status</button>
+        <div id="initCheck"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>2. Voice Recording Test</h2>
+        <button class="btn-danger" id="recordBtn">🎤 Start Recording</button>
+        <button class="btn-danger" id="stopBtn" disabled>⏹️ Stop Recording</button>
+        <button class="btn-success" id="playBtn" disabled>▶️ Play Recording</button>
+        <div id="audioPreview" style="display: none; margin: 10px 0;">
+            <audio id="audioPlayer" controls style="width: 100%;"></audio>
+        </div>
+        <div id="recordingStatus"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>3. File Upload Test</h2>
+        <div class="upload-area" id="uploadArea">
+            <p>Click here to upload files (should open dialog ONCE)</p>
+        </div>
+        <input type="file" id="fileInput" multiple style="display: none;">
+        <div id="fileUploadTest"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>4. Form Submission Test</h2>
+        <form id="testForm">
+            <div class="form-group">
+                <label for="guestName">Guest Name:</label>
+                <input type="text" id="guestName" value="Test User">
+            </div>
+            <div class="form-group">
+                <label for="wishText">Wish Text:</label>
+                <textarea id="wishText">Test voice recording submission</textarea>
+            </div>
+            <button type="submit" class="btn-success">Submit Form (should call API ONCE)</button>
+        </form>
+        <div id="formTestResult"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>5. Debug Log</h2>
+        <button class="btn-primary" onclick="clearLog()">Clear Log</button>
+        <div id="debugLog" class="log"></div>
+    </div>
+
+    <script>
+        // Global variables
+        let selectedFiles = [];
+        let isSubmitting = false;
+        let formInitialized = false;
+        let filePreviewInitialized = false;
+        let voiceRecorderInitialized = false;
+        let apiCallCount = 0;
+        
+        // Make variables globally accessible
+        window.selectedFiles = selectedFiles;
+        window.isSubmitting = isSubmitting;
+        window.formInitialized = formInitialized;
+        window.filePreviewInitialized = filePreviewInitialized;
+        window.voiceRecorderInitialized = voiceRecorderInitialized;
+        
+        // Debug logging function
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('debugLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${type.toUpperCase()}: ${message}`;
+            logDiv.innerHTML += logEntry + '\n';
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(logEntry);
+        }
+        
+        function clearLog() {
+            document.getElementById('debugLog').innerHTML = '';
+        }
+        
+        // Check initialization status
+        function checkInitialization() {
+            const result = document.getElementById('initCheck');
+            let html = '<h3>Initialization Status:</h3>';
+            
+            const statuses = [
+                { name: 'Voice Recorder', value: window.voiceRecorderInitialized },
+                { name: 'File Preview', value: window.filePreviewInitialized },
+                { name: 'Form', value: window.formInitialized },
+                { name: 'API Calls', value: apiCallCount }
+            ];
+            
+            statuses.forEach(status => {
+                const className = status.value ? 'success' : 'error';
+                const icon = status.value ? '✅' : '❌';
+                html += `<div class="${className}">${icon} ${status.name}: ${status.value}</div>`;
+            });
+            
+            result.innerHTML = html;
+        }
+        
+        // Voice Recording Test
+        class VoiceRecorder {
+            constructor() {
+                log('VoiceRecorder constructor called');
+                this.mediaRecorder = null;
+                this.audioChunks = [];
+                this.recordedAudio = null;
+                this.isRecording = false;
+                
+                this.recordButton = document.getElementById('recordBtn');
+                this.stopButton = document.getElementById('stopBtn');
+                this.playButton = document.getElementById('playBtn');
+                this.audioPreview = document.getElementById('audioPreview');
+                this.audioPlayer = document.getElementById('audioPlayer');
+                
+                log(`VoiceRecorder elements found: record=${!!this.recordButton}, stop=${!!this.stopButton}, play=${!!this.playButton}`);
+                
+                this.setupEventListeners();
+            }
+            
+            setupEventListeners() {
+                // Prevent duplicate event listeners
+                if (this._eventListenersSetup) {
+                    log('Event listeners already setup, skipping', 'error');
+                    return;
+                }
+                this._eventListenersSetup = true;
+                log('Setting up voice recorder event listeners');
+                
+                if (this.recordButton) {
+                    this.recordButton.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        log('Record button clicked');
+                        this.startRecording();
+                    });
+                }
+                if (this.stopButton) {
+                    this.stopButton.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        log('Stop button clicked');
+                        this.stopRecording();
+                    });
+                }
+                if (this.playButton) {
+                    this.playButton.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        log('Play button clicked');
+                        this.playRecording();
+                    });
+                }
+            }
+            
+            async startRecording() {
+                try {
+                    log('Starting recording...');
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    this.mediaRecorder = new MediaRecorder(stream);
+                    this.audioChunks = [];
+                    
+                    this.mediaRecorder.ondataavailable = (event) => {
+                        log(`Audio data available: ${event.data.size} bytes`);
+                        this.audioChunks.push(event.data);
+                    };
+                    
+                    this.mediaRecorder.onstop = () => {
+                        log('Recording stopped, processing audio chunks...');
+                        const audioBlob = new Blob(this.audioChunks, { type: 'audio/wav' });
+                        log(`Created audio blob: ${audioBlob.size} bytes`);
+                        this.recordedAudio = audioBlob;
+                        this.updateUI();
+                        this.addToSelectedFiles();
+                    };
+                    
+                    this.mediaRecorder.start();
+                    this.isRecording = true;
+                    this.updateUI();
+                    this.recordingStatus.innerHTML = '<div class="info">🎤 Recording... Speak into your microphone</div>';
+                    log('Recording started successfully');
+                    
+                } catch (error) {
+                    this.recordingStatus.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+                    log(`Recording error: ${error.message}`, 'error');
+                }
+            }
+            
+            stopRecording() {
+                if (this.mediaRecorder && this.isRecording) {
+                    this.mediaRecorder.stop();
+                    this.isRecording = false;
+                    this.updateUI();
+                    log('Recording stopped');
+                }
+            }
+            
+            playRecording() {
+                if (this.recordedAudio) {
+                    const audioUrl = URL.createObjectURL(this.recordedAudio);
+                    this.audioPlayer.src = audioUrl;
+                    this.audioPlayer.play();
+                    log('Playing recorded audio');
+                }
+            }
+            
+            addToSelectedFiles() {
+                if (this.recordedAudio) {
+                    log('Adding recorded audio to selectedFiles...');
+                    const audioFile = new File([this.recordedAudio], 'voice_recording.wav', {
+                        type: 'audio/wav'
+                    });
+                    log(`Created audio file: ${audioFile.name}, ${audioFile.size} bytes, ${audioFile.type}`);
+                    
+                    window.selectedFiles.push(audioFile);
+                    log(`Added voice file to selectedFiles: ${audioFile.name}`);
+                    log(`Total files now: ${window.selectedFiles.length}`);
+                    
+                    this.recordingStatus.innerHTML += '<div class="success">✅ Voice file added to selectedFiles successfully!</div>';
+                }
+            }
+            
+            updateUI() {
+                if (this.isRecording) {
+                    this.recordButton.textContent = '🎤 Recording...';
+                    this.recordButton.disabled = true;
+                    this.stopBtn.disabled = false;
+                    this.playBtn.disabled = true;
+                } else if (this.recordedAudio) {
+                    this.recordButton.textContent = '🎤 Start Recording';
+                    this.recordButton.disabled = false;
+                    this.stopBtn.disabled = true;
+                    this.playBtn.disabled = false;
+                    this.audioPreview.style.display = 'block';
+                } else {
+                    this.recordButton.textContent = '🎤 Start Recording';
+                    this.recordButton.disabled = false;
+                    this.stopBtn.disabled = true;
+                    this.playBtn.disabled = true;
+                    this.audioPreview.style.display = 'none';
+                }
+            }
+        }
+        
+        // File Upload Test
+        function initializeFileUpload() {
+            if (window.filePreviewInitialized) {
+                log('File upload already initialized, skipping', 'error');
+                return;
+            }
+            window.filePreviewInitialized = true;
+            log('Initializing file upload');
+            
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('fileInput');
+            
+            if (uploadArea && fileInput) {
+                uploadArea.addEventListener('click', function() {
+                    log('Upload area clicked - opening file dialog');
+                    fileInput.click();
+                });
+                
+                fileInput.addEventListener('change', function(e) {
+                    log(`File input changed - ${e.target.files.length} files selected`);
+                    const result = document.getElementById('fileUploadTest');
+                    result.innerHTML = `<div class="success">✅ Selected ${e.target.files.length} files</div>`;
+                });
+                
+                log('File upload initialized');
+            }
+        }
+        
+        // Form Submission Test
+        function initializeForm() {
+            if (window.formInitialized) {
+                log('Form already initialized, skipping', 'error');
+                return;
+            }
+            window.formInitialized = true;
+            log('Initializing form');
+            
+            const testForm = document.getElementById('testForm');
+            if (testForm) {
+                testForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    log('Form submit event triggered');
+                    
+                    if (window.isSubmitting) {
+                        log('Already submitting, ignoring duplicate submission', 'error');
+                        return;
+                    }
+                    
+                    window.isSubmitting = true;
+                    apiCallCount++;
+                    log(`Starting form submission... (API call #${apiCallCount})`);
+                    
+                    // Simulate API call
+                    setTimeout(() => {
+                        log(`API call #${apiCallCount} completed`);
+                        window.isSubmitting = false;
+                        const result = document.getElementById('formTestResult');
+                        result.innerHTML = `<div class="success">✅ Form submitted successfully! (API call #${apiCallCount})</div>`;
+                    }, 1000);
+                });
+                
+                log('Form initialized');
+            }
+        }
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            log('DOM loaded, initializing tests...');
+            
+            // Initialize voice recorder
+            try {
+                if (window.voiceRecorderInitialized) {
+                    log('Voice recorder already initialized, skipping', 'error');
+                } else {
+                    window.voiceRecorderInitialized = true;
+                    window.voiceRecorder = new VoiceRecorder();
+                    log('Voice recorder initialized');
+                }
+            } catch (error) {
+                log(`Error initializing voice recorder: ${error.message}`, 'error');
+            }
+            
+            // Initialize file upload
+            initializeFileUpload();
+            
+            // Initialize form
+            initializeForm();
+            
+            log('All tests initialized and ready');
+        });
+    </script>
+</body>
+</html>

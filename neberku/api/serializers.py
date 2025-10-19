@@ -114,12 +114,13 @@ class GuestPostSerializer(serializers.ModelSerializer):
     total_media_files = serializers.ReadOnlyField()
     photo_count = serializers.ReadOnlyField()
     video_count = serializers.ReadOnlyField()
+    voice_count = serializers.ReadOnlyField()
     
     class Meta:
         model = GuestPost
         fields = [
             'id', 'guest', 'event', 'wish_text', 'media_files',
-            'total_media_files', 'photo_count', 'video_count', 'is_approved',
+            'total_media_files', 'photo_count', 'video_count', 'voice_count', 'is_approved',
             'created_at', 'approved_at'
         ]
         read_only_fields = ['id', 'is_approved', 'created_at', 'approved_at']
@@ -147,8 +148,8 @@ class GuestPostCreateSerializer(serializers.Serializer):
         help_text="Share your wish, message, or thoughts for the event"
     )
     
-    # Note: Media files (photos and videos) are handled directly in the view
-    # To upload multiple files, use form-data with multiple 'photos' and 'videos' keys
+    # Note: Media files (photos, videos, and voice recordings) are handled directly in the view
+    # To upload multiple files, use form-data with multiple 'photos', 'videos', and 'voice_recordings' keys
     
     # Explicitly declare this is not a model serializer
     class Meta:
@@ -164,8 +165,8 @@ class GuestPostCreateSerializer(serializers.Serializer):
         if not event.allow_wishes:
             raise serializers.ValidationError("This event does not allow wishes.")
         
-        # Check if event allows photos/videos
-        if not event.allow_photos and not event.allow_videos:
+        # Check if event allows photos/videos/voice
+        if not event.allow_photos and not event.allow_videos and not event.allow_voice:
             raise serializers.ValidationError("This event does not allow media uploads.")
         
         # Check package max guests limit - count posts instead of guests
@@ -256,6 +257,7 @@ class EventSerializer(serializers.ModelSerializer):
     total_media_files = serializers.SerializerMethodField()
     photo_count = serializers.SerializerMethodField()
     video_count = serializers.SerializerMethodField()
+    voice_count = serializers.SerializerMethodField()
     is_live = serializers.ReadOnlyField()
     
     class Meta:
@@ -263,14 +265,14 @@ class EventSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'title', 'description', 'host', 'package', 'package_id',
             'event_type', 'event_type_id', 'event_date', 'location', 'event_thumbnail', 'event_banner', 'event_video',
-            'allow_photos', 'allow_videos', 'allow_wishes', 'auto_approve_posts', 'status', 'payment_status',
+            'allow_photos', 'allow_videos', 'allow_voice', 'allow_wishes', 'auto_approve_posts', 'status', 'payment_status',
             'qr_code', 'share_link', 'created_at', 'updated_at', 'published_at',
-            'settings', 'total_guest_posts', 'total_media_files', 'photo_count', 'video_count', 'is_live',
+            'settings', 'total_guest_posts', 'total_media_files', 'photo_count', 'video_count', 'voice_count', 'is_live',
             'is_public', 'contributor_code', 'non_approved_guest_posts'
         ]
         read_only_fields = ['id', 'host', 'status', 'payment_status', 'qr_code', 
                            'share_link', 'created_at', 'updated_at', 'published_at',
-                           'settings', 'total_guest_posts', 'total_media_files', 'photo_count', 'video_count', 'is_live',
+                           'settings', 'total_guest_posts', 'total_media_files', 'photo_count', 'video_count', 'voice_count', 'is_live',
                            'contributor_code']
     
     def get_total_guest_posts(self, obj):
@@ -315,6 +317,15 @@ class EventSerializer(serializers.ModelSerializer):
         else:
             # For non-superusers, count videos from approved posts only
             return obj.media_files.filter(media_type='video', post__is_approved=True).count()
+    
+    def get_voice_count(self, obj):
+        """Count voice recordings based on user permissions"""
+        request = self.context.get('request')
+        if request and request.user.is_authenticated and request.user.is_superuser:
+            return obj.media_files.filter(media_type='voice').count()
+        else:
+            # For non-superusers, count voice recordings from approved posts only
+            return obj.media_files.filter(media_type='voice', post__is_approved=True).count()
 
 class EventCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating events"""
@@ -345,7 +356,7 @@ class EventCreateSerializer(serializers.ModelSerializer):
         model = Event
         fields = [
             'title', 'description', 'package_id', 'event_type_id', 'event_date', 'location',
-            'event_thumbnail', 'event_banner', 'event_video', 'allow_photos', 'allow_videos', 'allow_wishes', 'auto_approve_posts',
+            'event_thumbnail', 'event_banner', 'event_video', 'allow_photos', 'allow_videos', 'allow_voice', 'allow_wishes', 'auto_approve_posts',
             'is_public'
         ]
     
@@ -492,13 +503,14 @@ class EventSummarySerializer(serializers.ModelSerializer):
     package_price = serializers.DecimalField(source='package.price', max_digits=10, decimal_places=2, read_only=True)
     photo_count = serializers.SerializerMethodField()
     video_count = serializers.SerializerMethodField()
+    voice_count = serializers.SerializerMethodField()
     total_media_files = serializers.ReadOnlyField()
     
     class Meta:
         model = Event
         fields = [
             'id', 'title', 'event_type', 'event_date', 'status', 'payment_status',
-            'event_thumbnail', 'package_name', 'package_price', 'photo_count', 'video_count',
+            'event_thumbnail', 'package_name', 'package_price', 'photo_count', 'video_count', 'voice_count',
             'total_guest_posts', 'total_media_files', 'is_live', 'created_at'
         ]
         read_only_fields = ['id', 'total_guest_posts', 'total_media_files', 'is_live', 'created_at']
@@ -507,7 +519,10 @@ class EventSummarySerializer(serializers.ModelSerializer):
         return obj.media_files.filter(media_type='photo').count()
     
     def get_video_count(self, obj):
-        return obj.media_files.filter(media_type='video').count() 
+        return obj.media_files.filter(media_type='video').count()
+    
+    def get_voice_count(self, obj):
+        return obj.media_files.filter(media_type='voice').count() 
 
 class EventGuestAccessSerializer(serializers.ModelSerializer):
     """Serializer for guest access to events"""
@@ -520,6 +535,7 @@ class EventGuestAccessSerializer(serializers.ModelSerializer):
     total_media_files = serializers.ReadOnlyField()
     photo_count = serializers.ReadOnlyField()
     video_count = serializers.ReadOnlyField()
+    voice_count = serializers.ReadOnlyField()
     is_accessible = serializers.SerializerMethodField()
     frontend_share_url = serializers.ReadOnlyField()
     
@@ -528,10 +544,10 @@ class EventGuestAccessSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'title', 'description', 'event_date', 'location', 'event_type',
             'event_thumbnail', 'event_banner', 'event_video', 'package_name', 'package_max_photos', 'package_max_videos',
-            'guest_max_media_per_post', 'total_guest_posts', 'total_media_files', 'photo_count', 'video_count', 'is_public', 'is_accessible',
+            'guest_max_media_per_post', 'total_guest_posts', 'total_media_files', 'photo_count', 'video_count', 'voice_count', 'is_public', 'is_accessible',
             'frontend_share_url'
         ]
-        read_only_fields = ['id', 'total_guest_posts', 'total_media_files', 'photo_count', 'video_count', 'frontend_share_url']
+        read_only_fields = ['id', 'total_guest_posts', 'total_media_files', 'photo_count', 'video_count', 'voice_count', 'frontend_share_url']
     
     def get_guest_max_media_per_post(self, obj):
         """Get the maximum media files per guest post from EventSettings"""

@@ -80,6 +80,7 @@ class Event(models.Model):
     # Settings
     allow_photos = models.BooleanField(default=True)
     allow_videos = models.BooleanField(default=True)
+    allow_voice = models.BooleanField(default=True)
     allow_wishes = models.BooleanField(default=True)
     auto_approve_posts = models.BooleanField(default=False)
     
@@ -261,6 +262,10 @@ class Event(models.Model):
         return self.media_files.filter(media_type='video').count()
     
     @property
+    def voice_count(self):
+        return self.media_files.filter(media_type='voice').count()
+    
+    @property
     def like_count(self):
         """Get the total number of likes for this event"""
         return self.likes.count()
@@ -388,6 +393,10 @@ class GuestPost(models.Model):
     def video_count(self):
         return self.media_files.filter(media_type='video').count()
     
+    @property
+    def voice_count(self):
+        return self.media_files.filter(media_type='voice').count()
+    
     class Meta:
         ordering = ['-created_at']
         indexes = [
@@ -395,10 +404,11 @@ class GuestPost(models.Model):
         ]
 
 class MediaFile(models.Model):
-    """Individual media files (photos/videos) related to guest posts"""
+    """Individual media files (photos/videos/voice) related to guest posts"""
     MEDIA_TYPES = [
         ('photo', 'Photo'),
         ('video', 'Video'),
+        ('voice', 'Voice Recording'),
     ]
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -450,6 +460,11 @@ class EventSettings(models.Model):
     max_video_size = models.PositiveIntegerField(default=100)  # MB
     max_video_duration = models.PositiveIntegerField(default=60)  # seconds
     allowed_video_formats = models.JSONField(default=['mp4', 'mov'])
+    
+    # Voice settings
+    max_voice_size = models.PositiveIntegerField(default=10)  # MB
+    max_voice_duration = models.PositiveIntegerField(default=300)  # seconds (5 minutes)
+    allowed_voice_formats = models.JSONField(default=['mp3', 'wav', 'm4a', 'aac'])
     
     # Guest settings
     require_approval = models.BooleanField(default=False)

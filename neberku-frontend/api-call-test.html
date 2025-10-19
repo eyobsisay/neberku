@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Call Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .test-section { background: white; padding: 20px; margin: 20px 0; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .success { background: #d4edda; color: #155724; padding: 10px; border-radius: 5px; margin: 10px 0; }
+        .error { background: #f8d7da; color: #721c24; padding: 10px; border-radius: 5px; margin: 10px 0; }
+        .info { background: #d1ecf1; color: #0c5460; padding: 10px; border-radius: 5px; margin: 10px 0; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; border: none; border-radius: 5px; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .log { background: #f8f9fa; border: 1px solid #dee2e6; padding: 10px; border-radius: 5px; margin: 10px 0; font-family: monospace; font-size: 12px; max-height: 400px; overflow-y: auto; }
+        .form-group { margin: 15px 0; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input, .form-group textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>🔍 API Call Test</h1>
+    
+    <div class="test-section">
+        <h2>Form Submission Test</h2>
+        <p>This test simulates the form submission to check if API is called only once.</p>
+        <form id="testForm">
+            <div class="form-group">
+                <label for="guestName">Guest Name:</label>
+                <input type="text" id="guestName" value="Test User">
+            </div>
+            <div class="form-group">
+                <label for="guestPhone">Phone:</label>
+                <input type="tel" id="guestPhone" value="1234567890">
+            </div>
+            <div class="form-group">
+                <label for="wishText">Wish Text:</label>
+                <textarea id="wishText">Test voice recording submission</textarea>
+            </div>
+            <button type="submit" class="btn-success">Submit Form (should call API ONCE)</button>
+        </form>
+        <div id="formTestResult"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Debug Log</h2>
+        <button class="btn-primary" onclick="clearLog()">Clear Log</button>
+        <div id="debugLog" class="log"></div>
+    </div>
+
+    <script>
+        let apiCallCount = 0;
+        let isSubmitting = false;
+        
+        // Debug logging function
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('debugLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${type.toUpperCase()}: ${message}`;
+            logDiv.innerHTML += logEntry + '\n';
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(logEntry);
+        }
+        
+        function clearLog() {
+            document.getElementById('debugLog').innerHTML = '';
+        }
+        
+        // Simulate the external JavaScript file's submitContribution function
+        async function submitContribution() {
+            log('submitContribution called');
+            
+            if (isSubmitting) {
+                log('Already submitting, ignoring duplicate call', 'error');
+                return;
+            }
+            
+            isSubmitting = true;
+            apiCallCount++;
+            log(`Starting API call #${apiCallCount}`);
+            
+            // Simulate API call
+            try {
+                const formData = new FormData();
+                formData.append('guest_name', document.getElementById('guestName').value);
+                formData.append('guest_phone', document.getElementById('guestPhone').value);
+                formData.append('wish_text', document.getElementById('wishText').value);
+                formData.append('event', 'fe15f8b3-16ef-489c-9d60-872ed84b6784');
+                
+                log(`Making API call #${apiCallCount} to /api/guest-post-create/`);
+                
+                // Simulate network delay
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                log(`API call #${apiCallCount} completed successfully`);
+                
+                const result = document.getElementById('formTestResult');
+                result.innerHTML = `<div class="success">✅ Form submitted successfully! (API call #${apiCallCount})</div>`;
+                
+            } catch (error) {
+                log(`API call #${apiCallCount} failed: ${error.message}`, 'error');
+                const result = document.getElementById('formTestResult');
+                result.innerHTML = `<div class="error">❌ Form submission failed! (API call #${apiCallCount})</div>`;
+            } finally {
+                isSubmitting = false;
+            }
+        }
+        
+        // Initialize form submission handler (like external JS file)
+        document.addEventListener('DOMContentLoaded', function() {
+            log('DOM loaded, setting up form submission handler');
+            
+            const contributionForm = document.getElementById('testForm');
+            if (contributionForm) {
+                contributionForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    log('Form submit event triggered');
+                    submitContribution();
+                });
+                log('Form submission handler added');
+            }
+        });
+        
+        log('Test page loaded and ready');
+    </script>
+</body>
+</html>

@@ -449,8 +449,9 @@ class GuestPostCreateViewSet(viewsets.GenericViewSet):
             # Get files directly from request.FILES for multiple file uploads
             photos = request.FILES.getlist('photos')
             videos = request.FILES.getlist('videos')
+            voice_recordings = request.FILES.getlist('voice_recordings')
             
-            if photos or videos:
+            if photos or videos or voice_recordings:
                 event = post.event
                 guest = post.guest
                 
@@ -463,7 +464,7 @@ class GuestPostCreateViewSet(viewsets.GenericViewSet):
                     max_media_per_post = 3
                 
                 # Check total media limit per post
-                total_media = len(photos) + len(videos)
+                total_media = len(photos) + len(videos) + len(voice_recordings)
                 if total_media > max_media_per_post:
                     post.delete()
                     raise serializers.ValidationError(f"Maximum media files per post ({max_media_per_post}) exceeded. You uploaded {total_media} files.")
@@ -503,6 +504,24 @@ class GuestPostCreateViewSet(viewsets.GenericViewSet):
                         # If there's an error creating a media file, delete the post and raise error
                         post.delete()
                         raise serializers.ValidationError(f"Error processing video {video.name}: {str(e)}")
+                
+                # Create media files for voice recordings
+                for voice_recording in voice_recordings:
+                    try:
+                        MediaFile.objects.create(
+                            post=post,
+                            guest=guest,
+                            event=event,
+                            media_type='voice',
+                            media_file=voice_recording,
+                            file_size=voice_recording.size,
+                            file_name=voice_recording.name,
+                            mime_type=voice_recording.content_type or 'audio/mp3'
+                        )
+                    except Exception as e:
+                        # If there's an error creating a media file, delete the post and raise error
+                        post.delete()
+                        raise serializers.ValidationError(f"Error processing voice recording {voice_recording.name}: {str(e)}")
             
             # Return the created post using the standard serializer
             result_serializer = GuestPostSerializer(post)

@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Recording Fix Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .test-section { background: white; padding: 20px; margin: 20px 0; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .success { background: #d4edda; color: #155724; padding: 10px; border-radius: 5px; margin: 10px 0; }
+        .error { background: #f8d7da; color: #721c24; padding: 10px; border-radius: 5px; margin: 10px 0; }
+        .info { background: #d1ecf1; color: #0c5460; padding: 10px; border-radius: 5px; margin: 10px 0; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; border: none; border-radius: 5px; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .log { background: #f8f9fa; border: 1px solid #dee2e6; padding: 10px; border-radius: 5px; margin: 10px 0; font-family: monospace; font-size: 12px; max-height: 400px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <h1>🎤 Voice Recording Fix Test</h1>
+    
+    <div class="test-section">
+        <h2>Test Voice Recording Integration</h2>
+        <p>This test verifies that voice recordings are properly added to the external JavaScript file's selectedFiles array.</p>
+        
+        <button class="btn-danger" id="recordBtn">🎤 Start Recording</button>
+        <button class="btn-danger" id="stopBtn" disabled>⏹️ Stop Recording</button>
+        <button class="btn-success" id="playBtn" disabled>▶️ Play Recording</button>
+        
+        <div id="audioPreview" style="display: none; margin: 10px 0;">
+            <audio id="audioPlayer" controls style="width: 100%;"></audio>
+        </div>
+        
+        <div id="recordingStatus"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Selected Files Status</h2>
+        <button class="btn-success" onclick="showSelectedFiles()">Show Selected Files</button>
+        <div id="selectedFilesDisplay"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Debug Log</h2>
+        <button class="btn-danger" onclick="clearLog()">Clear Log</button>
+        <div id="debugLog" class="log"></div>
+    </div>
+
+    <script>
+        // Simulate the external JavaScript file's EventDetailGuestManager
+        class EventDetailGuestManager {
+            constructor() {
+                this.selectedFiles = [];
+                this.currentEvent = { id: 'fe15f8b3-16ef-489c-9d60-872ed84b6784' };
+                log('EventDetailGuestManager initialized');
+            }
+            
+            updateFileDisplay() {
+                log(`updateFileDisplay called - ${this.selectedFiles.length} files`);
+                const display = document.getElementById('selectedFilesDisplay');
+                if (display) {
+                    let html = `<div class="info"><strong>Selected Files (${this.selectedFiles.length}):</strong></div>`;
+                    this.selectedFiles.forEach((file, index) => {
+                        const type = file.type.startsWith('audio/') ? '🎤 Voice' : 
+                                   file.type.startsWith('image/') ? '📷 Photo' : 
+                                   file.type.startsWith('video/') ? '🎥 Video' : '📄 File';
+                        html += `<div>${index + 1}. ${type}: ${file.name} (${(file.size / 1024).toFixed(1)} KB)</div>`;
+                    });
+                    display.innerHTML = html;
+                }
+            }
+        }
+        
+        // Make eventDetailManager globally accessible (like the fix)
+        let eventDetailManager;
+        document.addEventListener('DOMContentLoaded', function() {
+            eventDetailManager = new EventDetailGuestManager();
+            // Make eventDetailManager globally accessible for voice recording
+            window.eventDetailManager = eventDetailManager;
+            log('eventDetailManager assigned to window.eventDetailManager');
+        });
+        
+        // Debug logging function
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('debugLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${type.toUpperCase()}: ${message}`;
+            logDiv.innerHTML += logEntry + '\n';
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(logEntry);
+        }
+        
+        function clearLog() {
+            document.getElementById('debugLog').innerHTML = '';
+        }
+        
+        // Show selected files
+        function showSelectedFiles() {
+            if (window.eventDetailManager) {
+                window.eventDetailManager.updateFileDisplay();
+            } else {
+                log('eventDetailManager not available', 'error');
+            }
+        }
+        
+        // Voice Recording Test (simplified version of the HTML file's VoiceRecorder)
+        class VoiceRecorder {
+            constructor() {
+                log('VoiceRecorder constructor called');
+                this.mediaRecorder = null;
+                this.audioChunks = [];
+                this.recordedAudio = null;
+                this.isRecording = false;
+                
+                this.recordButton = document.getElementById('recordBtn');
+                this.stopButton = document.getElementById('stopBtn');
+                this.playButton = document.getElementById('playBtn');
+                this.audioPreview = document.getElementById('audioPreview');
+                this.audioPlayer = document.getElementById('audioPlayer');
+                
+                this.setupEventListeners();
+            }
+            
+            setupEventListeners() {
+                if (this.recordButton) {
+                    this.recordButton.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        log('Record button clicked');
+                        this.startRecording();
+                    });
+                }
+                if (this.stopButton) {
+                    this.stopButton.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        log('Stop button clicked');
+                        this.stopRecording();
+                    });
+                }
+                if (this.playButton) {
+                    this.playButton.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        log('Play button clicked');
+                        this.playRecording();
+                    });
+                }
+            }
+            
+            async startRecording() {
+                try {
+                    log('Starting recording...');
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    this.mediaRecorder = new MediaRecorder(stream);
+                    this.audioChunks = [];
+                    
+                    this.mediaRecorder.ondataavailable = (event) => {
+                        log(`Audio data available: ${event.data.size} bytes`);
+                        this.audioChunks.push(event.data);
+                    };
+                    
+                    this.mediaRecorder.onstop = () => {
+                        log('Recording stopped, processing audio chunks...');
+                        const audioBlob = new Blob(this.audioChunks, { type: 'audio/wav' });
+                        log(`Created audio blob: ${audioBlob.size} bytes`);
+                        this.recordedAudio = audioBlob;
+                        this.updateUI();
+                        this.addRecordedAudioToFiles();
+                    };
+                    
+                    this.mediaRecorder.start();
+                    this.isRecording = true;
+                    this.updateUI();
+                    document.getElementById('recordingStatus').innerHTML = '<div class="info">🎤 Recording... Speak into your microphone</div>';
+                    log('Recording started successfully');
+                    
+                } catch (error) {
+                    document.getElementById('recordingStatus').innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+                    log(`Recording error: ${error.message}`, 'error');
+                }
+            }
+            
+            stopRecording() {
+                if (this.mediaRecorder && this.isRecording) {
+                    this.mediaRecorder.stop();
+                    this.isRecording = false;
+                    this.updateUI();
+                    log('Recording stopped');
+                }
+            }
+            
+            playRecording() {
+                if (this.recordedAudio) {
+                    const audioUrl = URL.createObjectURL(this.recordedAudio);
+                    this.audioPlayer.src = audioUrl;
+                    this.audioPlayer.play();
+                    log('Playing recorded audio');
+                }
+            }
+            
+            addRecordedAudioToFiles() {
+                log('=== RECORDED AUDIO ADDITION DEBUG ===');
+                log('addRecordedAudioToFiles called');
+                log('this.recordedAudio exists:', !!this.recordedAudio);
+                
+                if (this.recordedAudio) {
+                    log('Creating file from recorded audio...');
+                    log('Recorded audio blob details:', {
+                        size: this.recordedAudio.size,
+                        type: this.recordedAudio.type
+                    });
+                    
+                    // Create a file-like object from the recorded audio
+                    const audioFile = new File([this.recordedAudio], 'voice_recording.wav', {
+                        type: 'audio/wav'
+                    });
+                    log('Created audio file:', audioFile.name, audioFile.size, audioFile.type);
+                    
+                    // Call addVoiceFileToFiles to add it to the external JS file's selectedFiles
+                    this.addVoiceFileToFiles(audioFile);
+                } else {
+                    log('No recorded audio to add');
+                }
+                log('=== END RECORDED AUDIO ADDITION DEBUG ===');
+            }
+            
+            addVoiceFileToFiles(audioFile) {
+                log('=== VOICE FILE ADDITION DEBUG ===');
+                log('Adding voice file to files:', audioFile.name);
+                log('Audio file details:', {
+                    name: audioFile.name,
+                    size: audioFile.size,
+                    type: audioFile.type
+                });
+                
+                // Check if eventDetailManager is available
+                log('window.eventDetailManager exists:', !!window.eventDetailManager);
+                log('window.eventDetailManager.selectedFiles exists:', !!(window.eventDetailManager && window.eventDetailManager.selectedFiles));
+                
+                // Add to the external JavaScript file's selectedFiles array
+                if (window.eventDetailManager && window.eventDetailManager.selectedFiles) {
+                    log('Adding to eventDetailManager.selectedFiles');
+                    log('Current selectedFiles length before:', window.eventDetailManager.selectedFiles.length);
+                    
+                    window.eventDetailManager.selectedFiles.push(audioFile);
+                    log('Voice file added to selectedFiles:', audioFile.name);
+                    log('Current selectedFiles length after:', window.eventDetailManager.selectedFiles.length);
+                    
+                    // Update the file display
+                    window.eventDetailManager.updateFileDisplay();
+                    log('File display updated');
+                    
+                    // Show success message
+                    const recordingStatus = document.getElementById('recordingStatus');
+                    if (recordingStatus) {
+                        recordingStatus.innerHTML += '<div class="success">✅ Voice file added successfully!</div>';
+                    }
+                } else {
+                    log('eventDetailManager not available, falling back to window.selectedFiles');
+                    log('window.eventDetailManager:', window.eventDetailManager);
+                    log('window.eventDetailManager.selectedFiles:', window.eventDetailManager?.selectedFiles);
+                    
+                    // Fallback: add to window.selectedFiles
+                    if (window.selectedFiles) {
+                        window.selectedFiles.push(audioFile);
+                        log('Voice file added to window.selectedFiles:', audioFile.name);
+                    } else {
+                        log('window.selectedFiles also not available!');
+                    }
+                }
+                log('=== END VOICE FILE ADDITION DEBUG ===');
+            }
+            
+            updateUI() {
+                if (this.isRecording) {
+                    this.recordButton.textContent = '🎤 Recording...';
+                    this.recordButton.disabled = true;
+                    this.stopButton.disabled = false;
+                    this.playButton.disabled = true;
+                } else if (this.recordedAudio) {
+                    this.recordButton.textContent = '🎤 Start Recording';
+                    this.recordButton.disabled = false;
+                    this.stopButton.disabled = true;
+                    this.playButton.disabled = false;
+                    this.audioPreview.style.display = 'block';
+                } else {
+                    this.recordButton.textContent = '🎤 Start Recording';
+                    this.recordButton.disabled = false;
+                    this.stopButton.disabled = true;
+                    this.playButton.disabled = true;
+                    this.audioPreview.style.display = 'none';
+                }
+            }
+        }
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            log('DOM loaded, initializing voice recorder...');
+            
+            // Initialize voice recorder
+            window.voiceRecorder = new VoiceRecorder();
+            
+            log('Voice recorder initialized and ready');
+        });
+    </script>
+</body>
+</html>

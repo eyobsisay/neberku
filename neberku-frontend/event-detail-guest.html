@@ -2363,6 +2363,41 @@
                                         </div>
                                     </div>
                                     
+                                    <!-- Voice Recording Section - Below wish field -->
+                                    <div class="voice-recording-section" style="margin-top: 1.5rem; padding: 1rem; background: linear-gradient(135deg, rgba(245,158,11,.1), rgba(236,72,153,.1)); border-radius: 15px; border: 1px solid rgba(245,158,11,.3);">
+                                        <div class="voice-header" style="text-align: center; margin-bottom: 1rem;">
+                                            <h5 style="color: var(--ink); font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem;">
+                                                <i class="fas fa-microphone" style="color: var(--primary-start); margin-right: 0.5rem;"></i>
+                                                Voice Recording
+                                            </h5>
+                                            <p style="color: var(--muted); font-size: 0.9rem; margin: 0;">Record a voice message or upload audio files</p>
+                                        </div>
+                                        
+                                        <div class="voice-controls" style="display: flex; justify-content: center; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;">
+                                            <button type="button" id="recordButton" class="btn btn-outline-danger" style="border-radius: 25px; padding: 0.8rem 1.5rem; font-weight: 600;">
+                                                <i class="fas fa-microphone"></i> Start Recording
+                                            </button>
+                                            <button type="button" id="stopButton" class="btn btn-outline-secondary" disabled style="border-radius: 25px; padding: 0.8rem 1.5rem; font-weight: 600;">
+                                                <i class="fas fa-stop"></i> Stop Recording
+                                            </button>
+                                            <button type="button" id="playButton" class="btn btn-outline-primary" disabled style="border-radius: 25px; padding: 0.8rem 1.5rem; font-weight: 600;">
+                                                <i class="fas fa-play"></i> Play Recording
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="audio-preview" id="audioPreview" style="display: none; margin-bottom: 1rem;">
+                                            <audio id="audioPlayer" controls style="width: 100%; border-radius: 10px;"></audio>
+                                        </div>
+                                        
+                                        <div class="voice-upload" style="text-align: center;">
+                                            <input type="file" id="voiceFiles" accept="audio/*" multiple style="display: none;">
+                                            <button type="button" id="uploadAudioBtn" class="btn btn-outline-info" style="border-radius: 20px; padding: 0.6rem 1.2rem;">
+                                                <i class="fas fa-upload"></i> Upload Audio Files
+                                            </button>
+                                            <p style="color: var(--muted); font-size: 0.8rem; margin-top: 0.5rem;">Supported: MP3, WAV, M4A, AAC</p>
+                                        </div>
+                                    </div>
+                                    
                                     <div class="media-upload-section">
                                         <div class="upload-header">
                                             <h4><i class="fas fa-images"></i>Share Your Memories</h4>
@@ -2375,7 +2410,7 @@
                                                     <i class="fas fa-cloud-upload-alt"></i>
                                                 </div>
                                                 <h5>Drag & Drop or Click to Upload</h5>
-                                                <p>Images (JPG & Videos (MP4, MOV, AVI)</p>
+                                                <p>Images (JPG, PNG), Videos (MP4, MOV, AVI)</p>
                                                 <div class="upload-limit">
                                                     <small>Max 10MB per file</small>
                                                 </div>
@@ -2385,6 +2420,8 @@
                                                         <span>You can upload up to <strong id="maxFilesDisplay">6</strong> files per post</span>
                                                     </div>
                                                 </div>
+                                            </div>
+                                        </div>
                                         
                                         <!-- Pre-Upload Information -->
                                         <div class="pre-upload-info" id="preUploadInfo" style="display: none;">
@@ -2423,7 +2460,7 @@
                                         
                                             </div>
                                         </div>
-                                        <input type="file" id="mediaFiles" multiple accept="image/*,video/*" hidden>
+                                        <input type="file" id="mediaFiles" multiple accept="image/*,video/*,audio/*" hidden>
                                         
                                         <div id="fileList" class="file-preview-grid">
                                             <!-- Selected files will be displayed here -->
@@ -2542,11 +2579,271 @@
             }
         });
         
-        // External JavaScript file handles all functionality
-        /*
+        // Voice Recording Functionality
+        class VoiceRecorder {
+            constructor() {
+                this.mediaRecorder = null;
+                this.audioChunks = [];
+                this.recordedAudio = null;
+                this.isRecording = false;
+                
+                this.recordButton = document.getElementById('recordButton');
+                this.stopButton = document.getElementById('stopButton');
+                this.playButton = document.getElementById('playButton');
+                this.audioPreview = document.getElementById('audioPreview');
+                this.audioPlayer = document.getElementById('audioPlayer');
+                this.voiceFiles = document.getElementById('voiceFiles');
+                
+                this.setupEventListeners();
+            }
+            
+            setupEventListeners() {
+                // Prevent duplicate event listeners
+                if (this._eventListenersSetup) {
+                    console.log('Event listeners already setup, skipping');
+                    return;
+                }
+                this._eventListenersSetup = true;
+                
+                if (this.recordButton) {
+                    this.recordButton.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.startRecording();
+                    });
+                }
+                if (this.stopButton) {
+                    this.stopButton.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.stopRecording();
+                    });
+                }
+                if (this.playButton) {
+                    this.playButton.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.playRecording();
+                    });
+                }
+                if (this.voiceFiles) {
+                    this.voiceFiles.addEventListener('change', (e) => this.handleVoiceFileUpload(e));
+                }
+                
+                // Add upload audio button handler
+                const uploadAudioBtn = document.getElementById('uploadAudioBtn');
+                if (uploadAudioBtn) {
+                    uploadAudioBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.voiceFiles.click();
+                    });
+                }
+            }
+            
+            async startRecording() {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    this.mediaRecorder = new MediaRecorder(stream);
+                    this.audioChunks = [];
+                    
+                    this.mediaRecorder.ondataavailable = (event) => {
+                        console.log('Audio data available:', event.data.size, 'bytes');
+                        this.audioChunks.push(event.data);
+                    };
+                    
+                    this.mediaRecorder.onstop = () => {
+                        console.log('Recording stopped, processing audio chunks...');
+                        const audioBlob = new Blob(this.audioChunks, { type: 'audio/wav' });
+                        console.log('Created audio blob:', audioBlob.size, 'bytes');
+                        this.recordedAudio = audioBlob;
+                        this.updateUI();
+                        this.addRecordedAudioToFiles();
+                    };
+                    
+                    this.mediaRecorder.start();
+                    this.isRecording = true;
+                    this.updateUI();
+                    
+                } catch (error) {
+                    console.error('Error starting recording:', error);
+                    this.showError('Could not access microphone. Please check permissions.');
+                }
+            }
+            
+            stopRecording() {
+                if (this.mediaRecorder && this.isRecording) {
+                    this.mediaRecorder.stop();
+                    this.isRecording = false;
+                    this.updateUI();
+                }
+            }
+            
+            playRecording() {
+                if (this.recordedAudio) {
+                    const audioUrl = URL.createObjectURL(this.recordedAudio);
+                    this.audioPlayer.src = audioUrl;
+                    this.audioPlayer.play();
+                }
+            }
+            
+            handleVoiceFileUpload(event) {
+                const files = Array.from(event.target.files);
+                files.forEach(file => {
+                    if (file.type.startsWith('audio/')) {
+                        this.addVoiceFileToFiles(file);
+                    }
+                });
+            }
+            
+            addRecordedAudioToFiles() {
+                console.log('=== RECORDED AUDIO ADDITION DEBUG ===');
+                console.log('addRecordedAudioToFiles called');
+                console.log('this.recordedAudio exists:', !!this.recordedAudio);
+                
+                if (this.recordedAudio) {
+                    console.log('Creating file from recorded audio...');
+                    console.log('Recorded audio blob details:', {
+                        size: this.recordedAudio.size,
+                        type: this.recordedAudio.type
+                    });
+                    
+                    // Create a file-like object from the recorded audio
+                    const audioFile = new File([this.recordedAudio], 'voice_recording.wav', {
+                        type: 'audio/wav'
+                    });
+                    console.log('Created audio file:', audioFile.name, audioFile.size, audioFile.type);
+                    
+                    // Call addVoiceFileToFiles to add it to the external JS file's selectedFiles
+                    this.addVoiceFileToFiles(audioFile);
+                } else {
+                    console.log('No recorded audio to add');
+                }
+                console.log('=== END RECORDED AUDIO ADDITION DEBUG ===');
+            }
+            
+            addVoiceFileToFiles(audioFile) {
+                console.log('=== VOICE FILE ADDITION DEBUG ===');
+                console.log('Adding voice file to files:', audioFile.name);
+                console.log('Audio file details:', {
+                    name: audioFile.name,
+                    size: audioFile.size,
+                    type: audioFile.type
+                });
+                
+                // Check if eventDetailManager is available
+                console.log('window.eventDetailManager exists:', !!window.eventDetailManager);
+                console.log('window.eventDetailManager.selectedFiles exists:', !!(window.eventDetailManager && window.eventDetailManager.selectedFiles));
+                
+                // Add to the external JavaScript file's selectedFiles array
+                if (window.eventDetailManager && window.eventDetailManager.selectedFiles) {
+                    console.log('Adding to eventDetailManager.selectedFiles');
+                    console.log('Current selectedFiles length before:', window.eventDetailManager.selectedFiles.length);
+                    
+                    window.eventDetailManager.selectedFiles.push(audioFile);
+                    console.log('Voice file added to selectedFiles:', audioFile.name);
+                    console.log('Current selectedFiles length after:', window.eventDetailManager.selectedFiles.length);
+                    
+                    // Update the file display
+                    window.eventDetailManager.renderFilePreviews();
+                    console.log('File display updated');
+                    
+                    // Show success message
+                    const recordingStatus = document.getElementById('recordingStatus');
+                    if (recordingStatus) {
+                        recordingStatus.innerHTML += '<div class="success">✅ Voice file added successfully!</div>';
+                    }
+                } else {
+                    console.log('eventDetailManager not available, falling back to window.selectedFiles');
+                    console.log('window.eventDetailManager:', window.eventDetailManager);
+                    console.log('window.eventDetailManager.selectedFiles:', window.eventDetailManager?.selectedFiles);
+                    
+                    // Fallback: add to window.selectedFiles
+                    if (window.selectedFiles) {
+                        window.selectedFiles.push(audioFile);
+                        console.log('Voice file added to window.selectedFiles:', audioFile.name);
+                    } else {
+                        console.log('window.selectedFiles also not available!');
+                    }
+                }
+                console.log('=== END VOICE FILE ADDITION DEBUG ===');
+            }
+            
+            updateUI() {
+                if (this.isRecording) {
+                    this.recordButton.innerHTML = '<i class="fas fa-microphone"></i> Recording...';
+                    this.recordButton.classList.add('btn-danger');
+                    this.recordButton.classList.remove('btn-outline-danger');
+                    this.recordButton.disabled = true;
+                    this.stopButton.disabled = false;
+                    this.playButton.disabled = true;
+                } else if (this.recordedAudio) {
+                    this.recordButton.innerHTML = '<i class="fas fa-microphone"></i> Start Recording';
+                    this.recordButton.classList.add('btn-outline-danger');
+                    this.recordButton.classList.remove('btn-danger');
+                    this.recordButton.disabled = false;
+                    this.stopButton.disabled = true;
+                    this.playButton.disabled = false;
+                    this.audioPreview.style.display = 'block';
+                } else {
+                    this.recordButton.innerHTML = '<i class="fas fa-microphone"></i> Start Recording';
+                    this.recordButton.classList.add('btn-outline-danger');
+                    this.recordButton.classList.remove('btn-danger');
+                    this.recordButton.disabled = false;
+                    this.stopButton.disabled = true;
+                    this.playButton.disabled = true;
+                    this.audioPreview.style.display = 'none';
+                }
+            }
+            
+            showError(message) {
+                const errorContainer = document.getElementById('errorContainer');
+                if (errorContainer) {
+                    errorContainer.innerHTML = `
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                            <span>${message}</span>
+                        </div>
+                    `;
+                    errorContainer.style.display = 'block';
+                }
+            }
+        }
         
+        // Initialize voice recorder when page loads
+        // External JavaScript file handles all functionality
+        
+        // Global variables for file handling
+        let selectedFiles = [];
+        let currentUploads = {
+            photos: 0,
+            videos: 0,
+            voice: 0,
+            totalFiles: 0
+        };
+        let packageLimits = {};
+        let isSubmitting = false;
+        let formInitialized = false;
+        let processedSubmissions = new Set();
+        let currentSubmissionId = null;
+        let filePreviewInitialized = false;
+        let voiceRecorderInitialized = false;
+        
+        // Make variables globally accessible immediately
+        window.selectedFiles = selectedFiles;
+        window.currentUploads = currentUploads;
+        window.packageLimits = packageLimits;
+        window.isSubmitting = isSubmitting;
+        window.formInitialized = formInitialized;
+        window.processedSubmissions = processedSubmissions;
+        window.currentSubmissionId = currentSubmissionId;
+        window.filePreviewInitialized = filePreviewInitialized;
+        window.voiceRecorderInitialized = voiceRecorderInitialized;
         
         function initializeFilePreview() {
+            // Prevent duplicate initialization
+            if (window.filePreviewInitialized) {
+                console.log('File preview already initialized, skipping');
+                return;
+            }
+            window.filePreviewInitialized = true;
+            
             console.log('Initializing file preview...');
             const fileInput = document.getElementById('mediaFiles');
             const fileList = document.getElementById('fileList');
@@ -2684,54 +2981,68 @@
         }
         
         function handleFiles(files) {
+            console.log('handleFiles called with:', files.length, 'files');
+            console.log('Files details:', Array.from(files).map(f => ({ name: f.name, type: f.type, size: f.size })));
+            
             const fileList = document.getElementById('fileList');
-            if (!fileList) return;
+            if (!fileList) {
+                console.error('fileList element not found!');
+                return;
+            }
             
             // Add new files to existing selection
             const newFiles = Array.from(files);
-            const totalFilesAfterAdd = selectedFiles.length + newFiles.length;
+            const totalFilesAfterAdd = window.selectedFiles.length + newFiles.length;
+            
+            console.log('Current selectedFiles length:', window.selectedFiles.length);
+            console.log('New files to add:', newFiles.length);
+            console.log('Total after add:', totalFilesAfterAdd);
             
             // Check if adding these files would exceed the limit
             if (packageLimits.guestMaxMediaPerPost && totalFilesAfterAdd > packageLimits.guestMaxMediaPerPost) {
-                const remaining = packageLimits.guestMaxMediaPerPost - selectedFiles.length;
+                const remaining = packageLimits.guestMaxMediaPerPost - window.selectedFiles.length;
                 const message = remaining > 0 
                     ? `You can only add ${remaining} more files. You're trying to add ${newFiles.length} files.`
                     : `You've already reached the maximum of ${packageLimits.guestMaxMediaPerPost} files.`;
+                console.log('File limit exceeded:', message);
                 showUploadError(message);
                 return;
             }
             
             // Add new files to the selection
-            selectedFiles = [...selectedFiles, ...newFiles];
+            window.selectedFiles = [...window.selectedFiles, ...newFiles];
             
             // Debug: Log updated selected files
-            console.log('Updated selectedFiles:', selectedFiles);
-            console.log('Total files now:', selectedFiles.length);
+            console.log('Updated selectedFiles:', window.selectedFiles);
+            console.log('Total files now:', window.selectedFiles.length);
             
             // Update counters
-            currentUploads.photos = 0;
-            currentUploads.videos = 0;
-            currentUploads.totalFiles = selectedFiles.length;
+            window.currentUploads.photos = 0;
+            window.currentUploads.videos = 0;
+            window.currentUploads.voice = 0;
+            window.currentUploads.totalFiles = window.selectedFiles.length;
             
             // Count file types
-            selectedFiles.forEach(file => {
+            window.selectedFiles.forEach(file => {
                 if (file.type.startsWith('image/')) {
-                    currentUploads.photos++;
+                    window.currentUploads.photos++;
                 } else if (file.type.startsWith('video/')) {
-                    currentUploads.videos++;
+                    window.currentUploads.videos++;
+                } else if (file.type.startsWith('audio/')) {
+                    window.currentUploads.voice++;
                 }
             });
             
             // Clear existing previews and recreate all
             fileList.innerHTML = '';
             
-            selectedFiles.forEach((file, index) => {
+            window.selectedFiles.forEach((file, index) => {
                 const fileItem = createFilePreview(file, index);
                 fileList.appendChild(fileItem);
             });
             
             // Show file list with animation
-            if (selectedFiles.length > 0) {
+            if (window.selectedFiles.length > 0) {
                 fileList.style.display = 'grid';
                 fileList.style.opacity = '0';
                 fileList.style.transform = 'translateY(20px)';
@@ -2754,6 +3065,9 @@
                 fileInput.value = '';
             }
         }
+        
+        // Make handleFiles available globally immediately
+        window.handleFiles = handleFiles;
         
         function checkUploadLimits() {
             // Main validation: Check guestMaxMediaPerPost (total media files per post)
@@ -2860,6 +3174,7 @@
             
             const isImage = file.type.startsWith('image/');
             const isVideo = file.type.startsWith('video/');
+            const isAudio = file.type.startsWith('audio/');
             
             let previewContent = '';
             
@@ -2881,6 +3196,12 @@
                 previewContent = `
                     <div class="file-preview-icon">
                         <i class="fas fa-video"></i>
+                    </div>
+                `;
+            } else if (isAudio) {
+                previewContent = `
+                    <div class="file-preview-icon" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
+                        <i class="fas fa-microphone"></i>
                     </div>
                 `;
             } else {
@@ -2930,19 +3251,22 @@
             const fileItem = button.closest('.file-preview-item');
             if (fileItem) {
                 // Remove file from selectedFiles array
-                selectedFiles.splice(index, 1);
+                window.selectedFiles.splice(index, 1);
                 
                 // Update counters
-                currentUploads.photos = 0;
-                currentUploads.videos = 0;
-                currentUploads.totalFiles = selectedFiles.length;
+                window.currentUploads.photos = 0;
+                window.currentUploads.videos = 0;
+                window.currentUploads.voice = 0;
+                window.currentUploads.totalFiles = window.selectedFiles.length;
                 
                 // Recount file types
-                selectedFiles.forEach(file => {
+                window.selectedFiles.forEach(file => {
                     if (file.type.startsWith('image/')) {
-                        currentUploads.photos++;
+                        window.currentUploads.photos++;
                     } else if (file.type.startsWith('video/')) {
-                        currentUploads.videos++;
+                        window.currentUploads.videos++;
+                    } else if (file.type.startsWith('audio/')) {
+                        window.currentUploads.voice++;
                     }
                 });
                 
@@ -2955,7 +3279,7 @@
                     fileItem.remove();
                     
                     // Update status or hide if no files
-                    if (currentUploads.totalFiles === 0) {
+                    if (window.currentUploads.totalFiles === 0) {
                         hideUploadStatus();
                     } else {
                         showUploadStatus();
@@ -2964,14 +3288,26 @@
             }
         }
         
+        // Note: submitContribution function is handled by external event-detail-guest.js
+        // This duplicate function has been disabled to prevent double API calls
+        /*
         async function submitContribution() {
-            // Prevent double submission
-            if (isSubmitting) {
+            // Prevent double submission with more robust checks
+            if (window.isSubmitting) {
                 console.log('Already submitting, ignoring duplicate call');
                 return;
             }
             
-            isSubmitting = true;
+            // Add a unique submission ID to prevent race conditions
+            const submissionId = Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            if (window.currentSubmissionId) {
+                console.log('Another submission is already in progress, ignoring');
+                return;
+            }
+            window.currentSubmissionId = submissionId;
+            window.isSubmitting = true;
+            
+            console.log('Starting submission with ID:', submissionId);
             
             // Show loading state
             const submitBtn = document.querySelector('button[type="submit"]');
@@ -2984,37 +3320,64 @@
             
             try {
                 
-                // Check if files are selected
-                if (selectedFiles.length === 0) {
-                    throw new Error('Please select at least one file to upload');
+                // Check if we have either files or wish text
+                const messageInput = document.querySelector('#wishText');
+                const hasWishText = messageInput && messageInput.value.trim();
+                
+                if (window.selectedFiles.length === 0 && !hasWishText) {
+                    throw new Error('Please provide either a message/wish or upload at least one file');
                 }
                 
                 // Get form data
                 const formData = new FormData();
                 
                 // Debug: Log selected files
-                console.log('Selected files:', selectedFiles);
-                console.log('Number of files:', selectedFiles.length);
+                console.log('=== FORM SUBMISSION DEBUG ===');
+                console.log('Selected files:', window.selectedFiles);
+                console.log('Number of files:', window.selectedFiles.length);
                 
-                // Add files with unique field names
-                selectedFiles.forEach((file, index) => {
-                    if (file.type.startsWith('image/')) {
-                        formData.append(`photos`, file);
-                    } else if (file.type.startsWith('video/')) {
-                        formData.append(`videos`, file);
-                    }
+                // Debug: Log file types
+                window.selectedFiles.forEach((file, index) => {
+                    console.log(`File ${index}: ${file.name}, Type: ${file.type}, Size: ${file.size}`);
                 });
+                
+                // Debug: Check if voice recordings are present
+                const voiceFiles = window.selectedFiles.filter(f => f.type.startsWith('audio/'));
+                console.log('Voice files found:', voiceFiles.length);
+                voiceFiles.forEach((file, index) => {
+                    console.log(`Voice file ${index}: ${file.name}, Type: ${file.type}, Size: ${file.size}`);
+                });
+                
+                // Add files with unique field names (only if files exist)
+                if (window.selectedFiles.length > 0) {
+                    window.selectedFiles.forEach((file, index) => {
+                        if (file.type.startsWith('image/')) {
+                            formData.append(`photos`, file);
+                            console.log(`Added photo to FormData: ${file.name}`);
+                        } else if (file.type.startsWith('video/')) {
+                            formData.append(`videos`, file);
+                            console.log(`Added video to FormData: ${file.name}`);
+                        } else if (file.type.startsWith('audio/')) {
+                            formData.append(`voice_recordings`, file);
+                            console.log(`Added voice recording to FormData: ${file.name}`);
+                        } else {
+                            console.log(`Unknown file type: ${file.type} for file: ${file.name}`);
+                        }
+                    });
+                } else {
+                    console.log('No files to add to FormData');
+                }
                 
                 // Add other form fields with correct names
                 const nameInput = document.querySelector('#guestName');
-                const messageInput = document.querySelector('#wishText');
+                const wishTextInput = document.querySelector('#wishText');
                 
                 if (nameInput && nameInput.value.trim()) {
                     formData.append('guest_name', nameInput.value.trim());
                 }
                 
-                if (messageInput && messageInput.value.trim()) {
-                    formData.append('wish_text', messageInput.value.trim());
+                if (wishTextInput && wishTextInput.value.trim()) {
+                    formData.append('wish_text', wishTextInput.value.trim());
                 }
                 
                 // Add guest phone (required field)
@@ -3035,12 +3398,12 @@
                 const submissionId = Date.now() + '_' + Math.random().toString(36).substr(2, 9);
                 
                 // Check if this submission ID was already processed
-                if (processedSubmissions.has(submissionId)) {
+                if (window.processedSubmissions.has(submissionId)) {
                     console.log('Submission ID already processed, skipping');
                     return;
                 }
                 
-                processedSubmissions.add(submissionId);
+                window.processedSubmissions.add(submissionId);
                 formData.append('submission_id', submissionId);
                 console.log('Submission ID:', submissionId);
                 
@@ -3055,6 +3418,16 @@
                 }
                 
                 // Submit to API
+                // Debug: Log FormData contents before sending
+                console.log('FormData contents before sending:');
+                for (let [key, value] of formData.entries()) {
+                    if (value instanceof File) {
+                        console.log(`  ${key}: ${value.name} (${value.size} bytes, ${value.type})`);
+                    } else {
+                        console.log(`  ${key}: ${value}`);
+                    }
+                }
+                
                 const response = await fetch(`${API_CONFIG.BASE_URL}/api/guest-post-create/`, {
                     method: 'POST',
                     body: formData,
@@ -3090,7 +3463,8 @@
                 showUploadError(`Upload failed: ${error.message}`);
             } finally {
                 // Reset button state and submission flag
-                isSubmitting = false;
+                window.isSubmitting = false;
+                window.currentSubmissionId = null;
                 const submitBtn = document.querySelector('button[type="submit"]');
                 if (submitBtn) {
                     submitBtn.disabled = false;
@@ -3098,6 +3472,7 @@
                 }
             }
         }
+        */
         
         function showUploadSuccess(message) {
             const errorContainer = document.getElementById('errorContainer');
@@ -3119,10 +3494,11 @@
         
         function resetForm() {
             // Clear selected files
-            selectedFiles = [];
-            currentUploads.photos = 0;
-            currentUploads.videos = 0;
-            currentUploads.totalFiles = 0;
+            window.selectedFiles = [];
+            window.currentUploads.photos = 0;
+            window.currentUploads.videos = 0;
+            window.currentUploads.voice = 0;
+            window.currentUploads.totalFiles = 0;
             
             // Clear file preview
             const fileList = document.getElementById('fileList');
@@ -3146,65 +3522,62 @@
             if (fileInput) {
                 fileInput.value = '';
             }
+            
+            // Reset voice recorder
+            if (window.voiceRecorder) {
+                window.voiceRecorder.recordedAudio = null;
+                window.voiceRecorder.updateUI();
+            }
+            
+            // Clear voice file input
+            const voiceFiles = document.getElementById('voiceFiles');
+            if (voiceFiles) {
+                voiceFiles.value = '';
+            }
         }
         
         // Initialize file preview when page loads
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM loaded, initializing...');
             
+            // Initialize voice recorder
             try {
-                initializeFilePreview();
-                console.log('File preview initialized');
+                if (window.voiceRecorderInitialized) {
+                    console.log('Voice recorder already initialized, skipping');
+                } else {
+                    window.voiceRecorderInitialized = true;
+                    window.voiceRecorder = new VoiceRecorder();
+                    console.log('Voice recorder initialized');
+                }
             } catch (error) {
-                console.error('Error initializing file preview:', error);
+                console.error('Error initializing voice recorder:', error);
+            }
+            
+            try {
+                // Note: File upload is handled by external event-detail-guest.js
+                // No need to initialize file preview here to avoid conflicts
+                console.log('File upload handled by external JavaScript file');
+            } catch (error) {
+                console.error('Error in file upload initialization:', error);
             }
             
             // Add form validation (prevent duplicate initialization)
             const contributionForm = document.getElementById('contributionForm');
             console.log('Contribution form found:', !!contributionForm);
             
-            if (contributionForm && !formInitialized) {
-                formInitialized = true;
-                console.log('Adding form submit listener');
-                
-                contributionForm.addEventListener('submit', function(e) {
-                    e.preventDefault();
-                    console.log('Form submit event triggered');
-                    
-                    // Prevent double submission
-                    const submitBtn = document.querySelector('button[type="submit"]');
-                    if (submitBtn && submitBtn.disabled) {
-                        console.log('Form already submitting, ignoring duplicate submission');
-                        return;
-                    }
-                    
-                    if (isSubmitting) {
-                        console.log('Already submitting, ignoring duplicate submission');
-                        return;
-                    }
-                    
-                    // Add a small delay to prevent rapid clicking
-                    setTimeout(() => {
-                        if (isSubmitting) {
-                            console.log('Submission already started during delay, ignoring');
-                            return;
-                        }
-                    
-                        // Validate upload limits
-                        const uploadValidation = checkUploadLimits();
-                        if (!uploadValidation.allowed) {
-                            showUploadError(uploadValidation.message);
-                            return;
-                        }
-                        
-                        // If all validations pass, proceed with form submission
-                        console.log('Form validation passed. Ready to submit.');
-                        submitContribution();
-                    }, 100); // 100ms delay to prevent rapid clicking
-                });
-            }
+            // Note: Form submission is handled by external event-detail-guest.js
+            // No need to add duplicate event listener here
         });
-        */
+        
+        // Ensure API_CONFIG is available
+        if (typeof API_CONFIG === 'undefined') {
+            window.API_CONFIG = {
+                BASE_URL: 'http://localhost:8000'
+            };
+        }
+        
+        // Make toggleContributionForm available globally
+        window.toggleContributionForm = toggleContributionForm;
     </script>
 </body>
 </html>

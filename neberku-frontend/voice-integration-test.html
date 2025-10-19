@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Recording Integration Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .test-section { background: white; padding: 20px; margin: 20px 0; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .success { background: #d4edda; color: #155724; padding: 10px; border-radius: 5px; margin: 10px 0; }
+        .error { background: #f8d7da; color: #721c24; padding: 10px; border-radius: 5px; margin: 10px 0; }
+        .info { background: #d1ecf1; color: #0c5460; padding: 10px; border-radius: 5px; margin: 10px 0; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; border: none; border-radius: 5px; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-info { background: #17a2b8; color: white; }
+        .log { background: #f8f9fa; border: 1px solid #dee2e6; padding: 10px; border-radius: 5px; margin: 10px 0; font-family: monospace; font-size: 12px; max-height: 400px; overflow-y: auto; }
+        .upload-area { border: 2px dashed #ccc; padding: 20px; text-align: center; margin: 10px 0; cursor: pointer; }
+        .upload-area:hover { border-color: #007bff; background: #f8f9fa; }
+        .form-group { margin: 15px 0; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input, .form-group textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>🎤 Voice Recording Integration Test</h1>
+    
+    <div class="test-section">
+        <h2>1. File Upload Test (Should Open Dialog ONCE)</h2>
+        <div class="upload-area" id="uploadArea">
+            <p>Click here to upload files (should open dialog ONCE)</p>
+        </div>
+        <input type="file" id="fileInput" multiple style="display: none;">
+        <div id="fileUploadTest"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>2. Voice Recording Test</h2>
+        <button class="btn-danger" id="recordBtn">🎤 Start Recording</button>
+        <button class="btn-danger" id="stopBtn" disabled>⏹️ Stop Recording</button>
+        <button class="btn-success" id="playBtn" disabled>▶️ Play Recording</button>
+        <div id="audioPreview" style="display: none; margin: 10px 0;">
+            <audio id="audioPlayer" controls style="width: 100%;"></audio>
+        </div>
+        <div id="recordingStatus"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>3. Voice File Upload Test</h2>
+        <input type="file" id="voiceFiles" accept="audio/*" multiple style="display: none;">
+        <button type="button" id="uploadAudioBtn" class="btn-info">Upload Audio Files</button>
+        <div id="voiceUploadTest"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>4. Selected Files Display</h2>
+        <button class="btn-primary" onclick="showSelectedFiles()">Show Selected Files</button>
+        <div id="selectedFilesDisplay"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>5. Form Submission Test</h2>
+        <form id="testForm">
+            <div class="form-group">
+                <label for="guestName">Guest Name:</label>
+                <input type="text" id="guestName" value="Test User">
+            </div>
+            <div class="form-group">
+                <label for="guestPhone">Phone:</label>
+                <input type="tel" id="guestPhone" value="1234567890">
+            </div>
+            <div class="form-group">
+                <label for="wishText">Wish Text:</label>
+                <textarea id="wishText">Test voice recording submission</textarea>
+            </div>
+            <button type="submit" class="btn-success">Submit Form (should call API ONCE)</button>
+        </form>
+        <div id="formTestResult"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>6. Debug Log</h2>
+        <button class="btn-primary" onclick="clearLog()">Clear Log</button>
+        <div id="debugLog" class="log"></div>
+    </div>
+
+    <script>
+        // Simulate the external JavaScript file's EventDetailGuestManager
+        class EventDetailGuestManager {
+            constructor() {
+                this.selectedFiles = [];
+                this.currentEvent = { id: 'fe15f8b3-16ef-489c-9d60-872ed84b6784' };
+                log('EventDetailGuestManager initialized');
+            }
+            
+            updateFileDisplay() {
+                log(`updateFileDisplay called - ${this.selectedFiles.length} files`);
+                const display = document.getElementById('selectedFilesDisplay');
+                if (display) {
+                    let html = `<div class="info"><strong>Selected Files (${this.selectedFiles.length}):</strong></div>`;
+                    this.selectedFiles.forEach((file, index) => {
+                        const type = file.type.startsWith('audio/') ? '🎤 Voice' : 
+                                   file.type.startsWith('image/') ? '📷 Photo' : 
+                                   file.type.startsWith('video/') ? '🎥 Video' : '📄 File';
+                        html += `<div>${index + 1}. ${type}: ${file.name} (${(file.size / 1024).toFixed(1)} KB)</div>`;
+                    });
+                    display.innerHTML = html;
+                }
+            }
+            
+            async submitContribution() {
+                log('submitContribution called');
+                
+                const formData = new FormData();
+                formData.append('event', this.currentEvent.id);
+                formData.append('guest_name', document.getElementById('guestName').value);
+                formData.append('guest_phone', document.getElementById('guestPhone').value);
+                formData.append('wish_text', document.getElementById('wishText').value);
+                
+                // Process media files
+                let photoCount = 0;
+                let videoCount = 0;
+                let voiceCount = 0;
+                
+                for (let i = 0; i < this.selectedFiles.length; i++) {
+                    const file = this.selectedFiles[i];
+                    if (file.type.startsWith('image/')) {
+                        formData.append('photos', file);
+                        photoCount++;
+                    } else if (file.type.startsWith('video/')) {
+                        formData.append('videos', file);
+                        videoCount++;
+                    } else if (file.type.startsWith('audio/')) {
+                        formData.append('voice_recordings', file);
+                        voiceCount++;
+                    }
+                }
+                
+                log(`Processing ${this.selectedFiles.length} files: ${photoCount} photos, ${videoCount} videos, ${voiceCount} voice recordings`);
+                
+                // Log FormData contents
+                log('FormData contents:');
+                for (let [key, value] of formData.entries()) {
+                    if (value instanceof File) {
+                        log(`  ${key}: ${value.name} (${value.size} bytes, ${value.type})`);
+                    } else {
+                        log(`  ${key}: ${value}`);
+                    }
+                }
+                
+                const result = document.getElementById('formTestResult');
+                result.innerHTML = `<div class="success">✅ Form submitted successfully! (${photoCount} photos, ${videoCount} videos, ${voiceCount} voice recordings)</div>`;
+            }
+        }
+        
+        // Global variables
+        let apiCallCount = 0;
+        let isSubmitting = false;
+        
+        // Make eventDetailManager globally accessible
+        window.eventDetailManager = new EventDetailGuestManager();
+        
+        // Debug logging function
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('debugLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${type.toUpperCase()}: ${message}`;
+            logDiv.innerHTML += logEntry + '\n';
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(logEntry);
+        }
+        
+        function clearLog() {
+            document.getElementById('debugLog').innerHTML = '';
+        }
+        
+        // Show selected files
+        function showSelectedFiles() {
+            window.eventDetailManager.updateFileDisplay();
+        }
+        
+        // Voice Recording Test
+        class VoiceRecorder {
+            constructor() {
+                log('VoiceRecorder constructor called');
+                this.mediaRecorder = null;
+                this.audioChunks = [];
+                this.recordedAudio = null;
+                this.isRecording = false;
+                
+                this.recordButton = document.getElementById('recordBtn');
+                this.stopButton = document.getElementById('stopBtn');
+                this.playButton = document.getElementById('playBtn');
+                this.audioPreview = document.getElementById('audioPreview');
+                this.audioPlayer = document.getElementById('audioPlayer');
+                
+                this.setupEventListeners();
+            }
+            
+            setupEventListeners() {
+                if (this.recordButton) {
+                    this.recordButton.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        log('Record button clicked');
+                        this.startRecording();
+                    });
+                }
+                if (this.stopButton) {
+                    this.stopButton.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        log('Stop button clicked');
+                        this.stopRecording();
+                    });
+                }
+                if (this.playButton) {
+                    this.playButton.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        log('Play button clicked');
+                        this.playRecording();
+                    });
+                }
+            }
+            
+            async startRecording() {
+                try {
+                    log('Starting recording...');
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    this.mediaRecorder = new MediaRecorder(stream);
+                    this.audioChunks = [];
+                    
+                    this.mediaRecorder.ondataavailable = (event) => {
+                        log(`Audio data available: ${event.data.size} bytes`);
+                        this.audioChunks.push(event.data);
+                    };
+                    
+                    this.mediaRecorder.onstop = () => {
+                        log('Recording stopped, processing audio chunks...');
+                        const audioBlob = new Blob(this.audioChunks, { type: 'audio/wav' });
+                        log(`Created audio blob: ${audioBlob.size} bytes`);
+                        this.recordedAudio = audioBlob;
+                        this.updateUI();
+                        this.addToSelectedFiles();
+                    };
+                    
+                    this.mediaRecorder.start();
+                    this.isRecording = true;
+                    this.updateUI();
+                    this.recordingStatus.innerHTML = '<div class="info">🎤 Recording... Speak into your microphone</div>';
+                    log('Recording started successfully');
+                    
+                } catch (error) {
+                    this.recordingStatus.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+                    log(`Recording error: ${error.message}`, 'error');
+                }
+            }
+            
+            stopRecording() {
+                if (this.mediaRecorder && this.isRecording) {
+                    this.mediaRecorder.stop();
+                    this.isRecording = false;
+                    this.updateUI();
+                    log('Recording stopped');
+                }
+            }
+            
+            playRecording() {
+                if (this.recordedAudio) {
+                    const audioUrl = URL.createObjectURL(this.recordedAudio);
+                    this.audioPlayer.src = audioUrl;
+                    this.audioPlayer.play();
+                    log('Playing recorded audio');
+                }
+            }
+            
+            addToSelectedFiles() {
+                if (this.recordedAudio) {
+                    log('Adding recorded audio to selectedFiles...');
+                    const audioFile = new File([this.recordedAudio], 'voice_recording.wav', {
+                        type: 'audio/wav'
+                    });
+                    log(`Created audio file: ${audioFile.name}, ${audioFile.size} bytes, ${audioFile.type}`);
+                    
+                    // Add to the external JavaScript file's selectedFiles array
+                    if (window.eventDetailManager && window.eventDetailManager.selectedFiles) {
+                        log('Adding to eventDetailManager.selectedFiles');
+                        window.eventDetailManager.selectedFiles.push(audioFile);
+                        log('Voice file added to selectedFiles:', audioFile.name);
+                        log('Total files now:', window.eventDetailManager.selectedFiles.length);
+                        
+                        // Update the file display
+                        window.eventDetailManager.updateFileDisplay();
+                        
+                        // Show success message
+                        const recordingStatus = document.getElementById('recordingStatus');
+                        if (recordingStatus) {
+                            recordingStatus.innerHTML += '<div class="success">✅ Voice file added successfully!</div>';
+                        }
+                    } else {
+                        log('eventDetailManager not available', 'error');
+                    }
+                }
+            }
+            
+            updateUI() {
+                if (this.isRecording) {
+                    this.recordButton.textContent = '🎤 Recording...';
+                    this.recordButton.disabled = true;
+                    this.stopBtn.disabled = false;
+                    this.playBtn.disabled = true;
+                } else if (this.recordedAudio) {
+                    this.recordButton.textContent = '🎤 Start Recording';
+                    this.recordButton.disabled = false;
+                    this.stopBtn.disabled = true;
+                    this.playBtn.disabled = false;
+                    this.audioPreview.style.display = 'block';
+                } else {
+                    this.recordButton.textContent = '🎤 Start Recording';
+                    this.recordButton.disabled = false;
+                    this.stopBtn.disabled = true;
+                    this.playBtn.disabled = true;
+                    this.audioPreview.style.display = 'none';
+                }
+            }
+        }
+        
+        // File Upload Test (simulate external JS file behavior)
+        function initializeFileUpload() {
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('fileInput');
+            
+            if (uploadArea && fileInput) {
+                uploadArea.addEventListener('click', function() {
+                    log('Upload area clicked - opening file dialog');
+                    fileInput.click();
+                });
+                
+                fileInput.addEventListener('change', function(e) {
+                    log(`File input changed - ${e.target.files.length} files selected`);
+                    const files = Array.from(e.target.files);
+                    files.forEach(file => {
+                        window.eventDetailManager.selectedFiles.push(file);
+                        log(`Added file to selectedFiles: ${file.name}`);
+                    });
+                    window.eventDetailManager.updateFileDisplay();
+                    
+                    const result = document.getElementById('fileUploadTest');
+                    result.innerHTML = `<div class="success">✅ Selected ${e.target.files.length} files</div>`;
+                });
+                
+                log('File upload initialized');
+            }
+        }
+        
+        // Voice File Upload Test
+        function initializeVoiceUpload() {
+            const voiceFiles = document.getElementById('voiceFiles');
+            const uploadAudioBtn = document.getElementById('uploadAudioBtn');
+            
+            if (voiceFiles && uploadAudioBtn) {
+                uploadAudioBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    log('Upload audio button clicked');
+                    voiceFiles.click();
+                });
+                
+                voiceFiles.addEventListener('change', function(e) {
+                    log(`Voice files selected - ${e.target.files.length} files`);
+                    const files = Array.from(e.target.files);
+                    files.forEach(file => {
+                        if (file.type.startsWith('audio/')) {
+                            window.eventDetailManager.selectedFiles.push(file);
+                            log(`Added voice file to selectedFiles: ${file.name}`);
+                        }
+                    });
+                    window.eventDetailManager.updateFileDisplay();
+                    
+                    const result = document.getElementById('voiceUploadTest');
+                    result.innerHTML = `<div class="success">✅ Selected ${e.target.files.length} voice files</div>`;
+                });
+                
+                log('Voice file upload initialized');
+            }
+        }
+        
+        // Form Submission Test
+        function initializeForm() {
+            const testForm = document.getElementById('testForm');
+            if (testForm) {
+                testForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    log('Form submit event triggered');
+                    
+                    if (isSubmitting) {
+                        log('Already submitting, ignoring duplicate submission', 'error');
+                        return;
+                    }
+                    
+                    isSubmitting = true;
+                    apiCallCount++;
+                    log(`Starting form submission... (API call #${apiCallCount})`);
+                    
+                    // Call the external JS file's submitContribution method
+                    window.eventDetailManager.submitContribution();
+                    
+                    setTimeout(() => {
+                        isSubmitting = false;
+                        log(`Form submission completed`);
+                    }, 1000);
+                });
+                
+                log('Form initialized');
+            }
+        }
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            log('DOM loaded, initializing tests...');
+            
+            // Initialize voice recorder
+            window.voiceRecorder = new VoiceRecorder();
+            
+            // Initialize file upload
+            initializeFileUpload();
+            
+            // Initialize voice file upload
+            initializeVoiceUpload();
+            
+            // Initialize form
+            initializeForm();
+            
+            log('All tests initialized and ready');
+        });
+    </script>
+</body>
+</html>

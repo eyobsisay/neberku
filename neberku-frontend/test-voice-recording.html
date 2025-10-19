@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Recording Test - Guest Post Creation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input[type="text"], input[type="file"], textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        .file-input-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .file-input-group > div {
+            flex: 1;
+            min-width: 200px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .record-button {
+            background-color: #dc3545;
+        }
+        .record-button:hover {
+            background-color: #c82333;
+        }
+        .record-button.recording {
+            background-color: #28a745;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 5px;
+            display: none;
+        }
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .audio-preview {
+            margin-top: 10px;
+        }
+        .audio-preview audio {
+            width: 100%;
+        }
+        .instructions {
+            background-color: #e7f3ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border-left: 4px solid #007bff;
+        }
+        .instructions h3 {
+            margin-top: 0;
+            color: #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 Voice Recording Test</h1>
+        
+        <div class="instructions">
+            <h3>Instructions:</h3>
+            <ol>
+                <li>Enter the Event ID you want to test with</li>
+                <li>Fill in guest information</li>
+                <li>Record a voice message or upload audio files</li>
+                <li>Optionally add photos and videos</li>
+                <li>Click "Create Guest Post" to test the voice recording functionality</li>
+            </ol>
+        </div>
+
+        <form id="guestPostForm">
+            <div class="form-group">
+                <label for="eventId">Event ID:</label>
+                <input type="text" id="eventId" name="eventId" placeholder="Enter Event UUID" required>
+            </div>
+
+            <div class="form-group">
+                <label for="guestName">Guest Name:</label>
+                <input type="text" id="guestName" name="guestName" placeholder="Enter guest name" required>
+            </div>
+
+            <div class="form-group">
+                <label for="guestPhone">Guest Phone:</label>
+                <input type="text" id="guestPhone" name="guestPhone" placeholder="Enter phone number" required>
+            </div>
+
+            <div class="form-group">
+                <label for="wishText">Wish Text:</label>
+                <textarea id="wishText" name="wishText" placeholder="Share your wish, message, or thoughts for the event" required></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Voice Recording:</label>
+                <div>
+                    <button type="button" id="recordButton" class="record-button">🎤 Start Recording</button>
+                    <button type="button" id="stopButton" class="record-button" disabled>⏹️ Stop Recording</button>
+                    <button type="button" id="playButton" disabled>▶️ Play Recording</button>
+                </div>
+                <div class="audio-preview" id="audioPreview" style="display: none;">
+                    <audio id="audioPlayer" controls></audio>
+                </div>
+                <input type="file" id="voiceFile" name="voiceFile" accept="audio/*" multiple>
+                <small>You can record a voice message or upload audio files (MP3, WAV, M4A, AAC)</small>
+            </div>
+
+            <div class="form-group">
+                <label>Media Files:</label>
+                <div class="file-input-group">
+                    <div>
+                        <label for="photoFiles">Photos:</label>
+                        <input type="file" id="photoFiles" name="photoFiles" accept="image/*" multiple>
+                    </div>
+                    <div>
+                        <label for="videoFiles">Videos:</label>
+                        <input type="file" id="videoFiles" name="videoFiles" accept="video/*" multiple>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit">📝 Create Guest Post</button>
+        </form>
+
+        <div id="status" class="status"></div>
+    </div>
+
+    <script>
+        class VoiceRecorder {
+            constructor() {
+                this.mediaRecorder = null;
+                this.audioChunks = [];
+                this.recordedAudio = null;
+                this.isRecording = false;
+                
+                this.recordButton = document.getElementById('recordButton');
+                this.stopButton = document.getElementById('stopButton');
+                this.playButton = document.getElementById('playButton');
+                this.audioPreview = document.getElementById('audioPreview');
+                this.audioPlayer = document.getElementById('audioPlayer');
+                
+                this.setupEventListeners();
+            }
+            
+            setupEventListeners() {
+                this.recordButton.addEventListener('click', () => this.startRecording());
+                this.stopButton.addEventListener('click', () => this.stopRecording());
+                this.playButton.addEventListener('click', () => this.playRecording());
+            }
+            
+            async startRecording() {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    this.mediaRecorder = new MediaRecorder(stream);
+                    this.audioChunks = [];
+                    
+                    this.mediaRecorder.ondataavailable = (event) => {
+                        this.audioChunks.push(event.data);
+                    };
+                    
+                    this.mediaRecorder.onstop = () => {
+                        const audioBlob = new Blob(this.audioChunks, { type: 'audio/wav' });
+                        this.recordedAudio = audioBlob;
+                        this.updateUI();
+                    };
+                    
+                    this.mediaRecorder.start();
+                    this.isRecording = true;
+                    this.updateUI();
+                    
+                } catch (error) {
+                    console.error('Error starting recording:', error);
+                    this.showStatus('Error: Could not access microphone. Please check permissions.', 'error');
+                }
+            }
+            
+            stopRecording() {
+                if (this.mediaRecorder && this.isRecording) {
+                    this.mediaRecorder.stop();
+                    this.isRecording = false;
+                    this.updateUI();
+                }
+            }
+            
+            playRecording() {
+                if (this.recordedAudio) {
+                    const audioUrl = URL.createObjectURL(this.recordedAudio);
+                    this.audioPlayer.src = audioUrl;
+                    this.audioPlayer.play();
+                }
+            }
+            
+            updateUI() {
+                if (this.isRecording) {
+                    this.recordButton.textContent = '🔴 Recording...';
+                    this.recordButton.classList.add('recording');
+                    this.recordButton.disabled = true;
+                    this.stopButton.disabled = false;
+                    this.playButton.disabled = true;
+                } else if (this.recordedAudio) {
+                    this.recordButton.textContent = '🎤 Start Recording';
+                    this.recordButton.classList.remove('recording');
+                    this.recordButton.disabled = false;
+                    this.stopButton.disabled = true;
+                    this.playButton.disabled = false;
+                    this.audioPreview.style.display = 'block';
+                } else {
+                    this.recordButton.textContent = '🎤 Start Recording';
+                    this.recordButton.classList.remove('recording');
+                    this.recordButton.disabled = false;
+                    this.stopButton.disabled = true;
+                    this.playButton.disabled = true;
+                    this.audioPreview.style.display = 'none';
+                }
+            }
+            
+            getRecordedAudio() {
+                return this.recordedAudio;
+            }
+        }
+        
+        class GuestPostCreator {
+            constructor() {
+                this.form = document.getElementById('guestPostForm');
+                this.status = document.getElementById('status');
+                this.voiceRecorder = new VoiceRecorder();
+                
+                this.setupEventListeners();
+            }
+            
+            setupEventListeners() {
+                this.form.addEventListener('submit', (e) => this.handleSubmit(e));
+            }
+            
+            async handleSubmit(e) {
+                e.preventDefault();
+                
+                const formData = new FormData();
+                const eventId = document.getElementById('eventId').value;
+                const guestName = document.getElementById('guestName').value;
+                const guestPhone = document.getElementById('guestPhone').value;
+                const wishText = document.getElementById('wishText').value;
+                
+                // Add basic form data
+                formData.append('event', eventId);
+                formData.append('guest_name', guestName);
+                formData.append('guest_phone', guestPhone);
+                formData.append('wish_text', wishText);
+                
+                // Add voice recording if available
+                const recordedAudio = this.voiceRecorder.getRecordedAudio();
+                if (recordedAudio) {
+                    formData.append('voice_recordings', recordedAudio, 'voice_recording.wav');
+                }
+                
+                // Add uploaded voice files
+                const voiceFiles = document.getElementById('voiceFile').files;
+                for (let file of voiceFiles) {
+                    formData.append('voice_recordings', file);
+                }
+                
+                // Add photos
+                const photoFiles = document.getElementById('photoFiles').files;
+                for (let file of photoFiles) {
+                    formData.append('photos', file);
+                }
+                
+                // Add videos
+                const videoFiles = document.getElementById('videoFiles').files;
+                for (let file of videoFiles) {
+                    formData.append('videos', file);
+                }
+                
+                try {
+                    this.showStatus('Creating guest post...', 'info');
+                    
+                    const response = await fetch('/api/guest-post-create/', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (response.ok) {
+                        this.showStatus(
+                            `Success! Guest post created with ${result.total_media_files} media files ` +
+                            `(Photos: ${result.photo_count}, Videos: ${result.video_count}, Voice: ${result.voice_count})`,
+                            'success'
+                        );
+                        this.form.reset();
+                        this.voiceRecorder.recordedAudio = null;
+                        this.voiceRecorder.updateUI();
+                    } else {
+                        this.showStatus(`Error: ${result.error || 'Failed to create guest post'}`, 'error');
+                    }
+                    
+                } catch (error) {
+                    console.error('Error:', error);
+                    this.showStatus(`Error: ${error.message}`, 'error');
+                }
+            }
+            
+            showStatus(message, type) {
+                this.status.textContent = message;
+                this.status.className = `status ${type}`;
+                this.status.style.display = 'block';
+                
+                if (type === 'success') {
+                    setTimeout(() => {
+                        this.status.style.display = 'none';
+                    }, 5000);
+                }
+            }
+        }
+        
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', () => {
+            new GuestPostCreator();
+        });
+    </script>
+</body>
+</html>

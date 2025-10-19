@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Voice Recording Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
+        button { padding: 10px 20px; margin: 10px; border: none; border-radius: 5px; cursor: pointer; }
+        .record { background: #dc3545; color: white; }
+        .stop { background: #6c757d; color: white; }
+        .play { background: #007bff; color: white; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        audio { width: 100%; margin: 10px 0; }
+        .log { background: #f8f9fa; border: 1px solid #dee2e6; padding: 10px; margin: 10px 0; font-family: monospace; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <h1>Simple Voice Recording Test</h1>
+    
+    <button id="recordBtn" class="record">Start Recording</button>
+    <button id="stopBtn" class="stop" disabled>Stop Recording</button>
+    <button id="playBtn" class="play" disabled>Play Recording</button>
+    
+    <div id="audioPreview" style="display: none;">
+        <audio id="audioPlayer" controls></audio>
+    </div>
+    
+    <div id="log" class="log"></div>
+
+    <script>
+        let selectedFiles = [];
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let recordedAudio = null;
+
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}\n`;
+            console.log(message);
+        }
+
+        document.getElementById('recordBtn').addEventListener('click', async () => {
+            try {
+                log('Starting recording...');
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = (event) => {
+                    log(`Audio data: ${event.data.size} bytes`);
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = () => {
+                    log('Recording stopped');
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    log(`Created blob: ${audioBlob.size} bytes`);
+                    recordedAudio = audioBlob;
+                    
+                    // Create file from blob
+                    const audioFile = new File([audioBlob], 'voice_recording.wav', {
+                        type: 'audio/wav'
+                    });
+                    log(`Created file: ${audioFile.name}, ${audioFile.size} bytes, ${audioFile.type}`);
+                    
+                    // Add to selectedFiles
+                    selectedFiles.push(audioFile);
+                    log(`Added to selectedFiles. Total files: ${selectedFiles.length}`);
+                    
+                    // Update UI
+                    document.getElementById('recordBtn').disabled = false;
+                    document.getElementById('stopBtn').disabled = true;
+                    document.getElementById('playBtn').disabled = false;
+                    document.getElementById('audioPreview').style.display = 'block';
+                };
+
+                mediaRecorder.start();
+                document.getElementById('recordBtn').disabled = true;
+                document.getElementById('stopBtn').disabled = false;
+                log('Recording started');
+
+            } catch (error) {
+                log(`Error: ${error.message}`);
+            }
+        });
+
+        document.getElementById('stopBtn').addEventListener('click', () => {
+            if (mediaRecorder) {
+                mediaRecorder.stop();
+                log('Stopping recording...');
+            }
+        });
+
+        document.getElementById('playBtn').addEventListener('click', () => {
+            if (recordedAudio) {
+                const audioUrl = URL.createObjectURL(recordedAudio);
+                document.getElementById('audioPlayer').src = audioUrl;
+                document.getElementById('audioPlayer').play();
+                log('Playing recording...');
+            }
+        });
+
+        // Test FormData creation
+        function testFormData() {
+            log('Testing FormData creation...');
+            const formData = new FormData();
+            
+            selectedFiles.forEach((file, index) => {
+                if (file.type.startsWith('audio/')) {
+                    formData.append('voice_recordings', file);
+                    log(`Added voice recording: ${file.name}`);
+                }
+            });
+
+            log('FormData contents:');
+            for (let [key, value] of formData.entries()) {
+                if (value instanceof File) {
+                    log(`  ${key}: ${value.name} (${value.size} bytes, ${value.type})`);
+                } else {
+                    log(`  ${key}: ${value}`);
+                }
+            }
+        }
+
+        // Add test button
+        const testBtn = document.createElement('button');
+        testBtn.textContent = 'Test FormData';
+        testBtn.style.background = '#28a745';
+        testBtn.style.color = 'white';
+        testBtn.addEventListener('click', testFormData);
+        document.body.appendChild(testBtn);
+
+        log('Page loaded');
+    </script>
+</body>
+</html>

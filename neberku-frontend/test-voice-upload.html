@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Recording Upload Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .test-section { border: 2px solid #007bff; border-radius: 10px; padding: 20px; margin: 20px 0; }
+        button { padding: 10px 20px; margin: 5px; border: none; border-radius: 5px; cursor: pointer; }
+        .record-btn { background: #dc3545; color: white; }
+        .stop-btn { background: #6c757d; color: white; }
+        .play-btn { background: #007bff; color: white; }
+        .submit-btn { background: #28a745; color: white; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        audio { width: 100%; margin: 10px 0; }
+        .log { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 5px; padding: 10px; margin: 10px 0; font-family: monospace; font-size: 12px; max-height: 300px; overflow-y: auto; }
+        .file-list { background: #e9ecef; padding: 10px; border-radius: 5px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>Voice Recording Upload Test</h1>
+    
+    <div class="test-section">
+        <h3>Voice Recording</h3>
+        <button id="recordButton" class="record-btn">Start Recording</button>
+        <button id="stopButton" class="stop-btn" disabled>Stop Recording</button>
+        <button id="playButton" class="play-btn" disabled>Play Recording</button>
+        
+        <div id="audioPreview" style="display: none;">
+            <audio id="audioPlayer" controls></audio>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Selected Files</h3>
+        <div id="fileList" class="file-list">No files selected</div>
+        <button onclick="clearFiles()">Clear Files</button>
+    </div>
+    
+    <div class="test-section">
+        <h3>Test Upload</h3>
+        <button onclick="testUpload()" class="submit-btn">Test Upload to API</button>
+        <div id="uploadResult"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Debug Log</h3>
+        <div id="debugLog" class="log"></div>
+        <button onclick="clearLog()">Clear Log</button>
+    </div>
+
+    <script>
+        let selectedFiles = [];
+        let voiceRecorder = null;
+
+        function log(message) {
+            const logDiv = document.getElementById('debugLog');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        function clearLog() {
+            document.getElementById('debugLog').innerHTML = '';
+        }
+
+        function clearFiles() {
+            selectedFiles = [];
+            updateFileDisplay();
+            log('Files cleared');
+        }
+
+        function updateFileDisplay() {
+            const fileList = document.getElementById('fileList');
+            if (selectedFiles.length === 0) {
+                fileList.innerHTML = 'No files selected';
+                return;
+            }
+
+            fileList.innerHTML = '';
+            selectedFiles.forEach((file, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.innerHTML = `
+                    <strong>${file.name}</strong> 
+                    (${(file.size / 1024).toFixed(1)} KB) 
+                    - ${file.type}
+                    <button onclick="removeFile(${index})" style="float: right;">Remove</button>
+                `;
+                fileList.appendChild(fileItem);
+            });
+        }
+
+        function removeFile(index) {
+            log(`Removing file: ${selectedFiles[index].name}`);
+            selectedFiles.splice(index, 1);
+            updateFileDisplay();
+        }
+
+        class VoiceRecorder {
+            constructor() {
+                this.mediaRecorder = null;
+                this.audioChunks = [];
+                this.recordedAudio = null;
+                this.isRecording = false;
+
+                this.recordButton = document.getElementById('recordButton');
+                this.stopButton = document.getElementById('stopButton');
+                this.playButton = document.getElementById('playButton');
+                this.audioPreview = document.getElementById('audioPreview');
+                this.audioPlayer = document.getElementById('audioPlayer');
+
+                this.setupEventListeners();
+                log('VoiceRecorder initialized');
+            }
+
+            setupEventListeners() {
+                this.recordButton.addEventListener('click', () => this.startRecording());
+                this.stopButton.addEventListener('click', () => this.stopRecording());
+                this.playButton.addEventListener('click', () => this.playRecording());
+            }
+
+            async startRecording() {
+                try {
+                    log('Starting recording...');
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    this.mediaRecorder = new MediaRecorder(stream);
+                    this.audioChunks = [];
+
+                    this.mediaRecorder.ondataavailable = (event) => {
+                        log(`Audio data available: ${event.data.size} bytes`);
+                        this.audioChunks.push(event.data);
+                    };
+
+                    this.mediaRecorder.onstop = () => {
+                        log('Recording stopped, processing audio chunks...');
+                        const audioBlob = new Blob(this.audioChunks, { type: 'audio/wav' });
+                        log(`Created audio blob: ${audioBlob.size} bytes`);
+                        this.recordedAudio = audioBlob;
+                        this.updateUI();
+                        this.addRecordedAudioToFiles();
+                    };
+
+                    this.mediaRecorder.start();
+                    this.isRecording = true;
+                    this.updateUI();
+                    log('Recording started successfully');
+
+                } catch (error) {
+                    log(`Error starting recording: ${error.message}`);
+                }
+            }
+
+            stopRecording() {
+                if (this.mediaRecorder && this.isRecording) {
+                    log('Stopping recording...');
+                    this.mediaRecorder.stop();
+                    this.isRecording = false;
+                    this.updateUI();
+                }
+            }
+
+            playRecording() {
+                if (this.recordedAudio) {
+                    log('Playing recording...');
+                    const audioUrl = URL.createObjectURL(this.recordedAudio);
+                    this.audioPlayer.src = audioUrl;
+                    this.audioPlayer.play();
+                }
+            }
+
+            addRecordedAudioToFiles() {
+                if (this.recordedAudio) {
+                    log('Creating file from recorded audio...');
+                    const audioFile = new File([this.recordedAudio], 'voice_recording.wav', {
+                        type: 'audio/wav'
+                    });
+                    log(`Created audio file: ${audioFile.name}, ${audioFile.size} bytes, ${audioFile.type}`);
+                    
+                    // Add directly to selectedFiles
+                    selectedFiles.push(audioFile);
+                    log(`Added voice file to selectedFiles. Total files: ${selectedFiles.length}`);
+                    updateFileDisplay();
+                } else {
+                    log('No recorded audio to add');
+                }
+            }
+
+            updateUI() {
+                if (this.isRecording) {
+                    this.recordButton.innerHTML = 'Recording...';
+                    this.recordButton.disabled = true;
+                    this.stopButton.disabled = false;
+                    this.playButton.disabled = true;
+                } else if (this.recordedAudio) {
+                    this.recordButton.innerHTML = 'Start Recording';
+                    this.recordButton.disabled = false;
+                    this.stopButton.disabled = true;
+                    this.playButton.disabled = false;
+                    this.audioPreview.style.display = 'block';
+                } else {
+                    this.recordButton.innerHTML = 'Start Recording';
+                    this.recordButton.disabled = false;
+                    this.stopButton.disabled = true;
+                    this.playButton.disabled = true;
+                    this.audioPreview.style.display = 'none';
+                }
+            }
+        }
+
+        async function testUpload() {
+            if (selectedFiles.length === 0) {
+                log('No files to upload');
+                return;
+            }
+
+            log('Testing upload...');
+            const formData = new FormData();
+            
+            // Add files
+            selectedFiles.forEach((file, index) => {
+                if (file.type.startsWith('image/')) {
+                    formData.append('photos', file);
+                    log(`Added photo: ${file.name}`);
+                } else if (file.type.startsWith('video/')) {
+                    formData.append('videos', file);
+                    log(`Added video: ${file.name}`);
+                } else if (file.type.startsWith('audio/')) {
+                    formData.append('voice_recordings', file);
+                    log(`Added voice recording: ${file.name}`);
+                }
+            });
+
+            // Add required fields
+            formData.append('guest_name', 'Test User');
+            formData.append('guest_phone', '1234567890');
+            formData.append('wish_text', 'Test voice recording upload');
+
+            // Get event ID from URL or use a test event ID
+            const urlParams = new URLSearchParams(window.location.search);
+            const eventId = urlParams.get('event') || '1'; // Use event ID 1 as fallback
+            formData.append('event', eventId);
+
+            log(`Using event ID: ${eventId}`);
+
+            // Log FormData contents
+            log('FormData contents:');
+            for (let [key, value] of formData.entries()) {
+                if (value instanceof File) {
+                    log(`  ${key}: ${value.name} (${value.size} bytes, ${value.type})`);
+                } else {
+                    log(`  ${key}: ${value}`);
+                }
+            }
+
+            try {
+                const response = await fetch('http://localhost:8000/api/guest-post-create/', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    log('Upload successful!');
+                    log(`Response: ${JSON.stringify(result)}`);
+                    document.getElementById('uploadResult').innerHTML = `
+                        <div style="color: green;">
+                            <h4>Upload Successful!</h4>
+                            <p>Post ID: ${result.id}</p>
+                            <p>Response: ${JSON.stringify(result)}</p>
+                        </div>
+                    `;
+                } else {
+                    log(`Upload failed: ${response.status}`);
+                    log(`Error: ${JSON.stringify(result)}`);
+                    document.getElementById('uploadResult').innerHTML = `
+                        <div style="color: red;">
+                            <h4>Upload Failed</h4>
+                            <p>Status: ${response.status}</p>
+                            <p>Error: ${JSON.stringify(result)}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                log(`Network error: ${error.message}`);
+                document.getElementById('uploadResult').innerHTML = `
+                    <div style="color: red;">
+                        <h4>Network Error</h4>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            log('Page loaded, initializing...');
+            voiceRecorder = new VoiceRecorder();
+            log('Initialization complete');
+        });
+    </script>
+</body>
+</html>

@@ -490,6 +490,7 @@ class EventDetailGuestManager {
         
         let photoCount = 0;
         let videoCount = 0;
+        let voiceCount = 0;
         
         this.selectedFiles.forEach((file, index) => {
             console.log(`Rendering file ${index}:`, file.name, file.type);
@@ -498,6 +499,7 @@ class EventDetailGuestManager {
             
             const isImage = file.type.startsWith('image/');
             const isVideo = file.type.startsWith('video/');
+            const isVoice = file.type.startsWith('audio/');
             
             let previewContent = '';
             if (isImage) {
@@ -512,6 +514,13 @@ class EventDetailGuestManager {
                     </div>
                 `;
                 videoCount++;
+            } else if (isVoice) {
+                previewContent = `
+                    <div class="file-preview-icon">
+                        <i class="fas fa-microphone"></i>
+                    </div>
+                `;
+                voiceCount++;
             } else {
                 previewContent = `
                     <div class="file-preview-icon">
@@ -531,7 +540,7 @@ class EventDetailGuestManager {
             fileList.appendChild(fileItem);
         });
         
-        console.log(`Rendered ${this.selectedFiles.length} files. Photos: ${photoCount}, Videos: ${videoCount}`);
+        console.log(`Rendered ${this.selectedFiles.length} files. Photos: ${photoCount}, Videos: ${videoCount}, Voice: ${voiceCount}`);
         
         // Show summary
         if (this.selectedFiles.length > 0) {
@@ -540,7 +549,7 @@ class EventDetailGuestManager {
             summaryDiv.innerHTML = `
                 <i class="fas fa-info-circle me-2"></i>
                 <strong>Selected Files:</strong> ${this.selectedFiles.length} total 
-                ${photoCount > 0 || videoCount > 0 ? '(' : ''}${photoCount > 0 ? `${photoCount} photo${photoCount !== 1 ? 's' : ''}` : ''}${photoCount > 0 && videoCount > 0 ? ', ' : ''}${videoCount > 0 ? `${videoCount} video${videoCount !== 1 ? 's' : ''}` : ''}${photoCount > 0 || videoCount > 0 ? ')' : ''}
+                ${photoCount > 0 || videoCount > 0 || voiceCount > 0 ? '(' : ''}${photoCount > 0 ? `${photoCount} photo${photoCount !== 1 ? 's' : ''}` : ''}${photoCount > 0 && (videoCount > 0 || voiceCount > 0) ? ', ' : ''}${videoCount > 0 ? `${videoCount} video${videoCount !== 1 ? 's' : ''}` : ''}${(photoCount > 0 || videoCount > 0) && voiceCount > 0 ? ', ' : ''}${voiceCount > 0 ? `${voiceCount} voice recording${voiceCount !== 1 ? 's' : ''}` : ''}${photoCount > 0 || videoCount > 0 || voiceCount > 0 ? ')' : ''}
             `;
             fileList.appendChild(summaryDiv);
             
@@ -606,6 +615,7 @@ class EventDetailGuestManager {
         // Process media files
         let photoCount = 0;
         let videoCount = 0;
+        let voiceCount = 0;
         
         for (let i = 0; i < this.selectedFiles.length; i++) {
             const file = this.selectedFiles[i];
@@ -615,12 +625,15 @@ class EventDetailGuestManager {
             } else if (file.type.startsWith('video/')) {
                 formData.append('videos', file);
                 videoCount++;
+            } else if (file.type.startsWith('audio/')) {
+                formData.append('voice_recordings', file);
+                voiceCount++;
             }
         }
         
         // Show upload summary
         if (this.selectedFiles.length > 0) {
-            this.showTopRightSuccess(`Uploading ${this.selectedFiles.length} files (${photoCount} photos, ${videoCount} videos)...`);
+            this.showTopRightSuccess(`Uploading ${this.selectedFiles.length} files (${photoCount} photos, ${videoCount} videos, ${voiceCount} voice recordings)...`);
         }
 
         try {
@@ -976,6 +989,8 @@ class EventDetailGuestManager {
 let eventDetailManager;
 document.addEventListener('DOMContentLoaded', function() {
     eventDetailManager = new EventDetailGuestManager();
+    // Make eventDetailManager globally accessible for voice recording
+    window.eventDetailManager = eventDetailManager;
 });
 
 // Global functions for image modal
