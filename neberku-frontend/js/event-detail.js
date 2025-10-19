@@ -345,6 +345,7 @@ class EventDetail {
         // Statistics - update both header and detail tab
         document.getElementById('totalPhotos').textContent = this.event.photo_count || 0;
         document.getElementById('totalVideos').textContent = this.event.video_count || 0;
+        document.getElementById('totalVoice').textContent = this.event.voice_count || 0;
         document.getElementById('totalPosts').textContent = this.event.total_guest_posts || 0;
         document.getElementById('totalGuests').textContent = this.event.total_guest_posts || 0; // Using posts as guest count for now
         
@@ -518,14 +519,19 @@ class EventDetail {
                                 <p class="card-text">${this.truncateText(post.wish_text, 200)}</p>
                                 
                                 <div class="row text-center mb-3">
-                                    <div class="col-6">
+                                    <div class="col-4">
                                         <small class="text-muted">
                                             <i class="bi bi-image"></i> ${post.photo_count || 0} photos
                                         </small>
                                     </div>
-                                    <div class="col-6">
+                                    <div class="col-4">
                                         <small class="text-muted">
                                             <i class="bi bi-camera-video"></i> ${post.video_count || 0} videos
+                                        </small>
+                                    </div>
+                                    <div class="col-4">
+                                        <small class="text-muted">
+                                            <i class="bi bi-mic"></i> ${post.voice_count || 0} voice
                                         </small>
                                     </div>
                                 </div>
@@ -561,8 +567,11 @@ class EventDetail {
             `;
         }
     
-        // Show first media file as preview
-        const firstMedia = post.media_files[0];
+        // Prioritize images for preview - find first image, fallback to first media
+        let previewMedia = post.media_files.find(media => media.media_type === 'photo');
+        if (!previewMedia) {
+            previewMedia = post.media_files[0]; // Fallback to first media if no images
+        }
         
         // Helper function to construct full URL using backend base URL
         const getFullUrl = (relativePath) => {
@@ -571,16 +580,16 @@ class EventDetail {
             return `${API_CONFIG.BASE_URL}${relativePath}`;
         };
     
-        if (firstMedia.media_type === 'photo') {
-            const photoUrl = getFullUrl(firstMedia.media_file);
+        if (previewMedia.media_type === 'photo') {
+            const photoUrl = getFullUrl(previewMedia.media_file);
             return `
-                <img src="${photoUrl}" alt="${firstMedia.file_name || 'Photo'}" class="media-preview w-100" style="max-height: 200px; object-fit: cover;">
+                <img src="${photoUrl}" alt="${previewMedia.file_name || 'Photo'}" class="media-preview w-100" style="max-height: 200px; object-fit: cover;">
             `;
-        } else if (firstMedia.media_type === 'video') {
-            const videoUrl = getFullUrl(firstMedia.media_file);
+        } else if (previewMedia.media_type === 'video') {
+            const videoUrl = getFullUrl(previewMedia.media_file);
             // For videos, show a thumbnail if available, otherwise show video controls
-            if (firstMedia.media_thumbnail) {
-                const thumbnailUrl = getFullUrl(firstMedia.media_thumbnail);
+            if (previewMedia.media_thumbnail) {
+                const thumbnailUrl = getFullUrl(previewMedia.media_thumbnail);
                 return `
                     <div class="position-relative">
                         <img src="${thumbnailUrl}" alt="Video thumbnail" class="media-preview w-100" style="max-height: 200px; object-fit: cover;">
@@ -592,11 +601,23 @@ class EventDetail {
             } else {
                 return `
                     <video class="media-preview w-100" controls style="max-height: 200px;">
-                        <source src="${videoUrl}" type="${firstMedia.mime_type || 'video/mp4'}">
+                        <source src="${videoUrl}" type="${previewMedia.mime_type || 'video/mp4'}">
                         Your browser does not support the video tag.
                     </video>
                 `;
             }
+        } else if (previewMedia.media_type === 'voice') {
+            const audioUrl = getFullUrl(previewMedia.media_file);
+            return `
+                <div class="text-center text-muted" style="background: linear-gradient(135deg, rgba(139,92,246,.1), rgba(139,92,246,.05)); border-radius: 8px; padding: 2rem; border: 1px solid rgba(139,92,246,.2);">
+                    <i class="bi bi-mic" style="font-size: 3rem; color: #8b5cf6; margin-bottom: 1rem;"></i>
+                    <p class="mb-2"><strong>Voice Recording</strong></p>
+                    <audio controls class="w-100" style="max-width: 200px;">
+                        <source src="${audioUrl}" type="${previewMedia.mime_type || 'audio/mp3'}">
+                        Your browser does not support the audio tag.
+                    </audio>
+                </div>
+            `;
         }
         
         // Fallback for unknown media types
