@@ -356,6 +356,28 @@
             cursor: pointer;
         }
         
+        .video-item video {
+            cursor: pointer;
+            transition: opacity 0.3s ease;
+            /* Optimize video rendering */
+            transform: translateZ(0);
+            will-change: transform;
+        }
+        
+        .video-item video:hover {
+            opacity: 0.9;
+        }
+        
+        /* Loading state for videos */
+        .video-item.loading video {
+            opacity: 0.7;
+        }
+        
+        .video-item.loading .video-duration {
+            color: var(--primary-start);
+            font-weight: 600;
+        }
+        
         .video-overlay {
             position: absolute;
             top: 0;
@@ -2268,7 +2290,7 @@
                 <button class="modal-close" onclick="closeVideoModal()">
                     <i class="fas fa-times"></i>
                 </button>
-                <video id="modalVideo" controls>
+                <video id="modalVideo" controls preload="metadata">
                     <source src="" type="video/mp4">
                     Your browser does not support the video tag.
                 </video>

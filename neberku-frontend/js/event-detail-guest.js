@@ -311,15 +311,15 @@ class EventDetailGuestManager {
         if (event.event_video) {
             mediaHTML += `
                 <div class="media-item video-item" onclick="openVideoModal('${event.event_video}', 'Event Video', 'Click to view full size video')">
-                    <video class="media-preview" muted preload="metadata">
-                        <source src="${event.event_video}" type="video/mp4">
+                    <video class="media-preview" muted preload="none" poster="${event.event_thumbnail || ''}" data-src="${event.event_video}">
+                        <source data-src="${event.event_video}" type="video/mp4">
                         Your browser does not support the video tag.
                     </video>
                     <div class="video-overlay">
                         <div class="play-button">
                             <i class="fas fa-play"></i>
                         </div>
-                        <div class="video-duration" id="videoDuration">Loading...</div>
+                        <div class="video-duration" id="videoDuration">Click to load</div>
                     </div>
                     <div class="media-info">
                         <div class="media-label">Video</div>
@@ -358,6 +358,22 @@ class EventDetailGuestManager {
             const overlay = item.querySelector('.video-overlay');
             
             if (video && durationElement) {
+                let isLoaded = false;
+                
+                // Lazy load video when clicked
+                const loadVideo = () => {
+                    if (isLoaded) return;
+                    
+                    const videoSrc = video.getAttribute('data-src');
+                    if (videoSrc) {
+                        const source = video.querySelector('source');
+                        source.src = videoSrc;
+                        video.load();
+                        isLoaded = true;
+                        durationElement.textContent = 'Loading...';
+                    }
+                };
+                
                 // Get video duration when metadata loads
                 video.addEventListener('loadedmetadata', () => {
                     const duration = video.duration;
@@ -366,12 +382,24 @@ class EventDetailGuestManager {
                     durationElement.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
                 });
                 
-                // Add click to play functionality
+                // Handle video loading errors
+                video.addEventListener('error', () => {
+                    durationElement.textContent = 'Error loading';
+                    console.error('Video failed to load:', video.src);
+                });
+                
+                // Add click to play functionality with lazy loading
                 item.playVideo = () => {
+                    loadVideo();
+                    
                     if (video.paused) {
-                        video.play();
-                        overlay.style.opacity = '0';
-                        video.muted = false; // Unmute when playing
+                        video.play().then(() => {
+                            overlay.style.opacity = '0';
+                            video.muted = false; // Unmute when playing
+                        }).catch(error => {
+                            console.error('Error playing video:', error);
+                            durationElement.textContent = 'Click to play';
+                        });
                     } else {
                         video.pause();
                         overlay.style.opacity = '1';
@@ -387,6 +415,17 @@ class EventDetailGuestManager {
                 // Show overlay when video is paused
                 video.addEventListener('pause', () => {
                     overlay.style.opacity = '1';
+                });
+                
+                // Hide overlay when video starts playing
+                video.addEventListener('play', () => {
+                    overlay.style.opacity = '0';
+                });
+                
+                // Add click handler to the video item
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    item.playVideo();
                 });
             }
         });
@@ -972,14 +1011,61 @@ function openVideoModal(videoSrc, title, description) {
     const modalDescription = document.getElementById('modalVideoDescription');
     
     if (modal && modalVideo && modalTitle && modalDescription) {
-        modalVideo.querySelector('source').src = videoSrc;
-        modalVideo.load(); // Reload the video element
-        modalTitle.textContent = title;
-        modalDescription.textContent = description;
+        // Show loading state
+        modalTitle.textContent = 'Loading Video...';
+        modalDescription.textContent = 'Please wait while the video loads';
         
+        // Determine video type from file extension
+        const videoType = getVideoType(videoSrc);
+        
+        // Update the source element
+        const sourceElement = modalVideo.querySelector('source');
+        sourceElement.src = videoSrc;
+        sourceElement.type = videoType;
+        
+        // Add loading event listeners
+        const handleLoadedData = () => {
+            modalTitle.textContent = title;
+            modalDescription.textContent = description;
+            modalVideo.removeEventListener('loadeddata', handleLoadedData);
+        };
+        
+        const handleError = () => {
+            modalTitle.textContent = 'Error Loading Video';
+            modalDescription.textContent = 'Unable to load the video. Please try again.';
+            modalVideo.removeEventListener('error', handleError);
+        };
+        
+        modalVideo.addEventListener('loadeddata', handleLoadedData);
+        modalVideo.addEventListener('error', handleError);
+        
+        modalVideo.load(); // Reload the video element
         modal.classList.add('show');
         document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        
+        // Auto-play the video in modal (with error handling)
+        modalVideo.play().catch(error => {
+            console.log('Autoplay prevented by browser:', error);
+            modalDescription.textContent = 'Click the play button to start the video';
+        });
     }
+}
+
+// Helper function to determine video MIME type
+function getVideoType(videoSrc) {
+    const extension = videoSrc.split('.').pop().toLowerCase();
+    const typeMap = {
+        'mp4': 'video/mp4',
+        'webm': 'video/webm',
+        'ogg': 'video/ogg',
+        'ogv': 'video/ogg',
+        'avi': 'video/x-msvideo',
+        'mov': 'video/quicktime',
+        'wmv': 'video/x-ms-wmv',
+        'flv': 'video/x-flv',
+        'mkv': 'video/x-matroska'
+    };
+    return typeMap[extension] || 'video/mp4';
 }
 
 function closeVideoModal() {
