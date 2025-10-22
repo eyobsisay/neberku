@@ -211,10 +211,13 @@ class EventViewSet(viewsets.ModelViewSet):
                 settings_data = {
                     'event': event,
                     'max_posts_per_guest': request_data.get('max_posts_per_guest', 5),
-                    'max_media_per_post': request_data.get('max_media_per_post', 3)
+                    'max_image_per_post': request_data.get('max_image_per_post', 3),
+                    'max_video_per_post': request_data.get('max_video_per_post', 2),
+                    'max_voice_per_post': request_data.get('max_voice_per_post', 1)
                 }
                 
                 settings = EventSettings.objects.create(**settings_data)
+                print(f"EventSettings created for event {event.id}: {settings_data}")
                 
             except Exception as e:
                 # Log error but don't fail event creation
@@ -458,16 +461,27 @@ class GuestPostCreateViewSet(viewsets.GenericViewSet):
                 # Check media limits from EventSettings (per-guest limits)
                 try:
                     settings = event.settings
-                    max_media_per_post = settings.max_media_per_post
+                    max_image_per_post = settings.max_image_per_post
+                    max_video_per_post = settings.max_video_per_post
+                    max_voice_per_post = settings.max_voice_per_post
                 except EventSettings.DoesNotExist:
-                    # Use default limit if no settings exist
-                    max_media_per_post = 3
+                    # Use default limits if no settings exist
+                    max_image_per_post = 3
+                    max_video_per_post = 2
+                    max_voice_per_post = 1
                 
-                # Check total media limit per post
-                total_media = len(photos) + len(videos) + len(voice_recordings)
-                if total_media > max_media_per_post:
+                # Check individual media type limits
+                if len(photos) > max_image_per_post:
                     post.delete()
-                    raise serializers.ValidationError(f"Maximum media files per post ({max_media_per_post}) exceeded. You uploaded {total_media} files.")
+                    raise serializers.ValidationError(f"Maximum images per post ({max_image_per_post}) exceeded. You uploaded {len(photos)} images.")
+                
+                if len(videos) > max_video_per_post:
+                    post.delete()
+                    raise serializers.ValidationError(f"Maximum videos per post ({max_video_per_post}) exceeded. You uploaded {len(videos)} videos.")
+                
+                if len(voice_recordings) > max_voice_per_post:
+                    post.delete()
+                    raise serializers.ValidationError(f"Maximum voice recordings per post ({max_voice_per_post}) exceeded. You uploaded {len(voice_recordings)} voice recordings.")
                 
                 # Create media files for photos
                 for photo in photos:

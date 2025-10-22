@@ -34,10 +34,14 @@ class EventDetailGuestManager {
                 const newFiles = e.target.files;
                 if (newFiles.length === 0) return;
                 
-                const maxCount = this.currentEvent?.guest_max_media_per_post || 3;
+                // Use the new separate limits
+                const maxImages = this.currentEvent?.guest_max_image_per_post || 3;
+                const maxVideos = this.currentEvent?.guest_max_video_per_post || 3;
+                const maxVoice = this.currentEvent?.guest_max_voice_per_post || 3;
+                const maxCount = maxImages + maxVideos + maxVoice; // Total limit
                 
                 if (newFiles.length > maxCount) {
-                    this.showError(`Cannot select ${newFiles.length} files. Maximum ${maxCount} files allowed.`, 'warning');
+                    this.showError(`Cannot select ${newFiles.length} files. Maximum ${maxCount} files allowed (${maxImages} images, ${maxVideos} videos, ${maxVoice} voice).`, 'warning');
                     e.target.value = '';
                     return;
                 }
@@ -256,18 +260,24 @@ class EventDetailGuestManager {
         if (packageLimitsElement) {
             const maxPhotos = event.package_max_photos || 3;
             const maxVideos = event.package_max_videos || 3;
-            const perGuestLimit = event.guest_max_media_per_post || 3;
+            const maxImagesPerPost = event.guest_max_image_per_post || 3;
+            const maxVideosPerPost = event.guest_max_video_per_post || 3;
+            const maxVoicePerPost = event.guest_max_voice_per_post || 3;
+            const totalPerPost = maxImagesPerPost + maxVideosPerPost + maxVoicePerPost;
             
             packageLimitsElement.innerHTML = `
-                ${maxPhotos} photos + ${maxVideos} videos total • ${perGuestLimit} files per guest post
+                ${maxPhotos} photos + ${maxVideos} videos total • ${maxImagesPerPost} images, ${maxVideosPerPost} videos, ${maxVoicePerPost} voice per post
             `;
         }
         
         // Update the upload area display
         const maxFilesDisplay = document.getElementById('maxFilesDisplay');
         if (maxFilesDisplay) {
-            const perGuestLimit = event.guest_max_media_per_post || 3;
-            maxFilesDisplay.textContent = perGuestLimit;
+            const maxImagesPerPost = event.guest_max_image_per_post || 3;
+            const maxVideosPerPost = event.guest_max_video_per_post || 3;
+            const maxVoicePerPost = event.guest_max_voice_per_post || 3;
+            const totalPerPost = maxImagesPerPost + maxVideosPerPost + maxVoicePerPost;
+            maxFilesDisplay.textContent = totalPerPost;
         }
     }
 
@@ -450,13 +460,41 @@ class EventDetailGuestManager {
         const filesToAdd = Array.from(newFiles);
         console.log('Adding files to selection:', filesToAdd.length);
         
-        // Check limits before adding
-        const maxFiles = this.currentEvent?.guest_max_media_per_post || 6;
+        // Check limits before adding - use new separate limits
+        const maxImages = this.currentEvent?.guest_max_image_per_post || 3;
+        const maxVideos = this.currentEvent?.guest_max_video_per_post || 3;
+        const maxVoice = this.currentEvent?.guest_max_voice_per_post || 3;
+        const maxFiles = maxImages + maxVideos + maxVoice;
         const currentCount = this.selectedFiles.length;
         const remainingSlots = maxFiles - currentCount;
         
         if (filesToAdd.length > remainingSlots) {
-            alert(`You can only upload ${maxFiles} files total. You have ${remainingSlots} slots remaining.`);
+            this.showError(`You can only upload ${maxFiles} files total (${maxImages} images, ${maxVideos} videos, ${maxVoice} voice). You have ${remainingSlots} slots remaining.`, 'warning');
+            return;
+        }
+        
+        // Check individual media type limits
+        const currentImages = this.selectedFiles.filter(f => f.type.startsWith('image/')).length;
+        const currentVideos = this.selectedFiles.filter(f => f.type.startsWith('video/')).length;
+        const currentVoice = this.selectedFiles.filter(f => f.type.startsWith('audio/')).length;
+        
+        const newImages = filesToAdd.filter(f => f.type.startsWith('image/')).length;
+        const newVideos = filesToAdd.filter(f => f.type.startsWith('video/')).length;
+        const newVoice = filesToAdd.filter(f => f.type.startsWith('audio/')).length;
+        
+        // Validate each media type
+        if (currentImages + newImages > maxImages) {
+            this.showError(`You can only upload ${maxImages} images. You're trying to add ${newImages} images but already have ${currentImages}.`, 'warning');
+            return;
+        }
+        
+        if (currentVideos + newVideos > maxVideos) {
+            this.showError(`You can only upload ${maxVideos} videos. You're trying to add ${newVideos} videos but already have ${currentVideos}.`, 'warning');
+            return;
+        }
+        
+        if (currentVoice + newVoice > maxVoice) {
+            this.showError(`You can only upload ${maxVoice} voice recordings. You're trying to add ${newVoice} voice recordings but already have ${currentVoice}.`, 'warning');
             return;
         }
         
@@ -553,8 +591,11 @@ class EventDetailGuestManager {
             `;
             fileList.appendChild(summaryDiv);
             
-            // Show remaining file count
-            const maxCount = this.currentEvent?.guest_max_media_per_post || 6;
+            // Show remaining file count - use new separate limits
+            const maxImages = this.currentEvent?.guest_max_image_per_post || 3;
+            const maxVideos = this.currentEvent?.guest_max_video_per_post || 3;
+            const maxVoice = this.currentEvent?.guest_max_voice_per_post || 3;
+            const maxCount = maxImages + maxVideos + maxVoice;
             const remainingCount = maxCount - this.selectedFiles.length;
             if (remainingCount > 0) {
                 const remainingDiv = document.createElement('div');
@@ -569,7 +610,7 @@ class EventDetailGuestManager {
                 limitReachedDiv.className = 'alert alert-warning mt-2';
                 limitReachedDiv.innerHTML = `
                     <i class="fas fa-exclamation-triangle me-2"></i>
-                    <strong>Maximum file limit reached (${maxCount} files)</strong>
+                    <strong>Maximum file limit reached (${maxImages} images, ${maxVideos} videos, ${maxVoice} voice)</strong>
                 `;
                 fileList.appendChild(limitReachedDiv);
             }
@@ -589,11 +630,14 @@ class EventDetailGuestManager {
             return;
         }
         
-        // Validate media files
-        const guestMaxMediaPerPost = this.currentEvent.guest_max_media_per_post || 6;
+        // Validate media files - use new separate limits
+        const maxImages = this.currentEvent.guest_max_image_per_post || 3;
+        const maxVideos = this.currentEvent.guest_max_video_per_post || 3;
+        const maxVoice = this.currentEvent.guest_max_voice_per_post || 3;
+        const guestMaxMediaPerPost = maxImages + maxVideos + maxVoice;
         
         if (this.selectedFiles.length > guestMaxMediaPerPost) {
-            this.showError(`Maximum ${guestMaxMediaPerPost} media files allowed per contribution`, 'warning');
+            this.showError(`Maximum ${guestMaxMediaPerPost} media files allowed per contribution (${maxImages} images, ${maxVideos} videos, ${maxVoice} voice)`, 'warning');
             return;
         }
         

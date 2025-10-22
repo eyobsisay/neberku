@@ -470,7 +470,9 @@ class EventSettings(models.Model):
     require_approval = models.BooleanField(default=False)
     allow_anonymous = models.BooleanField(default=False)
     max_posts_per_guest = models.PositiveIntegerField(default=5)
-    max_media_per_post = models.PositiveIntegerField(default=3)
+    max_image_per_post = models.PositiveIntegerField(default=3, help_text="Maximum number of images per guest post")
+    max_video_per_post = models.PositiveIntegerField(default=2, help_text="Maximum number of videos per guest post")
+    max_voice_per_post = models.PositiveIntegerField(default=1, help_text="Maximum number of voice recordings per guest post")
     
     # Privacy settings
     public_gallery = models.BooleanField(default=False)

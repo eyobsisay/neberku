@@ -416,8 +416,22 @@ class Dashboard {
         formData.append('is_public', document.getElementById('isPublic').value === 'true');
         
         // Add event settings fields
-        formData.append('max_posts_per_guest', document.getElementById('maxPostsPerGuest')?.value || '5');
-        formData.append('max_media_per_post', document.getElementById('maxMediaPerPost')?.value || '3');
+        const formMaxPostsPerGuest = document.getElementById('maxPostsPerGuest')?.value || '5';
+        const formMaxImagePerPost = document.getElementById('maxImagePerPost')?.value || '3';
+        const formMaxVideoPerPost = document.getElementById('maxVideoPerPost')?.value || '2';
+        const formMaxVoicePerPost = document.getElementById('maxVoicePerPost')?.value || '1';
+        
+        // Debug: Log the values being retrieved from form
+        console.log('🔍 Form field values:');
+        console.log(`  maxPostsPerGuest: ${formMaxPostsPerGuest}`);
+        console.log(`  maxImagePerPost: ${formMaxImagePerPost}`);
+        console.log(`  maxVideoPerPost: ${formMaxVideoPerPost}`);
+        console.log(`  maxVoicePerPost: ${formMaxVoicePerPost}`);
+        
+        formData.append('max_posts_per_guest', formMaxPostsPerGuest);
+        formData.append('max_image_per_post', formMaxImagePerPost);
+        formData.append('max_video_per_post', formMaxVideoPerPost);
+        formData.append('max_voice_per_post', formMaxVoicePerPost);
         
         // Add files if selected
         const thumbnailFile = document.getElementById('eventThumbnail').files[0];
@@ -495,20 +509,38 @@ class Dashboard {
         
         // Validate event settings if they exist
         const maxPostsPerGuest = parseInt(formData.get('max_posts_per_guest'));
-        const maxMediaPerPost = parseInt(formData.get('max_media_per_post'));
+        const maxImagePerPost = parseInt(formData.get('max_image_per_post'));
+        const maxVideoPerPost = parseInt(formData.get('max_video_per_post'));
+        const maxVoicePerPost = parseInt(formData.get('max_voice_per_post'));
         
         if (maxPostsPerGuest && (maxPostsPerGuest < 1 || maxPostsPerGuest > 100)) {
             this.showAlert('Max Posts per Guest must be between 1 and 100', 'warning');
             return;
         }
         
-        if (maxMediaPerPost && (maxMediaPerPost < 1 || maxMediaPerPost > 50)) {
-            this.showAlert('Max Media per Post must be between 1 and 50', 'warning');
+        if (maxImagePerPost && (maxImagePerPost < 1 || maxImagePerPost > 50)) {
+            this.showAlert('Max Images per Post must be between 1 and 50', 'warning');
+            return;
+        }
+        
+        if (maxVideoPerPost && (maxVideoPerPost < 1 || maxVideoPerPost > 50)) {
+            this.showAlert('Max Videos per Post must be between 1 and 50', 'warning');
+            return;
+        }
+        
+        if (maxVoicePerPost && (maxVoicePerPost < 1 || maxVoicePerPost > 50)) {
+            this.showAlert('Max Voice per Post must be between 1 and 50', 'warning');
             return;
         }
 
         try {
             console.log('📡 Creating event with FormData...');
+            
+            // Debug: Log all form data being sent
+            console.log('📋 Form data being sent:');
+            for (let [key, value] of formData.entries()) {
+                console.log(`  ${key}: ${value}`);
+            }
             
             // Use centralized API request with automatic auth error handling
             const newEvent = await API_UTILS.request(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.EVENTS}`, {
@@ -554,7 +586,9 @@ class Dashboard {
         
         // Reset event settings fields
         if (document.getElementById('maxPostsPerGuest')) document.getElementById('maxPostsPerGuest').value = '5';
-        if (document.getElementById('maxMediaPerPost')) document.getElementById('maxMediaPerPost').value = '3';
+        if (document.getElementById('maxImagePerPost')) document.getElementById('maxImagePerPost').value = '3';
+        if (document.getElementById('maxVideoPerPost')) document.getElementById('maxVideoPerPost').value = '2';
+        if (document.getElementById('maxVoicePerPost')) document.getElementById('maxVoicePerPost').value = '1';
         
         // Clear file inputs
         document.getElementById('eventThumbnail').value = '';

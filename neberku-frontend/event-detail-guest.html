@@ -2429,7 +2429,7 @@
                                                 <div class="upload-info">
                                                     <div class="upload-limit-info">
                                                         <i class="fas fa-info-circle"></i>
-                                                        <span>You can upload up to <strong id="maxFilesDisplay">6</strong> files per post</span>
+                                                        <span>You can upload up to <strong id="maxImagesDisplay">3</strong> images, <strong id="maxVideosDisplay">2</strong> videos, and <strong id="maxVoiceDisplay">1</strong> voice recording per post</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -2739,6 +2739,15 @@
                     type: audioFile.type
                 });
                 
+                // Check voice limit before adding
+                const currentVoiceFiles = window.selectedFiles ? window.selectedFiles.filter(f => f.type.startsWith('audio/')).length : 0;
+                if (packageLimits.guestMaxVoicePerPost && currentVoiceFiles >= packageLimits.guestMaxVoicePerPost) {
+                    const message = `You've already reached the maximum of ${packageLimits.guestMaxVoicePerPost} voice recordings.`;
+                    console.log('❌ Voice limit exceeded:', message);
+                    this.showError(message);
+                    return;
+                }
+                
                 // Check if eventDetailManager is available
                 console.log('window.eventDetailManager exists:', !!window.eventDetailManager);
                 console.log('window.eventDetailManager.selectedFiles exists:', !!(window.eventDetailManager && window.eventDetailManager.selectedFiles));
@@ -2913,16 +2922,30 @@
                 
                 if (eventId) {
                     // Fetch real event data from API using guest endpoint
+                    console.log('🔍 Fetching event data for ID:', eventId);
+                    console.log('🔍 API URL:', `${API_CONFIG.BASE_URL}/api/guest/event-by-id/${eventId}/`);
+                    
                     const response = await fetch(`${API_CONFIG.BASE_URL}/api/guest/event-by-id/${eventId}/`);
+                    console.log('🔍 Response status:', response.status);
+                    
                     if (response.ok) {
                         const eventData = await response.json();
+                        console.log('🔍 Raw API response:', eventData);
                         
                         packageLimits = {
                             maxPhotos: eventData.package_max_photos || null,
                             maxVideos: eventData.package_max_videos || null,
                             maxGuests: null, // Not provided in API response
-                            guestMaxMediaPerPost: eventData.guest_max_media_per_post || null
+                            guestMaxImagePerPost: eventData.guest_max_image_per_post || null,
+                            guestMaxVideoPerPost: eventData.guest_max_video_per_post || null,
+                            guestMaxVoicePerPost: eventData.guest_max_voice_per_post || null
                         };
+                        
+                        console.log('🔍 Parsed package limits:', packageLimits);
+                        console.log('🔍 Guest limits from API:');
+                        console.log('   - guest_max_image_per_post:', eventData.guest_max_image_per_post);
+                        console.log('   - guest_max_video_per_post:', eventData.guest_max_video_per_post);
+                        console.log('   - guest_max_voice_per_post:', eventData.guest_max_voice_per_post);
                         
                         // Store event statistics for display
                         window.eventStats = {
@@ -2932,31 +2955,42 @@
                             videoCount: eventData.video_count || 0
                         };
                         
-                        console.log('Loaded package limits from API:', packageLimits);
-                        console.log('Loaded event statistics:', window.eventStats);
+                        console.log('✅ Loaded package limits from API:', packageLimits);
+                        console.log('✅ Loaded event statistics:', window.eventStats);
                     } else {
+                        console.error('❌ Failed to fetch event data. Status:', response.status);
+                        const errorText = await response.text();
+                        console.error('❌ Error response:', errorText);
                         throw new Error('Failed to fetch event data');
                     }
                 } else {
                     // Fallback to sample data if no event ID
+                    console.log('⚠️ No event ID found, using fallback data');
                     packageLimits = {
                         maxPhotos: 50,
                         maxVideos: 50,
                         maxGuests: null,
-                        guestMaxMediaPerPost: 6 // Based on API response
+                        guestMaxImagePerPost: 2,
+                        guestMaxVideoPerPost: 2,
+                        guestMaxVoicePerPost: 2
                     };
+                    console.log('⚠️ Using fallback package limits:', packageLimits);
                 }
                 
                 updatePackageLimitsDisplay();
             } catch (error) {
-                console.error('Error loading package limits:', error);
+                console.error('❌ Error loading package limits:', error);
                 // Fallback to sample data
+                console.log('⚠️ Using error fallback data');
                 packageLimits = {
                     maxPhotos: 50,
                     maxVideos: 50,
                     maxGuests: null,
-                    guestMaxMediaPerPost: 6 // Based on API response
+                    guestMaxImagePerPost: 2,
+                    guestMaxVideoPerPost: 2,
+                    guestMaxVoicePerPost: 2
                 };
+                console.log('⚠️ Error fallback package limits:', packageLimits);
                 updatePackageLimitsDisplay();
             }
         }
@@ -2966,7 +3000,11 @@
             const mediaPerPostLimitElement = document.getElementById('mediaPerPostLimit');
             
             if (mediaPerPostLimitElement) {
-                mediaPerPostLimitElement.textContent = packageLimits.guestMaxMediaPerPost || '∞';
+                // Calculate total media limit from separate limits
+                const totalLimit = (packageLimits.guestMaxImagePerPost || 0) + 
+                                 (packageLimits.guestMaxVideoPerPost || 0) + 
+                                 (packageLimits.guestMaxVoicePerPost || 0);
+                mediaPerPostLimitElement.textContent = totalLimit > 0 ? totalLimit : '∞';
             }
             
             // Update pre-upload information
@@ -2974,18 +3012,68 @@
         }
         
         function updatePreUploadInfo() {
+            console.log('🔍 updatePreUploadInfo called');
+            console.log('🔍 Current packageLimits:', packageLimits);
+            
             const preUploadInfo = document.getElementById('preUploadInfo');
             const maxFilesAllowed = document.getElementById('maxFilesAllowed');
+            const maxImagesDisplay = document.getElementById('maxImagesDisplay');
+            const maxVideosDisplay = document.getElementById('maxVideosDisplay');
+            const maxVoiceDisplay = document.getElementById('maxVoiceDisplay');
+            
+            console.log('🔍 Found elements:');
+            console.log('   - maxImagesDisplay:', maxImagesDisplay);
+            console.log('   - maxVideosDisplay:', maxVideosDisplay);
+            console.log('   - maxVoiceDisplay:', maxVoiceDisplay);
             
             if (!preUploadInfo) return;
             
             // Update the information with actual data
             if (maxFilesAllowed) {
-                maxFilesAllowed.textContent = packageLimits.guestMaxMediaPerPost || '∞';
+                // Calculate total media limit from separate limits
+                const totalLimit = (packageLimits.guestMaxImagePerPost || 0) + 
+                                 (packageLimits.guestMaxVideoPerPost || 0) + 
+                                 (packageLimits.guestMaxVoicePerPost || 0);
+                maxFilesAllowed.textContent = totalLimit > 0 ? totalLimit : '∞';
+            }
+            
+            // Update individual media type displays
+            if (maxImagesDisplay) {
+                const imageLimit = packageLimits.guestMaxImagePerPost || '∞';
+                console.log('🔍 Updating maxImagesDisplay to:', imageLimit);
+                maxImagesDisplay.textContent = imageLimit;
+                // Add visual indicator for strict limits
+                if (packageLimits.guestMaxImagePerPost === 1) {
+                    maxImagesDisplay.style.color = '#f59e0b';
+                    maxImagesDisplay.style.fontWeight = 'bold';
+                }
+            }
+            if (maxVideosDisplay) {
+                const videoLimit = packageLimits.guestMaxVideoPerPost || '∞';
+                console.log('🔍 Updating maxVideosDisplay to:', videoLimit);
+                maxVideosDisplay.textContent = videoLimit;
+                // Add visual indicator for strict limits
+                if (packageLimits.guestMaxVideoPerPost === 1) {
+                    maxVideosDisplay.style.color = '#f59e0b';
+                    maxVideosDisplay.style.fontWeight = 'bold';
+                }
+            }
+            if (maxVoiceDisplay) {
+                const voiceLimit = packageLimits.guestMaxVoicePerPost || '∞';
+                console.log('🔍 Updating maxVoiceDisplay to:', voiceLimit);
+                maxVoiceDisplay.textContent = voiceLimit;
+                // Add visual indicator for strict limits
+                if (packageLimits.guestMaxVoicePerPost === 1) {
+                    maxVoiceDisplay.style.color = '#f59e0b';
+                    maxVoiceDisplay.style.fontWeight = 'bold';
+                }
             }
             
             // Show the pre-upload info if we have limits
-            if (packageLimits.guestMaxMediaPerPost) {
+            const hasLimits = packageLimits.guestMaxImagePerPost || 
+                            packageLimits.guestMaxVideoPerPost || 
+                            packageLimits.guestMaxVoicePerPost;
+            if (hasLimits) {
                 preUploadInfo.style.display = 'block';
             } else {
                 preUploadInfo.style.display = 'none';
@@ -2993,8 +3081,19 @@
         }
         
         function handleFiles(files) {
-            console.log('handleFiles called with:', files.length, 'files');
+            console.log('=== FILE HANDLING DEBUG ===');
+            console.log('🚨 VALIDATION TEST: handleFiles called with:', files.length, 'files');
             console.log('Files details:', Array.from(files).map(f => ({ name: f.name, type: f.type, size: f.size })));
+            console.log('Current packageLimits:', packageLimits);
+            console.log('API limits - Images:', packageLimits.guestMaxImagePerPost, 'Videos:', packageLimits.guestMaxVideoPerPost, 'Voice:', packageLimits.guestMaxVoicePerPost);
+            
+            // IMMEDIATE VALIDATION TEST
+            if (!packageLimits || !packageLimits.guestMaxImagePerPost) {
+                console.error('🚨 CRITICAL ERROR: packageLimits not loaded or missing guestMaxImagePerPost!');
+                console.error('packageLimits:', packageLimits);
+                showUploadError('ERROR: Package limits not loaded! Please refresh the page.');
+                return;
+            }
             
             const fileList = document.getElementById('fileList');
             if (!fileList) {
@@ -3010,19 +3109,97 @@
             console.log('New files to add:', newFiles.length);
             console.log('Total after add:', totalFilesAfterAdd);
             
-            // Check if adding these files would exceed the limit
-            if (packageLimits.guestMaxMediaPerPost && totalFilesAfterAdd > packageLimits.guestMaxMediaPerPost) {
-                const remaining = packageLimits.guestMaxMediaPerPost - window.selectedFiles.length;
+            // Check if adding these files would exceed the limits for each media type
+            const currentImages = window.selectedFiles.filter(f => f.type.startsWith('image/')).length;
+            const currentVideos = window.selectedFiles.filter(f => f.type.startsWith('video/')).length;
+            const currentVoice = window.selectedFiles.filter(f => f.type.startsWith('audio/')).length;
+            
+            const newImages = newFiles.filter(f => f.type.startsWith('image/')).length;
+            const newVideos = newFiles.filter(f => f.type.startsWith('video/')).length;
+            const newVoice = newFiles.filter(f => f.type.startsWith('audio/')).length;
+            
+            console.log('Current counts - Images:', currentImages, 'Videos:', currentVideos, 'Voice:', currentVoice);
+            console.log('New counts - Images:', newImages, 'Videos:', newVideos, 'Voice:', newVoice);
+            
+            // SIMPLE TEST: Block if trying to upload more than 2 images
+            if (newImages > 2) {
+                console.log('🚨 SIMPLE TEST: Blocking upload of more than 2 images');
+                showUploadError('TEST: You cannot upload more than 2 images at once!');
+                return;
+            }
+            
+            // Check image limit
+            console.log('🔍 Checking image limit...');
+            console.log('  - packageLimits.guestMaxImagePerPost:', packageLimits.guestMaxImagePerPost);
+            console.log('  - currentImages:', currentImages);
+            console.log('  - newImages:', newImages);
+            console.log('  - Total would be:', currentImages + newImages);
+            
+            if (packageLimits.guestMaxImagePerPost && (currentImages + newImages) > packageLimits.guestMaxImagePerPost) {
+                const remaining = packageLimits.guestMaxImagePerPost - currentImages;
                 const message = remaining > 0 
-                    ? `You can only add ${remaining} more files. You're trying to add ${newFiles.length} files.`
-                    : `You've already reached the maximum of ${packageLimits.guestMaxMediaPerPost} files.`;
-                console.log('File limit exceeded:', message);
+                    ? `You can only add ${remaining} more images. You're trying to add ${newImages} images.`
+                    : `You've already reached the maximum of ${packageLimits.guestMaxImagePerPost} images.`;
+                console.log('❌ Image limit exceeded:', message);
+                console.log('Current images:', currentImages, 'New images:', newImages, 'Limit:', packageLimits.guestMaxImagePerPost);
                 showUploadError(message);
                 return;
+            } else {
+                console.log('✅ Image limit check passed');
+            }
+            
+            // Check video limit
+            console.log('🔍 Checking video limit...');
+            console.log('  - packageLimits.guestMaxVideoPerPost:', packageLimits.guestMaxVideoPerPost);
+            console.log('  - currentVideos:', currentVideos);
+            console.log('  - newVideos:', newVideos);
+            console.log('  - Total would be:', currentVideos + newVideos);
+            
+            if (packageLimits.guestMaxVideoPerPost && (currentVideos + newVideos) > packageLimits.guestMaxVideoPerPost) {
+                const remaining = packageLimits.guestMaxVideoPerPost - currentVideos;
+                const message = remaining > 0 
+                    ? `You can only add ${remaining} more videos. You're trying to add ${newVideos} videos.`
+                    : `You've already reached the maximum of ${packageLimits.guestMaxVideoPerPost} videos.`;
+                console.log('❌ Video limit exceeded:', message);
+                console.log('Current videos:', currentVideos, 'New videos:', newVideos, 'Limit:', packageLimits.guestMaxVideoPerPost);
+                showUploadError(message);
+                return;
+            } else {
+                console.log('✅ Video limit check passed');
+            }
+            
+            // Check voice limit
+            console.log('🔍 Checking voice limit...');
+            console.log('  - packageLimits.guestMaxVoicePerPost:', packageLimits.guestMaxVoicePerPost);
+            console.log('  - currentVoice:', currentVoice);
+            console.log('  - newVoice:', newVoice);
+            console.log('  - Total would be:', currentVoice + newVoice);
+            
+            if (packageLimits.guestMaxVoicePerPost && (currentVoice + newVoice) > packageLimits.guestMaxVoicePerPost) {
+                const remaining = packageLimits.guestMaxVoicePerPost - currentVoice;
+                const message = remaining > 0 
+                    ? `You can only add ${remaining} more voice recordings. You're trying to add ${newVoice} voice recordings.`
+                    : `You've already reached the maximum of ${packageLimits.guestMaxVoicePerPost} voice recordings.`;
+                console.log('❌ Voice limit exceeded:', message);
+                console.log('Current voice:', currentVoice, 'New voice:', newVoice, 'Limit:', packageLimits.guestMaxVoicePerPost);
+                showUploadError(message);
+                return;
+            } else {
+                console.log('✅ Voice limit check passed');
             }
             
             // Add new files to the selection
             window.selectedFiles = [...window.selectedFiles, ...newFiles];
+            
+            // Show success message
+            const fileCount = newFiles.length;
+            const fileTypes = [];
+            if (newImages > 0) fileTypes.push(`${newImages} image${newImages > 1 ? 's' : ''}`);
+            if (newVideos > 0) fileTypes.push(`${newVideos} video${newVideos > 1 ? 's' : ''}`);
+            if (newVoice > 0) fileTypes.push(`${newVoice} voice recording${newVoice > 1 ? 's' : ''}`);
+            
+            const successMessage = `Successfully added ${fileCount} file${fileCount > 1 ? 's' : ''} (${fileTypes.join(', ')})`;
+            showUploadSuccess(successMessage);
             
             // Debug: Log updated selected files
             console.log('Updated selectedFiles:', window.selectedFiles);
@@ -3082,12 +3259,27 @@
         window.handleFiles = handleFiles;
         
         function checkUploadLimits() {
-            // Main validation: Check guestMaxMediaPerPost (total media files per post)
-            if (packageLimits.guestMaxMediaPerPost && currentUploads.totalFiles > packageLimits.guestMaxMediaPerPost) {
-                const remaining = packageLimits.guestMaxMediaPerPost - currentUploads.totalFiles;
+            // Check image limit
+            if (packageLimits.guestMaxImagePerPost && currentUploads.photos > packageLimits.guestMaxImagePerPost) {
                 return {
                     allowed: false,
-                    message: `You can only upload ${packageLimits.guestMaxMediaPerPost} media files per post. You've selected ${currentUploads.totalFiles} files. ${remaining < 0 ? `Please remove ${Math.abs(remaining)} files.` : `${remaining} files remaining.`}`
+                    message: `You can only upload ${packageLimits.guestMaxImagePerPost} images per post. You've selected ${currentUploads.photos} images.`
+                };
+            }
+            
+            // Check video limit
+            if (packageLimits.guestMaxVideoPerPost && currentUploads.videos > packageLimits.guestMaxVideoPerPost) {
+                return {
+                    allowed: false,
+                    message: `You can only upload ${packageLimits.guestMaxVideoPerPost} videos per post. You've selected ${currentUploads.videos} videos.`
+                };
+            }
+            
+            // Check voice limit
+            if (packageLimits.guestMaxVoicePerPost && currentUploads.voice > packageLimits.guestMaxVoicePerPost) {
+                return {
+                    allowed: false,
+                    message: `You can only upload ${packageLimits.guestMaxVoicePerPost} voice recordings per post. You've selected ${currentUploads.voice} voice recordings.`
                 };
             }
             
@@ -3095,8 +3287,20 @@
         }
         
         function getRemainingFiles() {
-            if (!packageLimits.guestMaxMediaPerPost) return null;
-            return Math.max(0, packageLimits.guestMaxMediaPerPost - currentUploads.totalFiles);
+            // Calculate remaining files for each media type
+            const remainingImages = packageLimits.guestMaxImagePerPost ? 
+                Math.max(0, packageLimits.guestMaxImagePerPost - currentUploads.photos) : null;
+            const remainingVideos = packageLimits.guestMaxVideoPerPost ? 
+                Math.max(0, packageLimits.guestMaxVideoPerPost - currentUploads.videos) : null;
+            const remainingVoice = packageLimits.guestMaxVoicePerPost ? 
+                Math.max(0, packageLimits.guestMaxVoicePerPost - currentUploads.voice) : null;
+            
+            return {
+                images: remainingImages,
+                videos: remainingVideos,
+                voice: remainingVoice,
+                total: (remainingImages || 0) + (remainingVideos || 0) + (remainingVoice || 0)
+            };
         }
         
         
@@ -3104,12 +3308,51 @@
             const errorContainer = document.getElementById('errorContainer');
             if (errorContainer) {
                 errorContainer.innerHTML = `
-                    <div class="d-flex align-items-center">
-                        <i class="fas fa-exclamation-triangle text-warning me-2"></i>
-                        <span>${message}</span>
+                    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <div>
+                                <strong>Upload Limit:</strong> ${message}
+                            </div>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 `;
                 errorContainer.style.display = 'block';
+                
+                // Auto-hide after 8 seconds
+                setTimeout(() => {
+                    if (errorContainer.innerHTML.includes('alert')) {
+                        errorContainer.style.display = 'none';
+                        errorContainer.innerHTML = '';
+                    }
+                }, 8000);
+            }
+        }
+        
+        function showUploadSuccess(message) {
+            const errorContainer = document.getElementById('errorContainer');
+            if (errorContainer) {
+                errorContainer.innerHTML = `
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <div>
+                                <strong>Success:</strong> ${message}
+                            </div>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                `;
+                errorContainer.style.display = 'block';
+                
+                // Auto-hide after 5 seconds
+                setTimeout(() => {
+                    if (errorContainer.innerHTML.includes('alert-success')) {
+                        errorContainer.style.display = 'none';
+                        errorContainer.innerHTML = '';
+                    }
+                }, 5000);
             }
         }
         
@@ -3127,15 +3370,15 @@
             if (remainingFilesElement && remainingCountElement) {
                 const remaining = getRemainingFiles();
                 
-                if (remaining !== null && packageLimits.guestMaxMediaPerPost) {
-                    remainingCountElement.textContent = remaining;
+                if (remaining.total > 0) {
+                    remainingCountElement.textContent = remaining.total;
                     remainingFilesElement.style.display = 'inline';
                     
                     // Update styling based on remaining count
                     remainingFilesElement.classList.remove('warning', 'error');
-                    if (remaining === 0) {
+                    if (remaining.total === 0) {
                         remainingFilesElement.classList.add('error');
-                    } else if (remaining <= 2) {
+                    } else if (remaining.total <= 2) {
                         remainingFilesElement.classList.add('warning');
                     }
                 } else {
@@ -3143,8 +3386,10 @@
                 }
             }
             
-            // Calculate progress based on the main limit (guestMaxMediaPerPost)
-            const totalLimit = packageLimits.guestMaxMediaPerPost || Math.max(packageLimits.maxPhotos || 0, packageLimits.maxVideos || 0);
+            // Calculate progress based on the total of all media type limits
+            const totalLimit = (packageLimits.guestMaxImagePerPost || 0) + 
+                             (packageLimits.guestMaxVideoPerPost || 0) + 
+                             (packageLimits.guestMaxVoicePerPost || 0);
             const totalCurrent = currentUploads.totalFiles;
             
             let progressPercentage = 0;
@@ -3552,6 +3797,9 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM loaded, initializing...');
             
+            // Load package limits immediately when DOM is ready
+            loadPackageLimits();
+            
             // Initialize voice recorder
             try {
                 if (window.voiceRecorderInitialized) {
@@ -3590,6 +3838,40 @@
         
         // Make toggleContributionForm available globally
         window.toggleContributionForm = toggleContributionForm;
+        
+        // Ensure package limits are loaded even if external JS doesn't call it
+        setTimeout(() => {
+            if (!packageLimits.guestMaxImagePerPost && !packageLimits.guestMaxVideoPerPost && !packageLimits.guestMaxVoicePerPost) {
+                console.log('⚠️ Package limits not loaded by external JS, loading now...');
+                loadPackageLimits();
+            } else {
+                console.log('✅ Package limits already loaded:', packageLimits);
+                // Force update the display even if limits are loaded
+                updatePreUploadInfo();
+            }
+        }, 1000);
+        
+        // Additional fallback - force update after 2 seconds
+        setTimeout(() => {
+            console.log('🔧 Force updating display after 2 seconds...');
+            updatePreUploadInfo();
+        }, 2000);
+        
+        // Add a function to manually reload package limits (for debugging)
+        window.reloadPackageLimits = function() {
+            console.log('🔄 Manually reloading package limits...');
+            loadPackageLimits();
+        };
+        
+        // Add a function to check current package limits (for debugging)
+        window.checkPackageLimits = function() {
+            console.log('📊 Current packageLimits:', packageLimits);
+            console.log('📊 API limits check:');
+            console.log('  - guestMaxImagePerPost:', packageLimits.guestMaxImagePerPost);
+            console.log('  - guestMaxVideoPerPost:', packageLimits.guestMaxVideoPerPost);
+            console.log('  - guestMaxVoicePerPost:', packageLimits.guestMaxVoicePerPost);
+            return packageLimits;
+        };
     </script>
 </body>
 </html>

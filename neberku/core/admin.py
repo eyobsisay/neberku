@@ -2,7 +2,42 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.urls import reverse
 from django.utils.safestring import mark_safe
+from django.forms.models import BaseInlineFormSet
+from django import forms
 from .models import EventType, Package, Event, Payment, Guest, GuestPost, MediaFile, EventSettings
+
+class EventSettingsFormSet(BaseInlineFormSet):
+    """Custom formset for EventSettings inline to prevent duplicates"""
+    
+    def clean(self):
+        """Validate that we don't have duplicate EventSettings"""
+        if any(self.errors):
+            return
+        
+        # Check for duplicates
+        event_ids = []
+        for form in self.forms:
+            if form.cleaned_data and not form.cleaned_data.get('DELETE', False):
+                event_id = form.cleaned_data.get('event')
+                if event_id in event_ids:
+                    raise forms.ValidationError('Only one EventSettings per event is allowed.')
+                event_ids.append(event_id)
+    
+    def save(self, commit=True):
+        """Override save to prevent creating duplicates"""
+        instances = super().save(commit=False)
+        
+        for instance in instances:
+            # If this is a new instance, check if EventSettings already exist
+            if not instance.pk:
+                if EventSettings.objects.filter(event=instance.event).exists():
+                    # Don't create a new one, just skip
+                    continue
+            
+            if commit:
+                instance.save()
+        
+        return instances
 
 @admin.register(EventType)
 class EventTypeAdmin(admin.ModelAdmin):
@@ -49,6 +84,65 @@ class PackageAdmin(admin.ModelAdmin):
         }),
     )
 
+class EventSettingsInline(admin.StackedInline):
+    """Inline admin for EventSettings model - now optional"""
+    model = EventSettings
+    extra = 1  # Show one empty form if no EventSettings exist
+    can_delete = True  # Allow deleting EventSettings if needed
+    max_num = 1  # Only allow one EventSettings per event
+    formset = EventSettingsFormSet  # Use custom formset
+    
+    fieldsets = (
+        ('File Settings', {
+            'fields': ('max_photo_size', 'allowed_photo_formats', 'max_video_size', 'max_video_duration', 'allowed_video_formats', 'max_voice_size', 'max_voice_duration', 'allowed_voice_formats'),
+            'classes': ('collapse',)
+        }),
+        ('Guest Settings', {
+            'fields': ('require_approval', 'allow_anonymous', 'max_posts_per_guest', 'max_image_per_post', 'max_video_per_post', 'max_voice_per_post')
+        }),
+        ('Privacy Settings', {
+            'fields': ('public_gallery', 'show_guest_names'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_queryset(self, request):
+        """Return the existing EventSettings for this event"""
+        qs = super().get_queryset(request)
+        return qs
+    
+    def has_add_permission(self, request, obj=None):
+        """Allow adding EventSettings if none exist for this event"""
+        if obj and hasattr(obj, 'settings'):
+            return False  # Don't allow adding if EventSettings already exist
+        return True  # Allow adding if no EventSettings exist
+    
+    def get_formset(self, request, obj=None, **kwargs):
+        """Override formset to handle existing EventSettings properly"""
+        formset = super().get_formset(request, obj, **kwargs)
+        
+        # If we're editing an existing event, ensure we only show existing EventSettings
+        if obj and hasattr(obj, 'settings'):
+            # Set extra to 0 to prevent adding new forms
+            formset.extra = 0
+            formset.max_num = 1
+            
+        return formset
+    
+    def get_formsets_with_inlines(self, request, obj=None):
+        """Ensure proper handling of formsets"""
+        for inline in self.get_inline_instances(request, obj):
+            yield inline.get_formset(request, obj), inline
+    
+    def get_queryset(self, request):
+        """Return only existing EventSettings, don't allow creating new ones"""
+        qs = super().get_queryset(request)
+        return qs
+    
+    def has_add_permission(self, request, obj=None):
+        """Never allow adding new EventSettings through inline"""
+        return False
+
 @admin.register(Event)
 class EventAdmin(admin.ModelAdmin):
     list_display = ['title', 'host', 'event_type', 'event_date', 'status', 'payment_status', 'is_public_display', 'contributor_code', 'total_guest_posts', 'total_media_files', 'like_count', 'is_live']
@@ -56,6 +150,7 @@ class EventAdmin(admin.ModelAdmin):
     search_fields = ['title', 'description', 'host__username', 'host__email']
     readonly_fields = ['id', 'created_at', 'updated_at', 'published_at', 'total_guest_posts', 'total_media_files', 'like_count', 'is_live', 'qr_code_display', 'share_link_display', 'contributor_code_display']
     ordering = ['-created_at']
+    inlines = [EventSettingsInline]
     
     actions = ['regenerate_qr_codes', 'regenerate_share_links', 'regenerate_contributor_codes', 'toggle_public_status']
     
@@ -166,6 +261,10 @@ class EventAdmin(admin.ModelAdmin):
         
         self.message_user(request, f'Successfully toggled public status for {count} events.')
     toggle_public_status.short_description = "Toggle public/private status for selected events"
+    
+    def save_model(self, request, obj, form, change):
+        """Override save - EventSettings are now optional and created manually when needed"""
+        super().save_model(request, obj, form, change)
 
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
@@ -314,18 +413,27 @@ class MediaFileAdmin(admin.ModelAdmin):
 
 @admin.register(EventSettings)
 class EventSettingsAdmin(admin.ModelAdmin):
-    list_display = ['event', 'require_approval', 'public_gallery', 'max_posts_per_guest', 'max_media_per_post']
-    list_filter = ['require_approval', 'public_gallery', 'allow_anonymous']
-    search_fields = ['event__title']
+    list_display = ['event', 'require_approval', 'public_gallery', 'max_posts_per_guest', 'max_image_per_post', 'max_video_per_post', 'max_voice_per_post', 'allow_anonymous', 'show_guest_names']
+    list_filter = ['require_approval', 'public_gallery', 'allow_anonymous', 'show_guest_names']
+    search_fields = ['event__title', 'event__host__username']
+    readonly_fields = ['id']
+    ordering = ['-event__created_at']
     
     fieldsets = (
+        ('Basic Information', {
+            'fields': ('id', 'event')
+        }),
         ('File Settings', {
-            'fields': ('max_photo_size', 'allowed_photo_formats', 'max_video_size', 'max_video_duration', 'allowed_video_formats')
+            'fields': ('max_photo_size', 'allowed_photo_formats', 'max_video_size', 'max_video_duration', 'allowed_video_formats', 'max_voice_size', 'max_voice_duration', 'allowed_voice_formats'),
+            'classes': ('collapse',)
         }),
         ('Guest Settings', {
-            'fields': ('require_approval', 'allow_anonymous', 'max_posts_per_guest', 'max_media_per_post')
+            'fields': ('require_approval', 'allow_anonymous', 'max_posts_per_guest', 'max_image_per_post', 'max_video_per_post', 'max_voice_per_post')
         }),
         ('Privacy Settings', {
             'fields': ('public_gallery', 'show_guest_names')
         }),
     )
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('event', 'event__host')
