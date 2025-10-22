@@ -214,19 +214,25 @@ class Dashboard {
                             </p>
                             
                             <div class="row text-center mb-2">
-                                <div class="col-4">
+                                <div class="col-3">
                                     <div class="text-primary">
                                         <i class="bi bi-image" style="font-size: 0.8rem;"></i>
                                         <div style="font-size: 0.75rem;">${event.photo_count || 0}</div>
                                     </div>
                                 </div>
-                                <div class="col-4">
+                                <div class="col-3">
                                     <div class="text-info">
                                         <i class="bi bi-camera-video" style="font-size: 0.8rem;"></i>
                                         <div style="font-size: 0.75rem;">${event.video_count || 0}</div>
                                     </div>
                                 </div>
-                                <div class="col-4">
+                                <div class="col-3">
+                                    <div class="text-secondary">
+                                        <i class="bi bi-mic" style="font-size: 0.8rem;"></i>
+                                        <div style="font-size: 0.75rem;">${event.voice_count || 0}</div>
+                                    </div>
+                                </div>
+                                <div class="col-3">
                                     <div class="text-success">
                                         <i class="bi bi-people" style="font-size: 0.8rem;"></i>
                                         <div style="font-size: 0.75rem;">${event.total_guest_posts || 0}</div>
@@ -595,6 +601,7 @@ class Dashboard {
         const totalEvents = this.events.length;
         const totalPhotos = this.events.reduce((sum, event) => sum + (event.photo_count || 0), 0);
         const totalVideos = this.events.reduce((sum, event) => sum + (event.video_count || 0), 0);
+        const totalVoice = this.events.reduce((sum, event) => sum + (event.voice_count || 0), 0);
         const totalGuests = this.events.reduce((sum, event) => sum + (event.total_guest_posts || 0), 0);
 
         console.log('📊 Updating statistics:', {
@@ -606,6 +613,7 @@ class Dashboard {
         document.getElementById('totalEvents').textContent = totalEvents;
         document.getElementById('totalPhotos').textContent = totalPhotos;
         document.getElementById('totalVideos').textContent = totalVideos;
+        document.getElementById('totalVoice').textContent = totalVoice;
         document.getElementById('totalGuests').textContent = totalGuests;
 
         // Update event status overview - this will handle allEventsCount
