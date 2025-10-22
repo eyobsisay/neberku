@@ -116,6 +116,7 @@ class PostDetail {
         const mediaGallery = document.getElementById('mediaGallery');
         const photoCount = document.getElementById('photoCount');
         const videoCount = document.getElementById('videoCount');
+        const voiceCount = document.getElementById('voiceCount');
 
         if (!this.post.media_files || this.post.media_files.length === 0) {
             mediaGallery.innerHTML = `
@@ -126,15 +127,18 @@ class PostDetail {
             `;
             photoCount.textContent = '0';
             videoCount.textContent = '0';
+            voiceCount.textContent = '0';
             return;
         }
 
-        // Count photos and videos
+        // Count photos, videos, and voice recordings
         const photos = this.post.media_files.filter(m => m.media_type === 'photo');
         const videos = this.post.media_files.filter(m => m.media_type === 'video');
+        const voices = this.post.media_files.filter(m => m.media_type === 'voice');
         
         photoCount.textContent = photos.length;
         videoCount.textContent = videos.length;
+        voiceCount.textContent = voices.length;
 
         // Render media gallery
         let galleryHTML = '';
@@ -159,6 +163,32 @@ class PostDetail {
                             <source src="${media.media_file}" type="${media.mime_type || 'video/mp4'}">
                             Your browser does not support the video tag.
                         </video>
+                        <div class="media-info">
+                            <small class="text-muted">${media.file_name}</small>
+                            <br>
+                            <small class="text-muted">${this.formatFileSize(media.file_size)}</small>
+                        </div>
+                    </div>
+                `;
+            } else if (media.media_type === 'voice') {
+                galleryHTML += `
+                    <div class="media-item">
+                        <div class="voice-preview-container" style="display: flex; align-items: center; justify-content: center; width: 100%; height: 150px; background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); border-radius: 15px; position: relative; overflow: hidden; border: 2px solid #2196f3;">
+                            <div class="voice-waveform" style="display: flex; align-items: center; justify-content: center; gap: 2px; position: absolute; left: 8px; top: 50%; transform: translateY(-50%);">
+                                <div class="wave-bar" style="width: 2px; background: #1976d2; border-radius: 1px; animation: wave 1.5s ease-in-out infinite; height: 8px; animation-delay: 0s;"></div>
+                                <div class="wave-bar" style="width: 2px; background: #1976d2; border-radius: 1px; animation: wave 1.5s ease-in-out infinite; height: 12px; animation-delay: 0.1s;"></div>
+                                <div class="wave-bar" style="width: 2px; background: #1976d2; border-radius: 1px; animation: wave 1.5s ease-in-out infinite; height: 16px; animation-delay: 0.2s;"></div>
+                                <div class="wave-bar" style="width: 2px; background: #1976d2; border-radius: 1px; animation: wave 1.5s ease-in-out infinite; height: 12px; animation-delay: 0.3s;"></div>
+                                <div class="wave-bar" style="width: 2px; background: #1976d2; border-radius: 1px; animation: wave 1.5s ease-in-out infinite; height: 8px; animation-delay: 0.4s;"></div>
+                            </div>
+                            <div class="voice-icon" style="position: absolute; right: 6px; top: 50%; transform: translateY(-50%); color: #1976d2; font-size: 12px; z-index: 2;">
+                                <i class="bi bi-mic"></i>
+                            </div>
+                            <audio controls style="position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); width: 90%;">
+                                <source src="${media.media_file}" type="${media.mime_type || 'audio/mp3'}">
+                                Your browser does not support the audio element.
+                            </audio>
+                        </div>
                         <div class="media-info">
                             <small class="text-muted">${media.file_name}</small>
                             <br>
@@ -384,7 +414,9 @@ function openMediaModal(mediaUrl, fileName, mediaType) {
                 <div class="modal-body text-center">
                     ${mediaType === 'photo' 
                         ? `<img src="${mediaUrl}" class="img-fluid" alt="${fileName}">`
-                        : `<video controls class="w-100"><source src="${mediaUrl}" type="video/mp4"></video>`
+                        : mediaType === 'video'
+                        ? `<video controls class="w-100"><source src="${mediaUrl}" type="video/mp4"></video>`
+                        : `<audio controls class="w-100"><source src="${mediaUrl}" type="audio/mp3"></audio>`
                     }
                 </div>
                 <div class="modal-footer">

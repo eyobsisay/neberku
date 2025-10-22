@@ -354,6 +354,12 @@
         .navbar-nav {
             margin-left: 0 !important;
         }
+        
+        /* Voice recording waveform animation */
+        @keyframes wave {
+            0%, 100% { transform: scaleY(0.5); opacity: 0.7; }
+            50% { transform: scaleY(1); opacity: 1; }
+        }
     </style>
 </head>
 <body>
@@ -437,7 +443,8 @@
                     <h4><i class="bi bi-images"></i> Media Files</h4>
                     <div id="mediaCount" class="mb-3">
                         <span class="badge bg-primary me-2">Photos: <span id="photoCount">0</span></span>
-                        <span class="badge bg-success">Videos: <span id="videoCount">0</span></span>
+                        <span class="badge bg-success me-2">Videos: <span id="videoCount">0</span></span>
+                        <span class="badge bg-info">Voice: <span id="voiceCount">0</span></span>
                     </div>
                     <div id="mediaGallery" class="media-gallery">
                         <div class="text-center text-muted">
