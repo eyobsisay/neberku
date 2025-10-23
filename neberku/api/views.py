@@ -494,7 +494,8 @@ class GuestPostCreateViewSet(viewsets.GenericViewSet):
                             media_file=photo,
                             file_size=photo.size,
                             file_name=photo.name,
-                            mime_type=photo.content_type or 'image/jpeg'
+                            mime_type=photo.content_type or 'image/jpeg',
+                            is_approved=post.is_approved  # Set approval status based on post
                         )
                     except Exception as e:
                         # If there's an error creating a media file, delete the post and raise error
@@ -512,7 +513,8 @@ class GuestPostCreateViewSet(viewsets.GenericViewSet):
                             media_file=video,
                             file_size=video.size,
                             file_name=video.name,
-                            mime_type=video.content_type or 'video/mp4'
+                            mime_type=video.content_type or 'video/mp4',
+                            is_approved=post.is_approved  # Set approval status based on post
                         )
                     except Exception as e:
                         # If there's an error creating a media file, delete the post and raise error
@@ -530,7 +532,8 @@ class GuestPostCreateViewSet(viewsets.GenericViewSet):
                             media_file=voice_recording,
                             file_size=voice_recording.size,
                             file_name=voice_recording.name,
-                            mime_type=voice_recording.content_type or 'audio/mp3'
+                            mime_type=voice_recording.content_type or 'audio/mp3',
+                            is_approved=post.is_approved  # Set approval status based on post
                         )
                     except Exception as e:
                         # If there's an error creating a media file, delete the post and raise error
