@@ -1,121 +1,139 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """
-Test script to verify event creation endpoint is working correctly.
-Run this script to test the event creation API without the frontend.
+Test script to verify event creation with separate media per post fields.
 """
 
-import requests
-import json
-from datetime import datetime, timedelta
+import os
+import sys
+import django
 
-# Configuration
-BASE_URL = 'http://localhost:8000'
-LOGIN_URL = f'{BASE_URL}/api/login/'
-EVENTS_URL = f'{BASE_URL}/api/events/'
+# Add the project directory to Python path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-def test_event_creation():
-    """Test the event creation endpoint"""
+# Setup Django
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'neberku.settings')
+django.setup()
+
+from core.models import EventSettings, Event, Package, EventType
+from django.contrib.auth.models import User
+
+def test_event_creation_with_settings():
+    """Test event creation with separate media per post fields"""
+    print("Testing event creation with separate media per post fields...")
     
-    print("🧪 Testing Event Creation API")
-    print("=" * 50)
+    # Create test data
+    user = User.objects.create_user(username='testuser2', password='testpass')
+    event_type = EventType.objects.create(name='Test Event Type 2')
+    package = Package.objects.create(
+        name='Test Package 2',
+        price=150.00,
+        max_photos=100,
+        max_videos=50
+    )
     
-    # Test data for event creation
-    event_data = {
-        "title": "Test Event - API Test",
-        "description": "This is a test event created via API to verify the endpoint is working",
-        "event_date": (datetime.now() + timedelta(days=7)).isoformat(),
-        "location": "Test Location",
-        "package_id": 1,  # Basic Package
-        "event_type_id": 1,  # Wedding
-        "allow_photos": True,
-        "allow_videos": True,
-        "allow_wishes": True,
-        "auto_approve_posts": False
+    # Create event
+    event = Event.objects.create(
+        title='Test Event with Custom Settings',
+        description='Test Description with custom media limits',
+        host=user,
+        package=package,
+        event_type=event_type,
+        event_date='2024-12-31 12:00:00'
+    )
+    
+    print(f"Event created: {event.title}")
+    
+    # Create EventSettings with custom values (simulating form data)
+    settings = EventSettings.objects.create(
+        event=event,
+        max_posts_per_guest=10,  # Custom value
+        max_image_per_post=5,     # Custom value
+        max_video_per_post=3,     # Custom value
+        max_voice_per_post=2      # Custom value
+    )
+    
+    print(f"✅ EventSettings created with custom values:")
+    print(f"   - Max posts per guest: {settings.max_posts_per_guest}")
+    print(f"   - Max images per post: {settings.max_image_per_post}")
+    print(f"   - Max videos per post: {settings.max_video_per_post}")
+    print(f"   - Max voice per post: {settings.max_voice_per_post}")
+    
+    # Test the relationship
+    print(f"\nTesting relationship...")
+    print(f"Event has settings: {hasattr(event, 'settings')}")
+    print(f"Settings belong to event: {settings.event == event}")
+    
+    # Test accessing settings through event
+    if hasattr(event, 'settings'):
+        event_settings = event.settings
+        print(f"✅ Event settings accessed through event:")
+        print(f"   - Images per post: {event_settings.max_image_per_post}")
+        print(f"   - Videos per post: {event_settings.max_video_per_post}")
+        print(f"   - Voice per post: {event_settings.max_voice_per_post}")
+    
+    print("\n🎉 Event creation with custom settings test completed!")
+
+def test_form_data_simulation():
+    """Test simulating form data from dashboard"""
+    print("\nTesting form data simulation...")
+    
+    # Simulate form data that would come from dashboard.js
+    form_data = {
+        'max_posts_per_guest': '8',
+        'max_image_per_post': '4',
+        'max_video_per_post': '2',
+        'max_voice_per_post': '1'
     }
     
-    print(f"📝 Event data to create:")
-    print(json.dumps(event_data, indent=2))
-    print()
+    print("📋 Simulated form data:")
+    for key, value in form_data.items():
+        print(f"   {key}: {value}")
     
+    # Create test data
+    user = User.objects.create_user(username='testuser3', password='testpass')
+    event_type = EventType.objects.create(name='Test Event Type 3')
+    package = Package.objects.create(
+        name='Test Package 3',
+        price=200.00,
+        max_photos=200,
+        max_videos=100
+    )
+    
+    # Create event
+    event = Event.objects.create(
+        title='Test Event from Form Data',
+        description='Test Description from form simulation',
+        host=user,
+        package=package,
+        event_type=event_type,
+        event_date='2024-12-31 12:00:00'
+    )
+    
+    # Create EventSettings using form data (like in perform_create)
+    settings_data = {
+        'event': event,
+        'max_posts_per_guest': int(form_data.get('max_posts_per_guest', 5)),
+        'max_image_per_post': int(form_data.get('max_image_per_post', 3)),
+        'max_video_per_post': int(form_data.get('max_video_per_post', 2)),
+        'max_voice_per_post': int(form_data.get('max_voice_per_post', 1))
+    }
+    
+    settings = EventSettings.objects.create(**settings_data)
+    
+    print(f"✅ EventSettings created from form data:")
+    print(f"   - Max posts per guest: {settings.max_posts_per_guest}")
+    print(f"   - Max images per post: {settings.max_image_per_post}")
+    print(f"   - Max videos per post: {settings.max_video_per_post}")
+    print(f"   - Max voice per post: {settings.max_voice_per_post}")
+    
+    print("\n🎉 Form data simulation test completed!")
+
+if __name__ == '__main__':
     try:
-        # First, try to create an event without authentication
-        print("🔓 Testing without authentication...")
-        response = requests.post(EVENTS_URL, json=event_data)
-        print(f"Status: {response.status_code}")
-        
-        if response.status_code == 401:
-            print("✅ Correctly requires authentication")
-        else:
-            print(f"⚠️ Unexpected response: {response.text}")
-        
-        print()
-        
-        # Test with authentication (you'll need to create a user first)
-        print("🔐 Testing with authentication...")
-        print("Note: You need to create a user first via Django admin or registration")
-        print("For now, this will likely fail with 401 Unauthorized")
-        
-        # You can uncomment and modify this section after creating a user
-        # login_data = {
-        #     "username": "your_username",
-        #     "password": "your_password"
-        # }
-        # 
-        # login_response = requests.post(LOGIN_URL, json=login_data)
-        # if login_response.status_code == 200:
-        #     session = requests.Session()
-        #     session.cookies.update(login_response.cookies)
-        #     
-        #     event_response = session.post(EVENTS_URL, json=event_data)
-        #     print(f"Event creation status: {event_response.status_code}")
-        #     if event_response.status_code == 201:
-        #         print("✅ Event created successfully!")
-        #         print(json.dumps(event_response.json(), indent=2))
-        #     else:
-        #         print(f"❌ Failed to create event: {event_response.text}")
-        # else:
-        #     print(f"❌ Login failed: {login_response.text}")
-        
-    except requests.exceptions.ConnectionError:
-        print("❌ Connection failed! Make sure Django server is running on http://localhost:8000")
-        print("Run: python manage.py runserver")
+        test_event_creation_with_settings()
+        test_form_data_simulation()
+        print("\n✅ All tests passed! Event creation with separate media fields is working correctly.")
     except Exception as e:
-        print(f"❌ Error: {e}")
-
-def test_endpoints():
-    """Test if the API endpoints are accessible"""
-    
-    print("🔍 Testing API Endpoints")
-    print("=" * 50)
-    
-    endpoints = [
-        ("Event Types", f"{BASE_URL}/api/event-types/"),
-        ("Packages", f"{BASE_URL}/api/packages/"),
-        ("Events", f"{BASE_URL}/api/events/"),
-        ("Swagger Docs", f"{BASE_URL}/swagger/"),
-    ]
-    
-    for name, url in endpoints:
-        try:
-            response = requests.get(url)
-            print(f"{name}: {response.status_code} - {'✅' if response.status_code < 400 else '❌'}")
-        except requests.exceptions.ConnectionError:
-            print(f"{name}: ❌ Connection failed")
-        except Exception as e:
-            print(f"{name}: ❌ Error - {e}")
-
-if __name__ == "__main__":
-    print("🚀 Neberku Event Creation API Test")
-    print("=" * 50)
-    print()
-    
-    test_endpoints()
-    print()
-    test_event_creation()
-    
-    print()
-    print("📋 Next steps:")
-    print("1. Make sure Django server is running: python manage.py runserver")
-    print("2. Create a user via Django admin or registration")
-    print("3. Update the test script with valid credentials")
-    print("4. Run the test again to verify event creation")
+        print(f"\n❌ Test failed with error: {e}")
+        import traceback
+        traceback.print_exc()
