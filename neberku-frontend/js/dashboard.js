@@ -5,6 +5,8 @@ class Dashboard {
         this.currentPage = 1;
         this.eventsPerPage = 6;
         this.filteredEvents = null; // null means no filter applied, [] means filter applied but empty results
+        this.packages = []; // Store packages data for validation
+        this.selectedPackage = null; // Store selected package data
         this.init();
     }
 
@@ -53,6 +55,20 @@ class Dashboard {
         document.getElementById('createEventForm').addEventListener('submit', (e) => {
             e.preventDefault();
             this.createEvent();
+        });
+
+        // Package selection change event
+        document.addEventListener('change', (e) => {
+            if (e.target.id === 'eventPackage') {
+                this.onPackageChange(e.target.value);
+            }
+        });
+
+        // Event settings validation on input
+        document.addEventListener('input', (e) => {
+            if (['maxImagePerPost', 'maxVideoPerPost', 'maxVoicePerPost'].includes(e.target.id)) {
+                this.validateEventSettings();
+            }
         });
     }
 
@@ -518,6 +534,13 @@ class Dashboard {
             return;
         }
         
+        // Validate against package limits using field validation
+        if (!this.validateEventSettings()) {
+            this.showAlert('Please fix the validation errors above before creating the event', 'warning');
+            return;
+        }
+        
+        // General validation (fallback if no package selected)
         if (maxImagePerPost && (maxImagePerPost < 1 || maxImagePerPost > 50)) {
             this.showAlert('Max Images per Post must be between 1 and 50', 'warning');
             return;
@@ -589,6 +612,10 @@ class Dashboard {
         if (document.getElementById('maxImagePerPost')) document.getElementById('maxImagePerPost').value = '3';
         if (document.getElementById('maxVideoPerPost')) document.getElementById('maxVideoPerPost').value = '2';
         if (document.getElementById('maxVoicePerPost')) document.getElementById('maxVoicePerPost').value = '1';
+        
+        // Reset package selection and limits
+        this.selectedPackage = null;
+        this.updatePackageLimitsDisplay();
         
         // Clear file inputs
         document.getElementById('eventThumbnail').value = '';
@@ -1131,6 +1158,9 @@ class Dashboard {
             return;
         }
         
+        // Store packages data for validation
+        this.packages = packages;
+        
         packageSelect.innerHTML = '<option value="">Select a package</option>';
         
         if (!Array.isArray(packages) || packages.length === 0) {
@@ -1147,6 +1177,226 @@ class Dashboard {
         });
         
         console.log(`✅ Populated package dropdown with ${packages.length} packages`);
+    }
+
+    onPackageChange(packageId) {
+        if (!packageId) {
+            this.selectedPackage = null;
+            this.updatePackageLimitsDisplay();
+            return;
+        }
+
+        // Find the selected package
+        this.selectedPackage = this.packages.find(pkg => pkg.id == packageId);
+        
+        if (this.selectedPackage) {
+            console.log('📦 Selected package:', this.selectedPackage);
+            this.updatePackageLimitsDisplay();
+            this.validateEventSettings();
+        } else {
+            console.error('❌ Package not found:', packageId);
+            this.selectedPackage = null;
+        }
+    }
+
+    updatePackageLimitsDisplay() {
+        const maxImageInput = document.getElementById('maxImagePerPost');
+        const maxVideoInput = document.getElementById('maxVideoPerPost');
+        const maxVoiceInput = document.getElementById('maxVoicePerPost');
+
+        if (!this.selectedPackage) {
+            // Reset to defaults when no package selected
+            if (maxImageInput) maxImageInput.max = '50';
+            if (maxVideoInput) maxVideoInput.max = '50';
+            if (maxVoiceInput) maxVoiceInput.max = '50';
+            
+            // Clear hints
+            this.updateFieldHint('maxImagePerPost', '');
+            this.updateFieldHint('maxVideoPerPost', '');
+            this.updateFieldHint('maxVoicePerPost', '');
+            return;
+        }
+
+        // Update max values based on package limits
+        const maxPhotos = this.selectedPackage.max_photos;
+        const maxVideos = this.selectedPackage.max_videos;
+        const maxVoice = this.selectedPackage.max_voice;
+
+        if (maxImageInput) {
+            maxImageInput.max = maxPhotos || '50';
+            maxImageInput.title = maxPhotos ? `Total package support: ${maxPhotos} photos` : 'No package limit';
+        }
+
+        if (maxVideoInput) {
+            maxVideoInput.max = maxVideos || '50';
+            maxVideoInput.title = maxVideos ? `Total package support: ${maxVideos} videos` : 'No package limit';
+        }
+
+        if (maxVoiceInput) {
+            maxVoiceInput.max = maxVoice || '50';
+            maxVoiceInput.title = maxVoice ? `Total package support: ${maxVoice} voice recordings` : 'No package limit';
+        }
+
+        // Update hints for all fields
+        this.updateFieldHint('maxImagePerPost', '');
+        this.updateFieldHint('maxVideoPerPost', '');
+        this.updateFieldHint('maxVoicePerPost', '');
+
+        // Show package limits info
+        this.showPackageLimitsInfo();
+    }
+
+    showPackageLimitsInfo() {
+        if (!this.selectedPackage) return;
+
+        const maxPhotos = this.selectedPackage.max_photos;
+        const maxVideos = this.selectedPackage.max_videos;
+        const maxVoice = this.selectedPackage.max_voice;
+
+        let limitsText = 'Total Package Support: ';
+        const limits = [];
+        
+        if (maxPhotos) limits.push(`${maxPhotos} photos`);
+        if (maxVideos) limits.push(`${maxVideos} videos`);
+        if (maxVoice) limits.push(`${maxVoice} voice recordings`);
+        
+        if (limits.length > 0) {
+            limitsText += limits.join(', ');
+        } else {
+            limitsText += 'No limits';
+        }
+
+        // Update the info text in the form
+        const infoElement = document.querySelector('.form-text.text-muted');
+        if (infoElement) {
+            infoElement.innerHTML = `
+                <i class="bi bi-info-circle"></i> 
+                <strong>Media Limits:</strong> These settings control how many media files guests can upload per post. 
+                <br><strong>${limitsText}</strong> - Values cannot exceed total package support.
+            `;
+        }
+    }
+
+    validateEventSettings() {
+        if (!this.selectedPackage) {
+            this.clearFieldErrors();
+            return true;
+        }
+
+        const maxImagePerPost = parseInt(document.getElementById('maxImagePerPost')?.value || '3');
+        const maxVideoPerPost = parseInt(document.getElementById('maxVideoPerPost')?.value || '2');
+        const maxVoicePerPost = parseInt(document.getElementById('maxVoicePerPost')?.value || '1');
+
+        const maxPhotos = this.selectedPackage.max_photos;
+        const maxVideos = this.selectedPackage.max_videos;
+        const maxVoice = this.selectedPackage.max_voice;
+
+        let isValid = true;
+
+        // Clear previous errors
+        this.clearFieldErrors();
+
+        // Check photo limit
+        if (maxPhotos && maxImagePerPost > maxPhotos) {
+            isValid = false;
+            this.showFieldError('maxImagePerPost', `Cannot exceed total package support of ${maxPhotos} photos`);
+        }
+
+        // Check video limit
+        if (maxVideos && maxVideoPerPost > maxVideos) {
+            isValid = false;
+            this.showFieldError('maxVideoPerPost', `Cannot exceed total package support of ${maxVideos} videos`);
+        }
+
+        // Check voice limit
+        if (maxVoice && maxVoicePerPost > maxVoice) {
+            isValid = false;
+            this.showFieldError('maxVoicePerPost', `Cannot exceed total package support of ${maxVoice} voice recordings`);
+        }
+
+        return isValid;
+    }
+
+    showFieldError(fieldId, message) {
+        const field = document.getElementById(fieldId);
+        if (!field) return;
+
+        // Add error styling
+        field.classList.add('is-invalid');
+        field.classList.remove('is-valid');
+
+        // Create or update error message
+        let errorDiv = field.parentNode.querySelector('.invalid-feedback');
+        if (!errorDiv) {
+            errorDiv = document.createElement('div');
+            errorDiv.className = 'invalid-feedback';
+            field.parentNode.appendChild(errorDiv);
+        }
+        errorDiv.textContent = message;
+
+        // Add hint
+        this.updateFieldHint(fieldId, message);
+    }
+
+    clearFieldErrors() {
+        const fields = ['maxImagePerPost', 'maxVideoPerPost', 'maxVoicePerPost'];
+        fields.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (field) {
+                field.classList.remove('is-invalid', 'is-valid');
+                
+                // Remove error messages
+                const errorDiv = field.parentNode.querySelector('.invalid-feedback');
+                if (errorDiv) {
+                    errorDiv.remove();
+                }
+                
+                // Clear hints
+                this.updateFieldHint(fieldId, '');
+            }
+        });
+    }
+
+    updateFieldHint(fieldId, errorMessage) {
+        const field = document.getElementById(fieldId);
+        if (!field) return;
+
+        // Find or create hint element
+        let hintElement = field.parentNode.querySelector('.form-hint');
+        if (!hintElement) {
+            hintElement = document.createElement('div');
+            hintElement.className = 'form-hint text-muted small mt-1';
+            field.parentNode.appendChild(hintElement);
+        }
+
+        if (errorMessage) {
+            hintElement.innerHTML = `<i class="bi bi-exclamation-triangle"></i> <strong>${errorMessage}</strong>`;
+            hintElement.className = 'form-hint text-warning small mt-1';
+        } else {
+            // Show package limit as hint
+            if (this.selectedPackage) {
+                const maxPhotos = this.selectedPackage.max_photos;
+                const maxVideos = this.selectedPackage.max_videos;
+                const maxVoice = this.selectedPackage.max_voice;
+                
+                let hintText = '';
+                if (fieldId === 'maxImagePerPost' && maxPhotos) {
+                    hintText = `<i class="bi bi-info-circle"></i> <strong>Total package support: ${maxPhotos} photos</strong>`;
+                } else if (fieldId === 'maxVideoPerPost' && maxVideos) {
+                    hintText = `<i class="bi bi-info-circle"></i> <strong>Total package support: ${maxVideos} videos</strong>`;
+                } else if (fieldId === 'maxVoicePerPost' && maxVoice) {
+                    hintText = `<i class="bi bi-info-circle"></i> <strong>Total package support: ${maxVoice} voice recordings</strong>`;
+                } else {
+                    hintText = `<i class="bi bi-check-circle"></i> <strong>No package limit</strong>`;
+                }
+                
+                hintElement.innerHTML = hintText;
+                hintElement.className = 'form-hint text-info small mt-1';
+            } else {
+                hintElement.innerHTML = `<i class="bi bi-info-circle"></i> <strong>Enter value between 1-50</strong>`;
+                hintElement.className = 'form-hint text-muted small mt-1';
+            }
+        }
     }
     
     populateEventTypeDropdown(eventTypes) {

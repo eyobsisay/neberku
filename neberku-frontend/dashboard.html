@@ -394,7 +394,13 @@
         }
         
         .form-label {
-            color: var(--muted) !important;
+            color: rgba(255,255,255,0.9) !important;
+            font-weight: 500;
+        }
+
+        .form-text {
+            color: rgba(255,255,255,0.8) !important;
+            font-weight: 400;
         }
         
         /* Text visibility fixes */
@@ -578,6 +584,64 @@
         
         footer a:hover {
             color: var(--primary-start) !important;
+        }
+
+        /* Field Validation Styling */
+        .form-control.is-invalid {
+            border-color: #dc3545 !important;
+            box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+        }
+
+        .form-control.is-valid {
+            border-color: #198754 !important;
+            box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.25) !important;
+        }
+
+        .invalid-feedback {
+            display: block;
+            width: 100%;
+            margin-top: 0.25rem;
+            font-size: 0.875em;
+            color: #dc3545;
+        }
+
+        .form-hint {
+            display: block;
+            width: 100%;
+            margin-top: 0.25rem;
+            font-size: 0.875em;
+            line-height: 1.2;
+        }
+
+        .form-hint.text-warning {
+            color: #ffc107 !important;
+            font-weight: 500;
+        }
+
+        .form-hint.text-info {
+            color: #17a2b8 !important;
+            font-weight: 500;
+        }
+
+        .form-hint.text-success {
+            color: #28a745 !important;
+            font-weight: 500;
+        }
+
+        .form-hint.text-muted {
+            color: rgba(255,255,255,0.85) !important;
+            font-weight: 500;
+        }
+
+        /* Input focus states with validation */
+        .form-control.is-invalid:focus {
+            border-color: #dc3545 !important;
+            box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+        }
+
+        .form-control.is-valid:focus {
+            border-color: #198754 !important;
+            box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.25) !important;
         }
     </style>
 </head>
