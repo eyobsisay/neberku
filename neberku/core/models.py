@@ -43,6 +43,10 @@ class Package(models.Model):
         null=True, blank=True,
         help_text="Maximum number of videos allowed. Leave empty for unlimited."
     )
+    max_voice = models.PositiveIntegerField(
+        null=True, blank=True,
+        help_text="Maximum number of voice recordings allowed. Leave empty for unlimited."
+    )
     features = models.JSONField(default=list, null=True, blank=True, help_text="List of features as JSON array (e.g., ['QR Code', 'Analytics', 'Support'])")
     is_active = models.BooleanField(default=True, help_text="Whether this package is available for selection")
     created_at = models.DateTimeField(auto_now_add=True)

@@ -487,13 +487,16 @@ class GuestPostCreateViewSet(viewsets.GenericViewSet):
                 package = event.package
                 current_photo_count = MediaFile.objects.filter(event=event, media_type='photo').count()
                 current_video_count = MediaFile.objects.filter(event=event, media_type='video').count()
+                current_voice_count = MediaFile.objects.filter(event=event, media_type='voice').count()
                 
-                # Calculate how many photos/videos can be approved based on package limits
+                # Calculate how many photos/videos/voice can be approved based on package limits
                 max_photos_allowed = package.max_photos if package.max_photos is not None else float('inf')
                 max_videos_allowed = package.max_videos if package.max_videos is not None else float('inf')
+                max_voice_allowed = package.max_voice if package.max_voice is not None else float('inf')
                 
                 photos_remaining = max(0, max_photos_allowed - current_photo_count)
                 videos_remaining = max(0, max_videos_allowed - current_video_count)
+                voice_remaining = max(0, max_voice_allowed - current_voice_count)
                 
                 # Create media files for photos
                 for i, photo in enumerate(photos):
@@ -540,8 +543,11 @@ class GuestPostCreateViewSet(viewsets.GenericViewSet):
                         raise serializers.ValidationError(f"Error processing video {video.name}: {str(e)}")
                 
                 # Create media files for voice recordings
-                for voice_recording in voice_recordings:
+                for i, voice_recording in enumerate(voice_recordings):
                     try:
+                        # Check if this voice recording exceeds package limit AND post is approved
+                        is_voice_approved = post.is_approved and i < voice_remaining
+                        
                         MediaFile.objects.create(
                             post=post,
                             guest=guest,
@@ -551,7 +557,7 @@ class GuestPostCreateViewSet(viewsets.GenericViewSet):
                             file_size=voice_recording.size,
                             file_name=voice_recording.name,
                             mime_type=voice_recording.content_type or 'audio/mp3',
-                            is_approved=post.is_approved  # Voice recordings don't have package limits
+                            is_approved=is_voice_approved  # Set approval based on both post and package limit
                         )
                     except Exception as e:
                         # If there's an error creating a media file, delete the post and raise error
