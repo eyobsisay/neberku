@@ -483,9 +483,24 @@ class GuestPostCreateViewSet(viewsets.GenericViewSet):
                     post.delete()
                     raise serializers.ValidationError(f"Maximum voice recordings per post ({max_voice_per_post}) exceeded. You uploaded {len(voice_recordings)} voice recordings.")
                 
+                # Check package limits for media files
+                package = event.package
+                current_photo_count = MediaFile.objects.filter(event=event, media_type='photo').count()
+                current_video_count = MediaFile.objects.filter(event=event, media_type='video').count()
+                
+                # Calculate how many photos/videos can be approved based on package limits
+                max_photos_allowed = package.max_photos if package.max_photos is not None else float('inf')
+                max_videos_allowed = package.max_videos if package.max_videos is not None else float('inf')
+                
+                photos_remaining = max(0, max_photos_allowed - current_photo_count)
+                videos_remaining = max(0, max_videos_allowed - current_video_count)
+                
                 # Create media files for photos
-                for photo in photos:
+                for i, photo in enumerate(photos):
                     try:
+                        # Check if this photo exceeds package limit AND post is approved
+                        is_photo_approved = post.is_approved and i < photos_remaining
+                        
                         MediaFile.objects.create(
                             post=post,
                             guest=guest,
@@ -495,7 +510,7 @@ class GuestPostCreateViewSet(viewsets.GenericViewSet):
                             file_size=photo.size,
                             file_name=photo.name,
                             mime_type=photo.content_type or 'image/jpeg',
-                            is_approved=post.is_approved  # Set approval status based on post
+                            is_approved=is_photo_approved  # Set approval based on both post and package limit
                         )
                     except Exception as e:
                         # If there's an error creating a media file, delete the post and raise error
@@ -503,8 +518,11 @@ class GuestPostCreateViewSet(viewsets.GenericViewSet):
                         raise serializers.ValidationError(f"Error processing photo {photo.name}: {str(e)}")
                 
                 # Create media files for videos
-                for video in videos:
+                for i, video in enumerate(videos):
                     try:
+                        # Check if this video exceeds package limit AND post is approved
+                        is_video_approved = post.is_approved and i < videos_remaining
+                        
                         MediaFile.objects.create(
                             post=post,
                             guest=guest,
@@ -514,7 +532,7 @@ class GuestPostCreateViewSet(viewsets.GenericViewSet):
                             file_size=video.size,
                             file_name=video.name,
                             mime_type=video.content_type or 'video/mp4',
-                            is_approved=post.is_approved  # Set approval status based on post
+                            is_approved=is_video_approved  # Set approval based on both post and package limit
                         )
                     except Exception as e:
                         # If there's an error creating a media file, delete the post and raise error
@@ -533,7 +551,7 @@ class GuestPostCreateViewSet(viewsets.GenericViewSet):
                             file_size=voice_recording.size,
                             file_name=voice_recording.name,
                             mime_type=voice_recording.content_type or 'audio/mp3',
-                            is_approved=post.is_approved  # Set approval status based on post
+                            is_approved=post.is_approved  # Voice recordings don't have package limits
                         )
                     except Exception as e:
                         # If there's an error creating a media file, delete the post and raise error
