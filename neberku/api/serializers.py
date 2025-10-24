@@ -39,7 +39,7 @@ class PackageCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating Package model"""
     class Meta:
         model = Package
-        fields = ['name', 'description', 'price', 'max_guests', 'max_photos', 'max_videos', 'features', 'is_active']
+        fields = ['name', 'description', 'price', 'max_guests', 'max_photos', 'max_videos', 'max_voice', 'features', 'is_active']
     
     def validate_price(self, value):
         """Ensure price is positive"""
@@ -530,9 +530,13 @@ class EventGuestAccessSerializer(serializers.ModelSerializer):
     package_name = serializers.CharField(source='package.name', read_only=True)
     package_max_photos = serializers.IntegerField(source='package.max_photos', read_only=True)
     package_max_videos = serializers.IntegerField(source='package.max_videos', read_only=True)
+    package_max_voice = serializers.IntegerField(source='package.max_voice', read_only=True)
     guest_max_image_per_post = serializers.SerializerMethodField()
     guest_max_video_per_post = serializers.SerializerMethodField()
     guest_max_voice_per_post = serializers.SerializerMethodField()
+    max_image_size = serializers.SerializerMethodField()
+    max_video_size = serializers.SerializerMethodField()
+    max_voice_size = serializers.SerializerMethodField()
     total_guest_posts = serializers.ReadOnlyField()
     total_media_files = serializers.ReadOnlyField()
     photo_count = serializers.ReadOnlyField()
@@ -545,8 +549,10 @@ class EventGuestAccessSerializer(serializers.ModelSerializer):
         model = Event
         fields = [
             'id', 'title', 'description', 'event_date', 'location', 'event_type',
-            'event_thumbnail', 'event_banner', 'event_video', 'package_name', 'package_max_photos', 'package_max_videos',
-            'guest_max_image_per_post', 'guest_max_video_per_post', 'guest_max_voice_per_post', 'total_guest_posts', 'total_media_files', 'photo_count', 'video_count', 'voice_count', 'is_public', 'is_accessible',
+            'event_thumbnail', 'event_banner', 'event_video', 'package_name', 'package_max_photos', 'package_max_videos', 'package_max_voice',
+            'guest_max_image_per_post', 'guest_max_video_per_post', 'guest_max_voice_per_post', 
+            'max_image_size', 'max_video_size', 'max_voice_size',
+            'total_guest_posts', 'total_media_files', 'photo_count', 'video_count', 'voice_count', 'is_public', 'is_accessible',
             'frontend_share_url'
         ]
         read_only_fields = ['id', 'total_guest_posts', 'total_media_files', 'photo_count', 'video_count', 'voice_count', 'frontend_share_url']
@@ -571,6 +577,27 @@ class EventGuestAccessSerializer(serializers.ModelSerializer):
             return obj.settings.max_voice_per_post
         except EventSettings.DoesNotExist:
             return 1  # Default value
+    
+    def get_max_image_size(self, obj):
+        """Get the maximum image size in MB from EventSettings"""
+        try:
+            return obj.settings.max_photo_size
+        except EventSettings.DoesNotExist:
+            return None  # No limit if not set
+    
+    def get_max_video_size(self, obj):
+        """Get the maximum video size in MB from EventSettings"""
+        try:
+            return obj.settings.max_video_size
+        except EventSettings.DoesNotExist:
+            return None  # No limit if not set
+    
+    def get_max_voice_size(self, obj):
+        """Get the maximum voice recording size in MB from EventSettings"""
+        try:
+            return obj.settings.max_voice_size
+        except EventSettings.DoesNotExist:
+            return None  # No limit if not set
     
     def get_is_accessible(self, obj):
         """Check if the event is accessible to the current request"""

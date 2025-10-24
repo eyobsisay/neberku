@@ -2431,6 +2431,10 @@
                                                         <i class="fas fa-info-circle"></i>
                                                         <span>You can upload up to <strong id="maxImagesDisplay">3</strong> images, <strong id="maxVideosDisplay">2</strong> videos, and <strong id="maxVoiceDisplay">1</strong> voice recording per post</span>
                                                     </div>
+                                                    <div class="upload-required-info" style="margin-top: 8px; padding: 8px; background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.3); border-radius: 6px;">
+                                                        <i class="fas fa-exclamation-triangle" style="color: #ffc107; margin-right: 6px;"></i>
+                                                        <span style="color: #ffc107; font-weight: 500;">At least one media file is required</span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -2699,7 +2703,11 @@
                 const files = Array.from(event.target.files);
                 files.forEach(file => {
                     if (file.type.startsWith('audio/')) {
-                        this.addVoiceFileToFiles(file);
+                        if (window.eventDetailManager && window.eventDetailManager.addVoiceFileToFiles) {
+                            window.eventDetailManager.addVoiceFileToFiles(file);
+                        } else {
+                            console.error('eventDetailManager.addVoiceFileToFiles not available');
+                        }
                     }
                 });
             }
@@ -2723,68 +2731,17 @@
                     console.log('Created audio file:', audioFile.name, audioFile.size, audioFile.type);
                     
                     // Call addVoiceFileToFiles to add it to the external JS file's selectedFiles
-                    this.addVoiceFileToFiles(audioFile);
+                    if (window.eventDetailManager && window.eventDetailManager.addVoiceFileToFiles) {
+                        window.eventDetailManager.addVoiceFileToFiles(audioFile);
+                    } else {
+                        console.error('eventDetailManager.addVoiceFileToFiles not available');
+                    }
                 } else {
                     console.log('No recorded audio to add');
                 }
                 console.log('=== END RECORDED AUDIO ADDITION DEBUG ===');
             }
             
-            addVoiceFileToFiles(audioFile) {
-                console.log('=== VOICE FILE ADDITION DEBUG ===');
-                console.log('Adding voice file to files:', audioFile.name);
-                console.log('Audio file details:', {
-                    name: audioFile.name,
-                    size: audioFile.size,
-                    type: audioFile.type
-                });
-                
-                // Check voice limit before adding
-                const currentVoiceFiles = window.selectedFiles ? window.selectedFiles.filter(f => f.type.startsWith('audio/')).length : 0;
-                if (packageLimits.guestMaxVoicePerPost && currentVoiceFiles >= packageLimits.guestMaxVoicePerPost) {
-                    const message = `You've already reached the maximum of ${packageLimits.guestMaxVoicePerPost} voice recordings.`;
-                    console.log('❌ Voice limit exceeded:', message);
-                    this.showError(message);
-                    return;
-                }
-                
-                // Check if eventDetailManager is available
-                console.log('window.eventDetailManager exists:', !!window.eventDetailManager);
-                console.log('window.eventDetailManager.selectedFiles exists:', !!(window.eventDetailManager && window.eventDetailManager.selectedFiles));
-                
-                // Add to the external JavaScript file's selectedFiles array
-                if (window.eventDetailManager && window.eventDetailManager.selectedFiles) {
-                    console.log('Adding to eventDetailManager.selectedFiles');
-                    console.log('Current selectedFiles length before:', window.eventDetailManager.selectedFiles.length);
-                    
-                    window.eventDetailManager.selectedFiles.push(audioFile);
-                    console.log('Voice file added to selectedFiles:', audioFile.name);
-                    console.log('Current selectedFiles length after:', window.eventDetailManager.selectedFiles.length);
-                    
-                    // Update the file display
-                    window.eventDetailManager.renderFilePreviews();
-                    console.log('File display updated');
-                    
-                    // Show success message
-                    const recordingStatus = document.getElementById('recordingStatus');
-                    if (recordingStatus) {
-                        recordingStatus.innerHTML += '<div class="success">✅ Voice file added successfully!</div>';
-                    }
-                } else {
-                    console.log('eventDetailManager not available, falling back to window.selectedFiles');
-                    console.log('window.eventDetailManager:', window.eventDetailManager);
-                    console.log('window.eventDetailManager.selectedFiles:', window.eventDetailManager?.selectedFiles);
-                    
-                    // Fallback: add to window.selectedFiles
-                    if (window.selectedFiles) {
-                        window.selectedFiles.push(audioFile);
-                        console.log('Voice file added to window.selectedFiles:', audioFile.name);
-                    } else {
-                        console.log('window.selectedFiles also not available!');
-                    }
-                }
-                console.log('=== END VOICE FILE ADDITION DEBUG ===');
-            }
             
             updateUI() {
                 if (this.isRecording) {
@@ -2839,6 +2796,11 @@
             totalFiles: 0
         };
         let packageLimits = {};
+        let mediaSizeLimits = {
+            maxImageSize: null, // Will be loaded from API
+            maxVideoSize: null, // Will be loaded from API
+            maxVoiceSize: null, // Will be loaded from API
+        };
         let isSubmitting = false;
         let formInitialized = false;
         let processedSubmissions = new Set();
@@ -2850,6 +2812,7 @@
         window.selectedFiles = selectedFiles;
         window.currentUploads = currentUploads;
         window.packageLimits = packageLimits;
+        window.mediaSizeLimits = mediaSizeLimits;
         window.isSubmitting = isSubmitting;
         window.formInitialized = formInitialized;
         window.processedSubmissions = processedSubmissions;
@@ -2941,11 +2904,23 @@
                             guestMaxVoicePerPost: eventData.guest_max_voice_per_post || null
                         };
                         
+                        // Load media size limits from API response
+                        mediaSizeLimits = {
+                            maxImageSize: eventData.max_image_size ? eventData.max_image_size * 1024 * 1024 : null, // Convert MB to bytes
+                            maxVideoSize: eventData.max_video_size ? eventData.max_video_size * 1024 * 1024 : null, // Convert MB to bytes
+                            maxVoiceSize: eventData.max_voice_size ? eventData.max_voice_size * 1024 * 1024 : null, // Convert MB to bytes
+                        };
+                        
                         console.log('🔍 Parsed package limits:', packageLimits);
+                        console.log('🔍 Parsed media size limits:', mediaSizeLimits);
                         console.log('🔍 Guest limits from API:');
                         console.log('   - guest_max_image_per_post:', eventData.guest_max_image_per_post);
                         console.log('   - guest_max_video_per_post:', eventData.guest_max_video_per_post);
                         console.log('   - guest_max_voice_per_post:', eventData.guest_max_voice_per_post);
+                        console.log('🔍 Size limits from API:');
+                        console.log('   - max_image_size:', eventData.max_image_size, 'MB');
+                        console.log('   - max_video_size:', eventData.max_video_size, 'MB');
+                        console.log('   - max_voice_size:', eventData.max_voice_size, 'MB');
                         
                         // Store event statistics for display
                         window.eventStats = {
@@ -2956,6 +2931,7 @@
                         };
                         
                         console.log('✅ Loaded package limits from API:', packageLimits);
+                        console.log('✅ Loaded media size limits from API:', mediaSizeLimits);
                         console.log('✅ Loaded event statistics:', window.eventStats);
                     } else {
                         console.error('❌ Failed to fetch event data. Status:', response.status);
@@ -2974,7 +2950,14 @@
                         guestMaxVideoPerPost: 2,
                         guestMaxVoicePerPost: 2
                     };
+                    // Fallback size limits
+                    mediaSizeLimits = {
+                        maxImageSize: 10 * 1024 * 1024, // 10MB
+                        maxVideoSize: 50 * 1024 * 1024, // 50MB
+                        maxVoiceSize: 5 * 1024 * 1024,  // 5MB
+                    };
                     console.log('⚠️ Using fallback package limits:', packageLimits);
+                    console.log('⚠️ Using fallback media size limits:', mediaSizeLimits);
                 }
                 
                 updatePackageLimitsDisplay();
@@ -2990,7 +2973,14 @@
                     guestMaxVideoPerPost: 2,
                     guestMaxVoicePerPost: 2
                 };
+                // Fallback size limits
+                mediaSizeLimits = {
+                    maxImageSize: 10 * 1024 * 1024, // 10MB
+                    maxVideoSize: 50 * 1024 * 1024, // 50MB
+                    maxVoiceSize: 5 * 1024 * 1024,  // 5MB
+                };
                 console.log('⚠️ Error fallback package limits:', packageLimits);
+                console.log('⚠️ Error fallback media size limits:', mediaSizeLimits);
                 updatePackageLimitsDisplay();
             }
         }
@@ -3014,6 +3004,7 @@
         function updatePreUploadInfo() {
             console.log('🔍 updatePreUploadInfo called');
             console.log('🔍 Current packageLimits:', packageLimits);
+            console.log('🔍 Current mediaSizeLimits:', mediaSizeLimits);
             
             const preUploadInfo = document.getElementById('preUploadInfo');
             const maxFilesAllowed = document.getElementById('maxFilesAllowed');
@@ -3069,6 +3060,32 @@
                 }
             }
             
+            // Update upload limit display with dynamic size limits
+            const uploadLimitElement = document.querySelector('.upload-limit small');
+            if (uploadLimitElement && mediaSizeLimits) {
+                let sizeText = 'Max ';
+                const sizeParts = [];
+                
+                if (mediaSizeLimits.maxImageSize) {
+                    sizeParts.push(`${formatFileSize(mediaSizeLimits.maxImageSize)} images`);
+                }
+                if (mediaSizeLimits.maxVideoSize) {
+                    sizeParts.push(`${formatFileSize(mediaSizeLimits.maxVideoSize)} videos`);
+                }
+                if (mediaSizeLimits.maxVoiceSize) {
+                    sizeParts.push(`${formatFileSize(mediaSizeLimits.maxVoiceSize)} audio`);
+                }
+                
+                if (sizeParts.length > 0) {
+                    sizeText += sizeParts.join(', ');
+                } else {
+                    sizeText += '10MB per file';
+                }
+                
+                uploadLimitElement.textContent = sizeText;
+                console.log('🔍 Updated upload limit text to:', sizeText);
+            }
+            
             // Show the pre-upload info if we have limits
             const hasLimits = packageLimits.guestMaxImagePerPost || 
                             packageLimits.guestMaxVideoPerPost || 
@@ -3085,6 +3102,7 @@
             console.log('🚨 VALIDATION TEST: handleFiles called with:', files.length, 'files');
             console.log('Files details:', Array.from(files).map(f => ({ name: f.name, type: f.type, size: f.size })));
             console.log('Current packageLimits:', packageLimits);
+            console.log('Current mediaSizeLimits:', mediaSizeLimits);
             console.log('API limits - Images:', packageLimits.guestMaxImagePerPost, 'Videos:', packageLimits.guestMaxVideoPerPost, 'Voice:', packageLimits.guestMaxVoicePerPost);
             
             // IMMEDIATE VALIDATION TEST
@@ -3095,14 +3113,41 @@
                 return;
             }
             
+            // Check file sizes first (if size limits are available from API)
+            const newFiles = Array.from(files);
+            const sizeErrors = [];
+            
+            if (mediaSizeLimits && (mediaSizeLimits.maxImageSize || mediaSizeLimits.maxVideoSize || mediaSizeLimits.maxVoiceSize)) {
+                newFiles.forEach(file => {
+                    if (file.type.startsWith('image/') && mediaSizeLimits.maxImageSize) {
+                        if (file.size > mediaSizeLimits.maxImageSize) {
+                            sizeErrors.push(`${file.name}: Image too large (${formatFileSize(file.size)}). Maximum allowed: ${formatFileSize(mediaSizeLimits.maxImageSize)}`);
+                        }
+                    } else if (file.type.startsWith('video/') && mediaSizeLimits.maxVideoSize) {
+                        if (file.size > mediaSizeLimits.maxVideoSize) {
+                            sizeErrors.push(`${file.name}: Video too large (${formatFileSize(file.size)}). Maximum allowed: ${formatFileSize(mediaSizeLimits.maxVideoSize)}`);
+                        }
+                    } else if (file.type.startsWith('audio/') && mediaSizeLimits.maxVoiceSize) {
+                        if (file.size > mediaSizeLimits.maxVoiceSize) {
+                            sizeErrors.push(`${file.name}: Audio too large (${formatFileSize(file.size)}). Maximum allowed: ${formatFileSize(mediaSizeLimits.maxVoiceSize)}`);
+                        }
+                    }
+                });
+                
+                if (sizeErrors.length > 0) {
+                    console.log('❌ File size validation failed:', sizeErrors);
+                    showUploadError(`File size limit exceeded:\n${sizeErrors.join('\n')}`);
+                    return;
+                }
+            }
+            
             const fileList = document.getElementById('fileList');
             if (!fileList) {
                 console.error('fileList element not found!');
                 return;
             }
             
-            // Add new files to existing selection
-            const newFiles = Array.from(files);
+            // Add new files to existing selection (size validation already passed)
             const totalFilesAfterAdd = window.selectedFiles.length + newFiles.length;
             
             console.log('Current selectedFiles length:', window.selectedFiles.length);
@@ -3307,12 +3352,16 @@
         function showUploadError(message) {
             const errorContainer = document.getElementById('errorContainer');
             if (errorContainer) {
+                // Handle multi-line messages (like file size errors)
+                const formattedMessage = message.replace(/\n/g, '<br>');
+                
                 errorContainer.innerHTML = `
                     <div class="alert alert-warning alert-dismissible fade show" role="alert">
-                        <div class="d-flex align-items-center">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
+                        <div class="d-flex align-items-start">
+                            <i class="fas fa-exclamation-triangle me-2 mt-1"></i>
                             <div>
-                                <strong>Upload Limit:</strong> ${message}
+                                <strong>Upload Error:</strong><br>
+                                ${formattedMessage}
                             </div>
                         </div>
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -3320,13 +3369,14 @@
                 `;
                 errorContainer.style.display = 'block';
                 
-                // Auto-hide after 8 seconds
+                // Auto-hide after 10 seconds for size errors (longer than other errors)
+                const hideDelay = message.includes('too large') ? 10000 : 8000;
                 setTimeout(() => {
                     if (errorContainer.innerHTML.includes('alert')) {
                         errorContainer.style.display = 'none';
                         errorContainer.innerHTML = '';
                     }
-                }, 8000);
+                }, hideDelay);
             }
         }
         
@@ -3866,11 +3916,16 @@
         // Add a function to check current package limits (for debugging)
         window.checkPackageLimits = function() {
             console.log('📊 Current packageLimits:', packageLimits);
+            console.log('📊 Current mediaSizeLimits:', mediaSizeLimits);
             console.log('📊 API limits check:');
             console.log('  - guestMaxImagePerPost:', packageLimits.guestMaxImagePerPost);
             console.log('  - guestMaxVideoPerPost:', packageLimits.guestMaxVideoPerPost);
             console.log('  - guestMaxVoicePerPost:', packageLimits.guestMaxVoicePerPost);
-            return packageLimits;
+            console.log('📊 Size limits check:');
+            console.log('  - maxImageSize:', mediaSizeLimits.maxImageSize ? formatFileSize(mediaSizeLimits.maxImageSize) : 'Not set');
+            console.log('  - maxVideoSize:', mediaSizeLimits.maxVideoSize ? formatFileSize(mediaSizeLimits.maxVideoSize) : 'Not set');
+            console.log('  - maxVoiceSize:', mediaSizeLimits.maxVoiceSize ? formatFileSize(mediaSizeLimits.maxVoiceSize) : 'Not set');
+            return { packageLimits, mediaSizeLimits };
         };
     </script>
 </body>

@@ -24,6 +24,17 @@ from .serializers import (
     GuestPostListSerializer, MediaFileSerializer, MediaFileCreateSerializer
 )
 from rest_framework import serializers
+import math
+
+def format_file_size(bytes_size):
+    """Convert bytes to human readable format"""
+    if bytes_size == 0:
+        return "0 Bytes"
+    size_names = ["Bytes", "KB", "MB", "GB"]
+    i = int(math.floor(math.log(bytes_size, 1024)))
+    p = math.pow(1024, i)
+    s = round(bytes_size / p, 2)
+    return f"{s} {size_names[i]}"
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     """
@@ -482,6 +493,55 @@ class GuestPostCreateViewSet(viewsets.GenericViewSet):
                 if len(voice_recordings) > max_voice_per_post:
                     post.delete()
                     raise serializers.ValidationError(f"Maximum voice recordings per post ({max_voice_per_post}) exceeded. You uploaded {len(voice_recordings)} voice recordings.")
+                
+                # Check file size limits from EventSettings
+                try:
+                    event_settings = event.settings
+                    max_image_size_mb = getattr(event_settings, 'max_photo_size', None)
+                    max_video_size_mb = getattr(event_settings, 'max_video_size', None)
+                    max_voice_size_mb = getattr(event_settings, 'max_voice_size', None)
+                    
+                    # Convert MB to bytes for validation
+                    max_image_size_bytes = max_image_size_mb * 1024 * 1024 if max_image_size_mb else None
+                    max_video_size_bytes = max_video_size_mb * 1024 * 1024 if max_video_size_mb else None
+                    max_voice_size_bytes = max_voice_size_mb * 1024 * 1024 if max_voice_size_mb else None
+                    
+                    # Validate photo sizes
+                    for photo in photos:
+                        if max_image_size_bytes and photo.size > max_image_size_bytes:
+                            print(f"Photo '{photo.name}' is too large ({format_file_size(photo.size)}). "
+                                f"Maximum allowed size is {max_image_size_mb}MB.")
+                            raise serializers.ValidationError(
+                                f"Photo '{photo.name}' is too large ({format_file_size(photo.size)}). "
+                                f"Maximum allowed size is {max_image_size_mb}MB."
+                            )
+                    
+                    # Validate video sizes
+                    for video in videos:
+                        print(f"Video '{video.name}' size: {format_file_size(video.size)}")
+                        print(f"Max video size: {max_video_size_bytes}")
+                        if max_video_size_bytes and video.size > max_video_size_bytes:
+                            print(f"Video '{video.name}' is too large ({format_file_size(video.size)}). "
+                                f"Maximum allowed size is {max_video_size_mb}MB.")
+                            raise serializers.ValidationError(
+                                f"Video '{video.name}' is too large ({format_file_size(video.size)}). "
+                                f"Maximum allowed size is {max_video_size_mb}MB."
+                            )
+                    
+                    # Validate voice recording sizes
+                    for voice_recording in voice_recordings:
+                        if max_voice_size_bytes and voice_recording.size > max_voice_size_bytes:
+                            raise serializers.ValidationError(
+                                f"Voice recording '{voice_recording.name}' is too large ({format_file_size(voice_recording.size)}). "
+                                f"Maximum allowed size is {max_voice_size_mb}MB."
+                            )
+                            
+                except serializers.ValidationError:
+                    # Re-raise ValidationError to prevent saving the post
+                    raise
+                except Exception as e:
+                    # If there's an error with EventSettings, log it but don't block the upload
+                    print(f"Warning: Could not validate file sizes: {str(e)}")
                 
                 # Check package limits for media files
                 package = event.package

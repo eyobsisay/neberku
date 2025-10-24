@@ -13,6 +13,8 @@ class EventDetailGuestManager {
     init() {
         this.bindEvents();
         this.loadEventFromURL();
+        // Initialize submit button state
+        this.updateSubmitButtonState();
     }
 
     bindEvents() {
@@ -460,6 +462,36 @@ class EventDetailGuestManager {
         const filesToAdd = Array.from(newFiles);
         console.log('Adding files to selection:', filesToAdd.length);
         
+        // Check file sizes first (if size limits are available from API)
+        const sizeErrors = [];
+        
+        if (this.currentEvent && (this.currentEvent.max_image_size || this.currentEvent.max_video_size || this.currentEvent.max_voice_size)) {
+            filesToAdd.forEach(file => {
+                if (file.type.startsWith('image/') && this.currentEvent.max_image_size) {
+                    const maxSizeBytes = this.currentEvent.max_image_size * 1024 * 1024; // Convert MB to bytes
+                    if (file.size > maxSizeBytes) {
+                        sizeErrors.push(`${file.name}: Image too large (${this.formatFileSize(file.size)}). Maximum allowed: ${this.currentEvent.max_image_size}MB`);
+                    }
+                } else if (file.type.startsWith('video/') && this.currentEvent.max_video_size) {
+                    const maxSizeBytes = this.currentEvent.max_video_size * 1024 * 1024; // Convert MB to bytes
+                    if (file.size > maxSizeBytes) {
+                        sizeErrors.push(`${file.name}: Video too large (${this.formatFileSize(file.size)}). Maximum allowed: ${this.currentEvent.max_video_size}MB`);
+                    }
+                } else if (file.type.startsWith('audio/') && this.currentEvent.max_voice_size) {
+                    const maxSizeBytes = this.currentEvent.max_voice_size * 1024 * 1024; // Convert MB to bytes
+                    if (file.size > maxSizeBytes) {
+                        sizeErrors.push(`${file.name}: Audio too large (${this.formatFileSize(file.size)}). Maximum allowed: ${this.currentEvent.max_voice_size}MB`);
+                    }
+                }
+            });
+            
+            if (sizeErrors.length > 0) {
+                console.log('❌ File size validation failed:', sizeErrors);
+                this.showError(`File size limit exceeded:\n${sizeErrors.join('\n')}`, 'warning');
+                return;
+            }
+        }
+        
         // Check limits before adding - use new separate limits
         const maxImages = this.currentEvent?.guest_max_image_per_post || 3;
         const maxVideos = this.currentEvent?.guest_max_video_per_post || 3;
@@ -525,6 +557,9 @@ class EventDetailGuestManager {
         
         fileList.innerHTML = '';
         fileList.style.display = this.selectedFiles.length > 0 ? 'block' : 'none';
+        
+        // Update submit button state based on media files
+        this.updateSubmitButtonState();
         
         let photoCount = 0;
         let videoCount = 0;
@@ -627,6 +662,12 @@ class EventDetailGuestManager {
         
         if (!guestName || !guestPhone || !wishText) {
             this.showError('Please fill in all required fields', 'warning');
+            return;
+        }
+        
+        // Check if at least one media file is selected
+        if (this.selectedFiles.length === 0) {
+            this.showError('At least one media file (photo, video, or voice recording) is required', 'warning');
             return;
         }
         
@@ -808,6 +849,91 @@ class EventDetailGuestManager {
                 }
             }
         }, 8000);
+    }
+
+    formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+
+    addVoiceFileToFiles(audioFile) {
+        console.log('=== VOICE FILE ADDITION DEBUG ===');
+        console.log('Adding voice file to files:', audioFile.name);
+        console.log('Audio file details:', {
+            name: audioFile.name,
+            size: audioFile.size,
+            type: audioFile.type
+        });
+        
+        // Check file size first (if size limits are available from API)
+        if (this.currentEvent && this.currentEvent.max_voice_size && audioFile.size > (this.currentEvent.max_voice_size * 1024 * 1024)) {
+            const message = `${audioFile.name}: Audio too large (${this.formatFileSize(audioFile.size)}). Maximum allowed: ${this.currentEvent.max_voice_size}MB`;
+            console.log('❌ Voice file size exceeded:', message);
+            this.showError(message, 'warning');
+            return;
+        }
+        
+        // Check voice limit before adding
+        const currentVoiceFiles = this.selectedFiles ? this.selectedFiles.filter(f => f.type.startsWith('audio/')).length : 0;
+        const maxVoicePerPost = this.currentEvent?.guest_max_voice_per_post || 3;
+        
+        if (currentVoiceFiles >= maxVoicePerPost) {
+            const message = `You've already reached the maximum of ${maxVoicePerPost} voice recordings.`;
+            console.log('❌ Voice limit exceeded:', message);
+            this.showError(message, 'warning');
+            return;
+        }
+        
+        // Add the voice file to selectedFiles
+        this.selectedFiles.push(audioFile);
+        console.log('✅ Voice file added successfully. Total files:', this.selectedFiles.length);
+        
+        // Update the file input to reflect all selected files
+        this.updateFileInput();
+        
+        // Render all files
+        this.renderFilePreviews();
+    }
+
+    updateSubmitButtonState() {
+        const submitBtn = document.querySelector('button[type="submit"]');
+        if (!submitBtn) return;
+        
+        const hasMediaFiles = this.selectedFiles && this.selectedFiles.length > 0;
+        
+        if (hasMediaFiles) {
+            // Enable submit button
+            submitBtn.disabled = false;
+            submitBtn.classList.remove('disabled');
+            submitBtn.title = 'Ready to submit your contribution';
+            
+            // Update button text to show file count
+            const btnText = submitBtn.querySelector('.btn-text');
+            if (btnText) {
+                const fileCount = this.selectedFiles.length;
+                btnText.innerHTML = `
+                    <i class="fas fa-heart"></i>
+                    Share Your Moment (${fileCount} file${fileCount !== 1 ? 's' : ''})
+                `;
+            }
+        } else {
+            // Disable submit button
+            submitBtn.disabled = true;
+            submitBtn.classList.add('disabled');
+            submitBtn.title = 'Please add at least one media file (photo, video, or voice recording)';
+            
+            // Reset button text
+            const btnText = submitBtn.querySelector('.btn-text');
+            if (btnText) {
+                btnText.innerHTML = `
+                    <i class="fas fa-heart"></i>
+                    Share Your Moment
+                `;
+            }
+        }
     }
 
     showSuccess(message) {

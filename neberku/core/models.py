@@ -457,7 +457,7 @@ class EventSettings(models.Model):
     event = models.OneToOneField(Event, on_delete=models.CASCADE, related_name='settings')
     
     # Photo settings
-    max_photo_size = models.PositiveIntegerField(default=10)  # MB
+    max_photo_size = models.PositiveIntegerField(default=100)  # MB
     allowed_photo_formats = models.JSONField(default=['jpg', 'png', 'heic'])
     
     # Video settings
@@ -466,14 +466,14 @@ class EventSettings(models.Model):
     allowed_video_formats = models.JSONField(default=['mp4', 'mov'])
     
     # Voice settings
-    max_voice_size = models.PositiveIntegerField(default=10)  # MB
+    max_voice_size = models.PositiveIntegerField(default=100)  # MB
     max_voice_duration = models.PositiveIntegerField(default=300)  # seconds (5 minutes)
     allowed_voice_formats = models.JSONField(default=['mp3', 'wav', 'm4a', 'aac'])
     
     # Guest settings
     require_approval = models.BooleanField(default=False)
     allow_anonymous = models.BooleanField(default=False)
-    max_posts_per_guest = models.PositiveIntegerField(default=5)
+    max_posts_per_guest = models.PositiveIntegerField(default=1)
     max_image_per_post = models.PositiveIntegerField(default=3, help_text="Maximum number of images per guest post")
     max_video_per_post = models.PositiveIntegerField(default=2, help_text="Maximum number of videos per guest post")
     max_voice_per_post = models.PositiveIntegerField(default=1, help_text="Maximum number of voice recordings per guest post")
