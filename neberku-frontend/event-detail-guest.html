@@ -2427,9 +2427,9 @@
                                                     <small>Max 10MB per file</small>
                                                 </div>
                                                 <div class="upload-info">
-                                                    <div class="upload-limit-info">
+                                                    <div class="upload-limit-info" id="uploadLimitInfo">
                                                         <i class="fas fa-info-circle"></i>
-                                                        <span>You can upload up to <strong id="maxImagesDisplay">3</strong> images, <strong id="maxVideosDisplay">2</strong> videos, and <strong id="maxVoiceDisplay">1</strong> voice recording per post</span>
+                                                        <span id="uploadLimitText">Loading upload limits...</span>
                                                     </div>
                                                     <div class="upload-required-info" style="margin-top: 8px; padding: 8px; background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.3); border-radius: 6px;">
                                                         <i class="fas fa-exclamation-triangle" style="color: #ffc107; margin-right: 6px;"></i>
@@ -2439,21 +2439,6 @@
                                             </div>
                                         </div>
                                         
-                                        <!-- Pre-Upload Information -->
-                                        <div class="pre-upload-info" id="preUploadInfo" style="display: none;">
-                                            <div class="info-card">
-                                                <div class="info-header">
-                                                    <i class="fas fa-info-circle"></i>
-                                                    <span>Upload Information</span>
-                                                </div>
-                                                <div class="info-content">
-                                                    <div class="info-item">
-                                                        <i class="fas fa-upload"></i>
-                                                        <span>You can upload up to <strong id="maxFilesAllowed">6</strong> media files per post</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
                                         
                                         <!-- Upload Status Display -->
                                         <div class="upload-status" id="uploadStatus" style="display: none;">
@@ -3006,58 +2991,45 @@
             console.log('🔍 Current packageLimits:', packageLimits);
             console.log('🔍 Current mediaSizeLimits:', mediaSizeLimits);
             
-            const preUploadInfo = document.getElementById('preUploadInfo');
-            const maxFilesAllowed = document.getElementById('maxFilesAllowed');
-            const maxImagesDisplay = document.getElementById('maxImagesDisplay');
-            const maxVideosDisplay = document.getElementById('maxVideosDisplay');
-            const maxVoiceDisplay = document.getElementById('maxVoiceDisplay');
+            // Update the dynamic upload limit text
+            const uploadLimitText = document.getElementById('uploadLimitText');
+            console.log('🔍 uploadLimitText element found:', uploadLimitText);
             
-            console.log('🔍 Found elements:');
-            console.log('   - maxImagesDisplay:', maxImagesDisplay);
-            console.log('   - maxVideosDisplay:', maxVideosDisplay);
-            console.log('   - maxVoiceDisplay:', maxVoiceDisplay);
-            
-            if (!preUploadInfo) return;
-            
-            // Update the information with actual data
-            if (maxFilesAllowed) {
-                // Calculate total media limit from separate limits
-                const totalLimit = (packageLimits.guestMaxImagePerPost || 0) + 
-                                 (packageLimits.guestMaxVideoPerPost || 0) + 
-                                 (packageLimits.guestMaxVoicePerPost || 0);
-                maxFilesAllowed.textContent = totalLimit > 0 ? totalLimit : '∞';
-            }
-            
-            // Update individual media type displays
-            if (maxImagesDisplay) {
-                const imageLimit = packageLimits.guestMaxImagePerPost || '∞';
-                console.log('🔍 Updating maxImagesDisplay to:', imageLimit);
-                maxImagesDisplay.textContent = imageLimit;
-                // Add visual indicator for strict limits
-                if (packageLimits.guestMaxImagePerPost === 1) {
-                    maxImagesDisplay.style.color = '#f59e0b';
-                    maxImagesDisplay.style.fontWeight = 'bold';
+            if (uploadLimitText) {
+                const imageLimit = packageLimits.guestMaxImagePerPost;
+                const videoLimit = packageLimits.guestMaxVideoPerPost;
+                const voiceLimit = packageLimits.guestMaxVoicePerPost;
+                
+                console.log('🔍 Limits from packageLimits:', { imageLimit, videoLimit, voiceLimit });
+                
+                let limitText = 'You can upload ';
+                const limitParts = [];
+                
+                if (imageLimit && imageLimit > 0) {
+                    limitParts.push(`<strong>${imageLimit}</strong> image${imageLimit !== 1 ? 's' : ''}`);
                 }
-            }
-            if (maxVideosDisplay) {
-                const videoLimit = packageLimits.guestMaxVideoPerPost || '∞';
-                console.log('🔍 Updating maxVideosDisplay to:', videoLimit);
-                maxVideosDisplay.textContent = videoLimit;
-                // Add visual indicator for strict limits
-                if (packageLimits.guestMaxVideoPerPost === 1) {
-                    maxVideosDisplay.style.color = '#f59e0b';
-                    maxVideosDisplay.style.fontWeight = 'bold';
+                if (videoLimit && videoLimit > 0) {
+                    limitParts.push(`<strong>${videoLimit}</strong> video${videoLimit !== 1 ? 's' : ''}`);
                 }
-            }
-            if (maxVoiceDisplay) {
-                const voiceLimit = packageLimits.guestMaxVoicePerPost || '∞';
-                console.log('🔍 Updating maxVoiceDisplay to:', voiceLimit);
-                maxVoiceDisplay.textContent = voiceLimit;
-                // Add visual indicator for strict limits
-                if (packageLimits.guestMaxVoicePerPost === 1) {
-                    maxVoiceDisplay.style.color = '#f59e0b';
-                    maxVoiceDisplay.style.fontWeight = 'bold';
+                if (voiceLimit && voiceLimit > 0) {
+                    limitParts.push(`<strong>${voiceLimit}</strong> voice recording${voiceLimit !== 1 ? 's' : ''}`);
                 }
+                
+                if (limitParts.length > 0) {
+                    if (limitParts.length === 1) {
+                        limitText += limitParts[0];
+                    } else if (limitParts.length === 2) {
+                        limitText += limitParts.join(' and ');
+                    } else {
+                        limitText += limitParts.slice(0, -1).join(', ') + ', and ' + limitParts[limitParts.length - 1];
+                    }
+                    limitText += ' per post';
+                } else {
+                    limitText = 'Loading upload limits from event settings...';
+                }
+                
+                uploadLimitText.innerHTML = limitText;
+                console.log('🔍 Updated upload limit text to:', limitText);
             }
             
             // Update upload limit display with dynamic size limits
@@ -3084,16 +3056,6 @@
                 
                 uploadLimitElement.textContent = sizeText;
                 console.log('🔍 Updated upload limit text to:', sizeText);
-            }
-            
-            // Show the pre-upload info if we have limits
-            const hasLimits = packageLimits.guestMaxImagePerPost || 
-                            packageLimits.guestMaxVideoPerPost || 
-                            packageLimits.guestMaxVoicePerPost;
-            if (hasLimits) {
-                preUploadInfo.style.display = 'block';
-            } else {
-                preUploadInfo.style.display = 'none';
             }
         }
         
@@ -3889,6 +3851,9 @@
         // Make toggleContributionForm available globally
         window.toggleContributionForm = toggleContributionForm;
         
+        // Make updatePreUploadInfo globally available
+        window.updatePreUploadInfo = updatePreUploadInfo;
+        
         // Ensure package limits are loaded even if external JS doesn't call it
         setTimeout(() => {
             if (!packageLimits.guestMaxImagePerPost && !packageLimits.guestMaxVideoPerPost && !packageLimits.guestMaxVoicePerPost) {
@@ -3926,6 +3891,18 @@
             console.log('  - maxVideoSize:', mediaSizeLimits.maxVideoSize ? formatFileSize(mediaSizeLimits.maxVideoSize) : 'Not set');
             console.log('  - maxVoiceSize:', mediaSizeLimits.maxVoiceSize ? formatFileSize(mediaSizeLimits.maxVoiceSize) : 'Not set');
             return { packageLimits, mediaSizeLimits };
+        };
+        
+        // Add a function to manually test the upload limit text update
+        window.testUploadLimitText = function() {
+            console.log('🧪 Testing upload limit text update...');
+            const uploadLimitText = document.getElementById('uploadLimitText');
+            if (uploadLimitText) {
+                uploadLimitText.innerHTML = 'TEST: You can upload <strong>5</strong> images, <strong>1</strong> video, and <strong>1</strong> voice recording per post';
+                console.log('✅ Test text applied to uploadLimitText element');
+            } else {
+                console.log('❌ uploadLimitText element not found');
+            }
         };
     </script>
 </body>
