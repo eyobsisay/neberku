@@ -136,19 +136,37 @@ class PostDetail {
         const videos = this.post.media_files.filter(m => m.media_type === 'video');
         const voices = this.post.media_files.filter(m => m.media_type === 'voice');
         
+        // Count approved and pending media files
+        const approvedMedia = this.post.media_files.filter(m => m.is_approved);
+        const pendingMedia = this.post.media_files.filter(m => !m.is_approved);
+        
         photoCount.textContent = photos.length;
         videoCount.textContent = videos.length;
         voiceCount.textContent = voices.length;
+        
+        // Update approval count elements
+        document.getElementById('approvedCount').textContent = approvedMedia.length;
+        document.getElementById('pendingCount').textContent = pendingMedia.length;
 
         // Render media gallery
         let galleryHTML = '';
         
         this.post.media_files.forEach(media => {
+            // Create approval status badge
+            const approvalBadge = media.is_approved 
+                ? '<span class="media-approval-badge bg-success"><i class="bi bi-check-circle"></i> Approved</span>'
+                : '<span class="media-approval-badge bg-warning"><i class="bi bi-clock"></i> Pending</span>';
+            
             if (media.media_type === 'photo') {
                 galleryHTML += `
                     <div class="media-item">
-                        <img src="${media.media_file}" alt="${media.file_name}" 
-                             onclick="openMediaModal('${media.media_file}', '${media.file_name}', 'photo')">
+                        <div style="position: relative;">
+                            <img src="${media.media_file}" alt="${media.file_name}" 
+                                 onclick="openMediaModal('${media.media_file}', '${media.file_name}', 'photo')">
+                            <div style="position: absolute; top: 8px; left: 8px;">
+                                ${approvalBadge}
+                            </div>
+                        </div>
                         <div class="media-info">
                             <small class="text-muted">${media.file_name}</small>
                             <br>
@@ -159,10 +177,15 @@ class PostDetail {
             } else if (media.media_type === 'video') {
                 galleryHTML += `
                     <div class="media-item">
-                        <video controls>
-                            <source src="${media.media_file}" type="${media.mime_type || 'video/mp4'}">
-                            Your browser does not support the video tag.
-                        </video>
+                        <div style="position: relative;">
+                            <video controls>
+                                <source src="${media.media_file}" type="${media.mime_type || 'video/mp4'}">
+                                Your browser does not support the video tag.
+                            </video>
+                            <div style="position: absolute; top: 8px; left: 8px;">
+                                ${approvalBadge}
+                            </div>
+                        </div>
                         <div class="media-info">
                             <small class="text-muted">${media.file_name}</small>
                             <br>
@@ -173,21 +196,26 @@ class PostDetail {
             } else if (media.media_type === 'voice') {
                 galleryHTML += `
                     <div class="media-item">
-                        <div class="voice-preview-container" style="display: flex; align-items: center; justify-content: center; width: 100%; height: 150px; background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); border-radius: 15px; position: relative; overflow: hidden; border: 2px solid #2196f3;">
-                            <div class="voice-waveform" style="display: flex; align-items: center; justify-content: center; gap: 2px; position: absolute; left: 8px; top: 50%; transform: translateY(-50%);">
-                                <div class="wave-bar" style="width: 2px; background: #1976d2; border-radius: 1px; animation: wave 1.5s ease-in-out infinite; height: 8px; animation-delay: 0s;"></div>
-                                <div class="wave-bar" style="width: 2px; background: #1976d2; border-radius: 1px; animation: wave 1.5s ease-in-out infinite; height: 12px; animation-delay: 0.1s;"></div>
-                                <div class="wave-bar" style="width: 2px; background: #1976d2; border-radius: 1px; animation: wave 1.5s ease-in-out infinite; height: 16px; animation-delay: 0.2s;"></div>
-                                <div class="wave-bar" style="width: 2px; background: #1976d2; border-radius: 1px; animation: wave 1.5s ease-in-out infinite; height: 12px; animation-delay: 0.3s;"></div>
-                                <div class="wave-bar" style="width: 2px; background: #1976d2; border-radius: 1px; animation: wave 1.5s ease-in-out infinite; height: 8px; animation-delay: 0.4s;"></div>
+                        <div style="position: relative;">
+                            <div class="voice-preview-container" style="display: flex; align-items: center; justify-content: center; width: 100%; height: 150px; background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); border-radius: 15px; position: relative; overflow: hidden; border: 2px solid #2196f3;">
+                                <div class="voice-waveform" style="display: flex; align-items: center; justify-content: center; gap: 2px; position: absolute; left: 8px; top: 50%; transform: translateY(-50%);">
+                                    <div class="wave-bar" style="width: 2px; background: #1976d2; border-radius: 1px; animation: wave 1.5s ease-in-out infinite; height: 8px; animation-delay: 0s;"></div>
+                                    <div class="wave-bar" style="width: 2px; background: #1976d2; border-radius: 1px; animation: wave 1.5s ease-in-out infinite; height: 12px; animation-delay: 0.1s;"></div>
+                                    <div class="wave-bar" style="width: 2px; background: #1976d2; border-radius: 1px; animation: wave 1.5s ease-in-out infinite; height: 16px; animation-delay: 0.2s;"></div>
+                                    <div class="wave-bar" style="width: 2px; background: #1976d2; border-radius: 1px; animation: wave 1.5s ease-in-out infinite; height: 12px; animation-delay: 0.3s;"></div>
+                                    <div class="wave-bar" style="width: 2px; background: #1976d2; border-radius: 1px; animation: wave 1.5s ease-in-out infinite; height: 8px; animation-delay: 0.4s;"></div>
+                                </div>
+                                <div class="voice-icon" style="position: absolute; right: 6px; top: 50%; transform: translateY(-50%); color: #1976d2; font-size: 12px; z-index: 2;">
+                                    <i class="bi bi-mic"></i>
+                                </div>
+                                <audio controls style="position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); width: 90%;">
+                                    <source src="${media.media_file}" type="${media.mime_type || 'audio/mp3'}">
+                                    Your browser does not support the audio element.
+                                </audio>
                             </div>
-                            <div class="voice-icon" style="position: absolute; right: 6px; top: 50%; transform: translateY(-50%); color: #1976d2; font-size: 12px; z-index: 2;">
-                                <i class="bi bi-mic"></i>
+                            <div style="position: absolute; top: 8px; left: 8px;">
+                                ${approvalBadge}
                             </div>
-                            <audio controls style="position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); width: 90%;">
-                                <source src="${media.media_file}" type="${media.mime_type || 'audio/mp3'}">
-                                Your browser does not support the audio element.
-                            </audio>
                         </div>
                         <div class="media-info">
                             <small class="text-muted">${media.file_name}</small>

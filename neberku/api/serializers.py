@@ -110,11 +110,24 @@ class GuestSerializer(serializers.ModelSerializer):
 class GuestPostSerializer(serializers.ModelSerializer):
     """Serializer for GuestPost model"""
     guest = GuestSerializer(read_only=True)
-    media_files = MediaFileSerializer(many=True, read_only=True)
+    media_files = serializers.SerializerMethodField()
     total_media_files = serializers.ReadOnlyField()
     photo_count = serializers.ReadOnlyField()
     video_count = serializers.ReadOnlyField()
     voice_count = serializers.ReadOnlyField()
+    
+    def get_media_files(self, obj):
+        """Filter media files based on user permissions"""
+        request = self.context.get('request')
+        
+        # For superusers, show all media files
+        if request and request.user.is_authenticated and request.user.is_superuser:
+            media_files = obj.media_files.all()
+        else:
+            # For non-superusers, show only approved media files
+            media_files = obj.media_files.filter(is_approved=True)
+        
+        return MediaFileSerializer(media_files, many=True, context=self.context).data
     
     class Meta:
         model = GuestPost
@@ -225,8 +238,21 @@ class GuestPostListSerializer(serializers.ModelSerializer):
     """Serializer for listing guest posts"""
     event_title = serializers.CharField(source='event.title', read_only=True)
     guest_name = serializers.CharField(source='guest.name', read_only=True)
-    media_files = MediaFileSerializer(many=True, read_only=True)
+    media_files = serializers.SerializerMethodField()
     total_media_files = serializers.ReadOnlyField()
+    
+    def get_media_files(self, obj):
+        """Filter media files based on user permissions"""
+        request = self.context.get('request')
+        
+        # For superusers, show all media files
+        if request and request.user.is_authenticated and request.user.is_superuser:
+            media_files = obj.media_files.all()
+        else:
+            # For non-superusers, show only approved media files
+            media_files = obj.media_files.filter(is_approved=True)
+        
+        return MediaFileSerializer(media_files, many=True, context=self.context).data
     
     class Meta:
         model = GuestPost
