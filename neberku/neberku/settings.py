@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-rx7umt2qsa+snr9z*8zv8m8x#@r73k-_rq45h5k&d5al)4c0&y
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['api.koshkoshe.com', 'www.api.koshkoshe.com', 'www.koshkoshe.com', 'koshkoshe.com','localhost','127.0.0.1']
+ALLOWED_HOSTS = ['neberku.et','api.koshkoshe.com', 'www.api.koshkoshe.com', 'www.koshkoshe.com', 'koshkoshe.com','localhost','127.0.0.1']
 
 # Site URL for generating QR codes and share links
 SITE_URL = 'http://localhost:8000' if DEBUG else 'https://api.koshkoshe.com'
@@ -252,6 +252,8 @@ CORS_ALLOWED_ORIGINS = [
      "https://koshkoshe.com",
     "https://www.koshkoshe.com",
     "https://api.koshkoshe.com",
+    "https://neberku.et",
+    "http://neberku.et",
 ]
 
 # Add frontend domain to CSRF trusted origins
@@ -262,6 +264,8 @@ CSRF_TRUSTED_ORIGINS = [
     "https://koshkoshe.com",
     "https://www.koshkoshe.com",
     "https://api.koshkoshe.com",
+    "https://neberku.et",
+    "http://neberku.et",
 ]
 
 # Additional CORS headers for authentication
