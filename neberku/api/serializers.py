@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from core.models import EventType, Package, Event, Payment, Guest, GuestPost, MediaFile, EventSettings
+from core.models import EventType, Package, Event, Payment, Guest, GuestPost, MediaFile, EventSettings, PaymentMethod
 from django.contrib.auth.models import User
 
 class UserSerializer(serializers.ModelSerializer):
@@ -27,6 +27,13 @@ class EventTypeCreateSerializer(serializers.ModelSerializer):
         if EventType.objects.filter(name=value).exists():
             raise serializers.ValidationError("An event type with this name already exists.")
         return value
+
+class PaymentMethodSerializer(serializers.ModelSerializer):
+    """Serializer for PaymentMethod model"""
+    class Meta:
+        model = PaymentMethod
+        fields = ['id', 'code', 'name', 'description', 'account_number', 'is_active', 'sort_order', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
 
 class PackageSerializer(serializers.ModelSerializer):
     """Serializer for Package model"""

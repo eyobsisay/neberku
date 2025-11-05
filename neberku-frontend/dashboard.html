@@ -369,6 +369,20 @@
             border: 1px solid var(--line) !important;
             box-shadow: 0 8px 25px rgba(2,6,23,.4) !important;
         }
+        /* Selected package visuals */
+        .package-selected { position: relative; }
+        .package-selected::after {
+            content: 'Selected';
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: linear-gradient(135deg, var(--primary-start), var(--primary-end));
+            color: #fff;
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 999px;
+        }
+        .package-selected { box-shadow: 0 12px 30px rgba(236,72,153,.35) !important; }
         
         .card-header {
             background: linear-gradient(135deg, rgba(255,255,255,.1), rgba(255,255,255,.05)) !important;
@@ -767,6 +781,20 @@
                         
                         <!-- Hide form by default -->
                         <form id="createEventForm" novalidate style="display: none;">
+                            <!-- Step indicator -->
+                            <div class="mb-3">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge bg-primary" id="stepBadge1">1</span>
+                                    <span id="stepLabel1" class="me-3">Event Details</span>
+                                    <span class="badge bg-secondary" id="stepBadge2">2</span>
+                                    <span id="stepLabel2" class="me-3">Choose Package</span>
+                                    <span class="badge bg-secondary" id="stepBadge3">3</span>
+                                    <span id="stepLabel3">Payment Method</span>
+                                </div>
+                            </div>
+
+                            <!-- STEP 1: Event Details -->
+                            <div id="createStep1">
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label for="eventTitle" class="form-label">Event Title <span class="text-danger">*</span></label>
@@ -792,13 +820,6 @@
                                 </div>
                             </div>
                             <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label for="eventPackage" class="form-label">Package <span class="text-danger">*</span></label>
-                                    <select class="form-control" id="eventPackage" required>
-                                        <option value="">Loading packages...</option>
-                                    </select>
-                                    <div class="invalid-feedback"></div>
-                                </div>
                                 <div class="col-md-6 mb-3">
                                     <label for="eventType" class="form-label">Event Type <span class="text-danger">*</span></label>
                                     <select class="form-control" id="eventType" required>
@@ -907,15 +928,86 @@
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div class="d-flex gap-2">
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="bi bi-plus-circle"></i> Create Event
+                                <button type="button" id="toStep2" class="btn btn-primary">
+                                    <i class="bi bi-arrow-right-circle"></i> Next: Choose Package
                                 </button>
                                 <button type="button" class="btn btn-secondary" onclick="dashboard.hideCreateEventForm()">
                                     <i class="bi bi-x-circle"></i> Cancel
                                 </button>
                             </div>
+                            </div>
+
+                            <!-- STEP 2: Choose Package -->
+                            <div id="createStep2" style="display:none;">
+                                <div class="row">
+                                    <div class="col-12 mb-2">
+                                        <label class="form-label">Choose a Package <span class="text-danger">*</span></label>
+                                    </div>
+                                </div>
+                                <div id="packageCards" class="row g-3 mb-3">
+                                    <!-- Package cards will be rendered here -->
+                                    <div class="col-12 text-muted" id="packageLoading">Loading packages...</div>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button type="button" id="backToStep1" class="btn btn-secondary">
+                                        <i class="bi bi-arrow-left-circle"></i> Back
+                                    </button>
+                                    <button type="button" id="toStep3" class="btn btn-primary" disabled>
+                                        <i class="bi bi-arrow-right-circle"></i> Next: Payment
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- STEP 3: Payment Method -->
+                            <div id="createStep3" style="display:none;">
+                                <div class="row">
+                                    <div class="col-md-8 mb-2">
+                                        <h6 class="mb-0">Payment Method</h6>
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-8">
+                                        <div class="p-2 border rounded bg-dark bg-opacity-25 d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <div class="small text-muted">Selected Package</div>
+                                                <div class="fw-bold" id="spName">-</div>
+                                            </div>
+                                            <div class="text-white fw-bold" id="spPrice">-</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <div id="paymentMethodsList" class="row g-2"></div>
+                                        <div id="apiResponsePanel" class="mt-3" style="display:none;">
+                                            <div class="card">
+                                                <div class="card-header">
+                                                    <strong>API Response</strong>
+                                                </div>
+                                                <div class="card-body">
+                                                    <pre id="apiResponsePre" class="mb-0" style="white-space: pre-wrap; word-break: break-word; color: #fff;"></pre>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <small class="form-text text-warning mt-2 d-block"><i class="bi bi-exclamation-triangle"></i> Please complete the payment using the shown account, then click Finish.</small>
+                                    </div>
+                                </div>
+
+                                <!-- Hidden field populated from step 2 for final submit compatibility -->
+                                <input type="hidden" id="eventPackage" />
+
+                                <div class="d-flex gap-2 mt-3">
+                                    <button type="button" id="backToStep2" class="btn btn-secondary">
+                                        <i class="bi bi-arrow-left-circle"></i> Back
+                                    </button>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="bi bi-check-circle"></i> Finish & Create Event
+                                    </button>
+                                </div>
+                            </div>
+                            
                         </form>
                     </div>
                 </div>
@@ -1000,5 +1092,262 @@
     <script src="js/config.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/dashboard.js"></script>
+    <script>
+    (function(){
+        const stepBadges = [
+            document.getElementById('stepBadge1'),
+            document.getElementById('stepBadge2'),
+            document.getElementById('stepBadge3')
+        ];
+        const steps = [
+            document.getElementById('createStep1'),
+            document.getElementById('createStep2'),
+            document.getElementById('createStep3')
+        ];
+        const toStep2Btn = document.getElementById('toStep2');
+        const toStep3Btn = document.getElementById('toStep3');
+        const backToStep1Btn = document.getElementById('backToStep1');
+        const backToStep2Btn = document.getElementById('backToStep2');
+        const pkgHidden = document.getElementById('eventPackage');
+        const pkgCardsContainer = document.getElementById('packageCards');
+        const pkgLoading = document.getElementById('packageLoading');
+        const pmSelect = document.getElementById('paymentMethod');
+        const paymentMethodsList = document.getElementById('paymentMethodsList');
+        const spName = document.getElementById('spName');
+        const spPrice = document.getElementById('spPrice');
+        const apiResponsePanel = document.getElementById('apiResponsePanel');
+        const apiResponsePre = document.getElementById('apiResponsePre');
+
+        function setStep(index){
+            steps.forEach((el,i)=>{ el.style.display = (i===index)?'block':'none'; });
+            stepBadges.forEach((b,i)=>{
+                b.classList.toggle('bg-primary', i===index);
+                b.classList.toggle('bg-secondary', i!==index);
+            });
+        }
+        setStep(0);
+
+        function setInvalid(el, msg){
+            if (!el) return;
+            el.classList.add('is-invalid');
+            el.classList.remove('is-valid');
+            const feedback = el.parentNode.querySelector('.invalid-feedback');
+            if (feedback) feedback.textContent = msg || 'This field is required';
+        }
+        function clearInvalid(el){
+            if (!el) return;
+            el.classList.remove('is-invalid');
+            el.classList.add('is-valid');
+            const feedback = el.parentNode.querySelector('.invalid-feedback');
+            if (feedback) feedback.textContent = '';
+        }
+        function validateStep1(){
+            let ok = true;
+            const titleEl = document.getElementById('eventTitle');
+            const dateEl = document.getElementById('eventDate');
+            const locEl = document.getElementById('eventLocation');
+            const descEl = document.getElementById('eventDescription');
+            const typeEl = document.getElementById('eventType');
+            // Title
+            if (!titleEl.value.trim()) { setInvalid(titleEl, 'Event title is required'); ok = false; } else { clearInvalid(titleEl); }
+            // Date
+            if (!dateEl.value) { setInvalid(dateEl, 'Event date is required'); ok = false; } else { clearInvalid(dateEl); }
+            // Location
+            if (!locEl.value.trim()) { setInvalid(locEl, 'Location is required'); ok = false; } else { clearInvalid(locEl); }
+            // Description
+            if (!descEl.value.trim()) { setInvalid(descEl, 'Description is required'); ok = false; } else { clearInvalid(descEl); }
+            // Event Type
+            if (!typeEl.value) { setInvalid(typeEl, 'Event type is required'); ok = false; } else { clearInvalid(typeEl); }
+            return ok;
+        }
+        if (toStep2Btn) toStep2Btn.addEventListener('click', ()=> {
+            if (!validateStep1()) return;
+            setStep(1);
+        });
+        if (backToStep1Btn) backToStep1Btn.addEventListener('click', ()=> setStep(0));
+
+        // Package cards rendering and selection
+        function renderPackages(packages){
+            if (!pkgCardsContainer) return;
+            pkgCardsContainer.innerHTML = '';
+            if (!Array.isArray(packages) || packages.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'col-12 text-muted';
+                empty.textContent = 'No packages available';
+                pkgCardsContainer.appendChild(empty);
+                return;
+            }
+            // Sort by price like pricing page; mark middle as Most Popular
+            packages.sort((a,b)=> parseFloat(a.price) - parseFloat(b.price));
+            const popularIndex = Math.floor(packages.length / 2);
+            packages.forEach((p, idx)=>{
+                const col = document.createElement('div');
+                col.className = 'col-lg-4 col-md-6';
+                const card = document.createElement('div');
+                card.className = 'card text-center h-100 card-hover' + (idx === popularIndex ? ' border-primary' : '');
+                card.style.cursor = 'pointer';
+                const features = Array.isArray(p.features) ? p.features : (p.features ? Object.values(p.features) : []);
+                const featuresHtml = (features || []).map(f=>`<li class="mb-2"><i class=\"bi bi-check text-success me-2\"></i>${f}</li>`).join('');
+                const extrasHtml = `
+                    ${p.max_photos ? `<li class=\"mb-2\"><i class=\"bi bi-check text-success me-2\"></i>Up to ${parseInt(p.max_photos).toLocaleString()} photos</li>` : ''}
+                    ${p.max_videos ? `<li class=\"mb-2\"><i class=\"bi bi-check text-success me-2\"></i>Up to ${parseInt(p.max_videos).toLocaleString()} videos</li>` : ''}
+                    ${p.max_guests ? `<li class=\"mb-2\"><i class=\"bi bi-check text-success me-2\"></i>Up to ${parseInt(p.max_guests).toLocaleString()} guests</li>` : ''}
+                `;
+                card.innerHTML = `
+                    <div class=\"card-header bg-primary text-white\">\n                        <h4 class=\"mb-0\">${p.name}</h4>\n                        ${idx === popularIndex ? '<span class=\\"badge bg-warning\\">Most Popular</span>' : ''}\n                    </div>\n                    <div class=\"card-body text-white\">\n                        <h2 class=\"card-title\">${parseFloat(p.price).toLocaleString()} ETB</h2>\n                        ${p.description ? `<p class=\\"card-text\\">${p.description}</p>` : ''}\n                        <ul class=\"list-unstyled text-white\">\n                            ${featuresHtml}\n                            ${extrasHtml}\n                        </ul>\n                        <div class=\"d-grid\">\n                            <button type=\"button\" class=\"btn btn-primary select-package-btn\">Select</button>\n                        </div>\n                    </div>
+                `;
+                function select(){
+                    pkgHidden.value = p.id;
+                    toStep3Btn.disabled = false;
+                    window.selectedPackageData = p;
+                    // highlight selection
+                    [...pkgCardsContainer.querySelectorAll('.card')].forEach(c=>{
+                        c.classList.remove('border','border-primary','package-selected');
+                    });
+                    card.classList.add('border','border-primary','package-selected');
+                    if (window.dashboard && typeof window.dashboard.onPackageChange === 'function') {
+                        window.dashboard.onPackageChange(p.id);
+                    }
+                    // Stay on this step to allow changing selection; proceed via Next button
+                    // Update next button label with chosen package
+                    try {
+                        const priceNum = typeof p.price === 'number' ? p.price : parseFloat(p.price);
+                        const nextLabel = `Next: Payment (${p.name} - ${isNaN(priceNum)?'-':priceNum.toLocaleString()} ETB)`;
+                        toStep3Btn.innerHTML = `<i class="bi bi-arrow-right-circle"></i> ${nextLabel}`;
+                    } catch(_) {}
+                }
+                card.addEventListener('click', (e)=>{
+                    // If button clicked, prevent duplicate handling
+                    if (e.target && e.target.classList.contains('select-package-btn')) {
+                        e.stopPropagation();
+                    }
+                    select();
+                });
+                col.appendChild(card);
+                pkgCardsContainer.appendChild(col);
+            });
+        }
+
+        // Load packages: use dashboard API if exists; else fallback
+        async function ensurePackages(){
+            try {
+                const res = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PACKAGES}`, {
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                let data = [];
+                if (res.ok) {
+                    const json = await res.json();
+                    data = Array.isArray(json) ? json : (json.results || json.data || []);
+                }
+                if (window.dashboard) {
+                    window.dashboard.packages = data;
+                }
+                if (pkgLoading) pkgLoading.remove();
+                renderPackages(data);
+            } catch (e) {
+                if (pkgLoading) pkgLoading.textContent = 'Failed to load packages';
+                console.error('Failed to load packages:', e);
+            }
+        }
+        ensurePackages();
+
+        if (toStep3Btn) toStep3Btn.addEventListener('click', function(){
+            if (!pkgHidden.value) return;
+            setStep(2);
+            if (window.dashboard && typeof window.dashboard.onPackageChange === 'function') {
+                window.dashboard.onPackageChange(pkgHidden.value);
+            }
+            updateSelectedPackageSummary();
+        });
+        if (backToStep2Btn) backToStep2Btn.addEventListener('click', ()=> setStep(1));
+
+        // Load payment methods from API
+        async function ensurePaymentMethods(){
+            try {
+                const res = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PAYMENT_METHODS}`, {
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    const methods = Array.isArray(data) ? data : (data.results || []);
+                    renderPaymentMethods(methods || []);
+                } else {
+                    renderPaymentMethods([]);
+                }
+            } catch (e) {
+                console.error('Failed to load payment methods', e);
+                renderPaymentMethods([]);
+            }
+        }
+
+        function renderPaymentMethods(methods){
+            if (!paymentMethodsList) return;
+            paymentMethodsList.innerHTML = '';
+            if (!methods.length) {
+                const empty = document.createElement('div');
+                empty.className = 'col-12';
+                empty.innerHTML = '<div class="alert alert-warning">No payment methods available.</div>';
+                paymentMethodsList.appendChild(empty);
+                return;
+            }
+            methods.forEach(m => {
+                const col = document.createElement('div');
+                col.className = 'col-12';
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="fw-bold">${m.name || '-'}</div>
+                                <div class="text-muted small">${m.description || ''}</div>
+                                <div class="mt-1"><span class="text-warning">Account / Wallet:</span> <span class="text-white">${m.account_number || '-'}</span></div>
+                            </div>
+                            <span class="badge bg-success">${m.code || ''}</span>
+                        </div>
+                    </div>
+                `;
+                col.appendChild(card);
+                paymentMethodsList.appendChild(col);
+            });
+        }
+
+        function updateSelectedPackageSummary(){
+            try {
+                const d = window.dashboard;
+                let pkg = window.selectedPackageData ? window.selectedPackageData : (d && d.selectedPackage ? d.selectedPackage : null);
+                if (!pkg && d && Array.isArray(d.packages)) {
+                    pkg = d.packages.find(x => (x.id == pkgHidden.value));
+                }
+                if (pkg) {
+                    spName.textContent = pkg.name || '-';
+                    const priceNum = typeof pkg.price === 'number' ? pkg.price : parseFloat(pkg.price);
+                    spPrice.textContent = isNaN(priceNum) ? '-' : `${priceNum.toLocaleString()} ETB`;
+                } else {
+                    spName.textContent = '-';
+                    spPrice.textContent = '-';
+                }
+            } catch (e) {
+                spName.textContent = '-';
+                spPrice.textContent = '-';
+            }
+        }
+        ensurePaymentMethods();
+
+        // Dropdown removed; methods are displayed as a list from API
+
+        // Expose handlers to show API responses in the wizard
+        window.onEventCreated = function(newEvent){
+            if (!apiResponsePanel || !apiResponsePre) return;
+            apiResponsePanel.style.display = 'block';
+            apiResponsePre.textContent = JSON.stringify(newEvent, null, 2);
+        };
+        window.onEventCreateError = function(error){
+            if (!apiResponsePanel || !apiResponsePre) return;
+            apiResponsePanel.style.display = 'block';
+            apiResponsePre.textContent = (error && error.message) ? `Error: ${error.message}` : 'Unknown error creating event';
+        };
+    })();
+    </script>
 </body>
 </html> 

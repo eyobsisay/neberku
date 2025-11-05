@@ -57,6 +57,25 @@ class Package(models.Model):
     class Meta:
         ordering = ['price']
 
+class PaymentMethod(models.Model):
+    """Available payment methods (e.g., Stripe, PayPal, Manual)"""
+    code = models.CharField(max_length=50, unique=True, help_text="Identifier used in code/integrations")
+    name = models.CharField(max_length=100, help_text="Display name for the payment method")
+    description = models.TextField(blank=True)
+    account_number = models.CharField(max_length=100, blank=True, null=True, help_text="Optional receiving account number or wallet ID")
+    is_active = models.BooleanField(default=True)
+    sort_order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        ordering = ['sort_order', 'name']
+        verbose_name = "Payment Method"
+        verbose_name_plural = "Payment Methods"
+
 class Event(models.Model):
     """Event model for hosting photo/video collection events"""
     STATUS_CHOICES = [
@@ -89,7 +108,7 @@ class Event(models.Model):
     auto_approve_posts = models.BooleanField(default=False)
     
     # Status and payment
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending_payment')
     payment_status = models.CharField(max_length=20, choices=[
         ('pending', 'Pending'),
         ('paid', 'Paid'),

@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.forms.models import BaseInlineFormSet
 from django import forms
-from .models import EventType, Package, Event, Payment, Guest, GuestPost, MediaFile, EventSettings
+from .models import EventType, Package, Event, Payment, Guest, GuestPost, MediaFile, EventSettings, PaymentMethod
 
 class EventSettingsFormSet(BaseInlineFormSet):
     """Custom formset for EventSettings inline to prevent duplicates"""
@@ -410,6 +410,26 @@ class MediaFileAdmin(admin.ModelAdmin):
     
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('post', 'guest', 'event')
+
+@admin.register(PaymentMethod)
+class PaymentMethodAdmin(admin.ModelAdmin):
+    list_display = ['name', 'code', 'account_number', 'is_active', 'sort_order', 'created_at']
+    list_filter = ['is_active', 'created_at']
+    search_fields = ['name', 'code', 'account_number', 'description']
+    ordering = ['sort_order', 'name']
+    list_editable = ['is_active', 'sort_order']
+
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('name', 'code', 'description')
+        }),
+        ('Routing', {
+            'fields': ('account_number',)
+        }),
+        ('Status & Ordering', {
+            'fields': ('is_active', 'sort_order')
+        }),
+    )
 
 @admin.register(EventSettings)
 class EventSettingsAdmin(admin.ModelAdmin):

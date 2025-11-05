@@ -574,6 +574,10 @@ class Dashboard {
             });
 
             console.log('✅ Event created successfully:', newEvent);
+            // Notify listeners (e.g., dashboard.html wizard) with raw API response
+            if (typeof window !== 'undefined' && typeof window.onEventCreated === 'function') {
+                try { window.onEventCreated(newEvent); } catch (e) { console.warn('onEventCreated handler error', e); }
+            }
             this.events.push(newEvent);
             
             this.renderEvents();
@@ -583,6 +587,9 @@ class Dashboard {
             
         } catch (error) {
             console.error('❌ Error creating event:', error);
+            if (typeof window !== 'undefined' && typeof window.onEventCreateError === 'function') {
+                try { window.onEventCreateError(error); } catch (e) { console.warn('onEventCreateError handler error', e); }
+            }
             if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
                 this.showAlert(`
                     <strong>Unable to connect to the server!</strong><br>

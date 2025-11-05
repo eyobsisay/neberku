@@ -13,6 +13,7 @@ router.register(r'guest-posts', views.GuestPostViewSet, basename='guest-post')
 router.register(r'guest-post-create', views.GuestPostCreateViewSet, basename='guest-post-create')
 router.register(r'media-files', views.MediaFileViewSet, basename='media-file')
 router.register(r'public-events', views.PublicEventViewSet, basename='public-event')
+router.register(r'payment-methods', views.PaymentMethodViewSet, basename='payment-method')
 
 urlpatterns = [
     path('', include(router.urls)),

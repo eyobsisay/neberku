@@ -22,6 +22,7 @@ const API_CONFIG = {
         // Packages and Event Types
         PACKAGES: '/api/packages/',
         EVENT_TYPES: '/api/event-types/',
+        PAYMENT_METHODS: '/api/payment-methods/',
         
         // Guest contributions
         GUEST_POSTS: '/api/guest-posts/',

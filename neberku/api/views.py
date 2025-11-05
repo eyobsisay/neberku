@@ -17,11 +17,11 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
-from core.models import EventType, Package, Event, Payment, Guest, GuestPost, MediaFile, EventSettings
+from core.models import EventType, Package, Event, Payment, Guest, GuestPost, MediaFile, EventSettings, PaymentMethod
 from .serializers import (
     EventTypeSerializer, EventTypeCreateSerializer, PackageSerializer, PackageCreateSerializer, EventSerializer, EventCreateSerializer, EventGallerySerializer,
     EventSummarySerializer, EventGuestAccessSerializer, PaymentSerializer, PaymentCreateSerializer, GuestSerializer, GuestPostSerializer, GuestPostCreateSerializer,
-    GuestPostListSerializer, MediaFileSerializer, MediaFileCreateSerializer
+    GuestPostListSerializer, MediaFileSerializer, MediaFileCreateSerializer, PaymentMethodSerializer
 )
 from rest_framework import serializers
 import math
@@ -926,6 +926,22 @@ class PublicEventViewSet(viewsets.ReadOnlyModelViewSet):
             'like_count': event.like_count,
             'message': 'Event liked!' if is_liked else 'Event unliked!'
         })
+
+class PaymentMethodViewSet(viewsets.ReadOnlyModelViewSet):
+    """Read-only ViewSet for listing active payment methods"""
+    queryset = PaymentMethod.objects.filter(is_active=True).order_by('sort_order', 'name')
+    serializer_class = PaymentMethodSerializer
+    permission_classes = [permissions.AllowAny]
+    throttle_classes = []
+
+    def get_queryset(self):
+        # Allow admin to see all
+        if getattr(self, 'swagger_fake_view', False):
+            return PaymentMethod.objects.none()
+        user = self.request.user
+        if user.is_staff:
+            return PaymentMethod.objects.all().order_by('sort_order', 'name')
+        return PaymentMethod.objects.filter(is_active=True).order_by('sort_order', 'name')
 
 
 # Authentication API Views
