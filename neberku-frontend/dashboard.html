@@ -1125,6 +1125,27 @@
                 b.classList.toggle('bg-secondary', i!==index);
             });
         }
+        // Expose setStep globally so it can be called after event creation
+        window.resetWizardToStep1 = function() {
+            setStep(0);
+            // Reset package selection state
+            if (pkgHidden) pkgHidden.value = '';
+            if (toStep3Btn) {
+                toStep3Btn.disabled = true;
+                toStep3Btn.innerHTML = '<i class="bi bi-arrow-right-circle"></i> Next: Payment';
+            }
+            // Clear package selection visual feedback
+            if (pkgCardsContainer) {
+                [...pkgCardsContainer.querySelectorAll('.card')].forEach(c => {
+                    c.classList.remove('border', 'border-primary', 'package-selected');
+                });
+            }
+            // Reset package summary
+            if (spName) spName.textContent = '-';
+            if (spPrice) spPrice.textContent = '-';
+            // Hide API response panel if visible
+            if (apiResponsePanel) apiResponsePanel.style.display = 'none';
+        };
         setStep(0);
 
         function setInvalid(el, msg){
@@ -1336,16 +1357,19 @@
 
         // Dropdown removed; methods are displayed as a list from API
 
-        // Expose handlers to show API responses in the wizard
+        // Expose handlers for event creation (without showing JSON response)
         window.onEventCreated = function(newEvent){
-            if (!apiResponsePanel || !apiResponsePre) return;
-            apiResponsePanel.style.display = 'block';
-            apiResponsePre.textContent = JSON.stringify(newEvent, null, 2);
+            // Event created successfully - JSON response panel is hidden for better UX
+            // The success alert is already shown by dashboard.js
+            console.log('Event created successfully:', newEvent);
+            // Reset wizard to first step
+            if (typeof window.resetWizardToStep1 === 'function') {
+                window.resetWizardToStep1();
+            }
         };
         window.onEventCreateError = function(error){
-            if (!apiResponsePanel || !apiResponsePre) return;
-            apiResponsePanel.style.display = 'block';
-            apiResponsePre.textContent = (error && error.message) ? `Error: ${error.message}` : 'Unknown error creating event';
+            // Error handler - error alert is already shown by dashboard.js
+            console.error('Error creating event:', error);
         };
     })();
     </script>
