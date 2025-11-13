@@ -58,6 +58,8 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                             'email': user.email,
                             'first_name': user.first_name,
                             'last_name': user.last_name,
+                            'is_superuser': user.is_superuser,
+                            'is_staff': user.is_staff
                         }
                     })
         return response
@@ -234,6 +236,40 @@ class EventViewSet(viewsets.ModelViewSet):
                 # Log error but don't fail event creation
                 print(f"Error creating EventSettings for event {event.id}: {e}")
                 pass
+            
+            # Automatically create Payment object when event is created
+            try:
+                # Check if payment already exists (shouldn't happen, but safety check)
+                if not Payment.objects.filter(event=event).exists():
+                    # Get payment method from request if provided, otherwise use first active method
+                    payment_method = None
+                    payment_method_id = request_data.get('payment_method_id')
+                    if payment_method_id:
+                        try:
+                            payment_method = PaymentMethod.objects.get(id=payment_method_id, is_active=True)
+                        except PaymentMethod.DoesNotExist:
+                            pass
+                    
+                    # If no payment method specified, get the first active one
+                    if not payment_method:
+                        payment_method = PaymentMethod.objects.filter(is_active=True).first()
+                    
+                    # Create payment with amount from package
+                    if payment_method and event.package:
+                        payment = Payment.objects.create(
+                            event=event,
+                            amount=event.package.price,
+                            payment_method=payment_method,
+                            status='pending'
+                        )
+                        print(f"Payment created for event {event.id}: {payment.id} - Amount: {payment.amount} ETB")
+                    else:
+                        print(f"Warning: Could not create payment for event {event.id} - payment_method or package missing")
+                        
+            except Exception as e:
+                # Log error but don't fail event creation
+                print(f"Error creating Payment for event {event.id}: {e}")
+                pass
                 
         except Exception as e:
             print(f"Error in perform_create: {e}")
@@ -356,14 +392,16 @@ class PaymentViewSet(viewsets.ModelViewSet):
         return PaymentSerializer
     
     def get_queryset(self):
-        """Filter payments based on user"""
+        """Filter payments based on user - only superusers can see all payments"""
         # Check if this is a Swagger schema generation request
         if getattr(self, 'swagger_fake_view', False):
             return Payment.objects.none()
         
         user = self.request.user
-        if user.is_staff:
+        # Only superusers can see all payments
+        if user.is_superuser:
             return Payment.objects.all()
+        # Regular users can only see their own event payments
         return Payment.objects.filter(event__host=user)
     
     def perform_create(self, serializer):
@@ -396,8 +434,15 @@ class PaymentViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['post'])
     def confirm(self, request, pk=None):
-        """Confirm payment (simulate payment confirmation)"""
+        """Confirm payment (simulate payment confirmation) - Only superusers can confirm"""
         payment = self.get_object()
+        
+        # Only superusers can confirm payments
+        if not request.user.is_superuser:
+            return Response(
+                {'error': 'Only superusers can confirm payments'},
+                status=status.HTTP_403_FORBIDDEN
+            )
         
         payment.status = 'completed'
         payment.paid_at = timezone.now()
@@ -996,7 +1041,9 @@ def api_login(request):
                 'username': user.username,
                 'email': user.email,
                 'first_name': user.first_name,
-                'last_name': user.last_name
+                'last_name': user.last_name,
+                'is_superuser': user.is_superuser,
+                'is_staff': user.is_staff
             },
             'message': 'Login successful'
         })

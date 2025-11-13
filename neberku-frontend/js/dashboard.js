@@ -7,6 +7,8 @@ class Dashboard {
         this.filteredEvents = null; // null means no filter applied, [] means filter applied but empty results
         this.packages = []; // Store packages data for validation
         this.selectedPackage = null; // Store selected package data
+        this.isSuperuser = false; // Track if user is superuser
+        this.paymentMethods = []; // Store all payment methods
         this.init();
     }
 
@@ -14,7 +16,51 @@ class Dashboard {
         this.checkAuth();
         this.bindEvents();
         this.loadPackagesAndEventTypes();
+        this.loadPaymentMethods();
         this.loadDashboardData();
+        // Load pending payments for all users (they can see their own)
+        this.loadPendingPayments();
+    }
+    
+    async loadPaymentMethods() {
+        try {
+            console.log('💳 Loading payment methods...');
+            const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PAYMENT_METHODS}`, {
+                headers: { 'Content-Type': 'application/json' }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                // Handle different response structures
+                let methods = data;
+                if (data.results && Array.isArray(data.results)) {
+                    methods = data.results;
+                } else if (data.data && Array.isArray(data.data)) {
+                    methods = data.data;
+                }
+                
+                // Filter only active payment methods
+                this.paymentMethods = Array.isArray(methods) ? methods.filter(m => m.is_active !== false) : [];
+                console.log(`✅ Loaded ${this.paymentMethods.length} payment methods`);
+            } else {
+                console.error('❌ Failed to load payment methods:', response.status);
+                this.paymentMethods = [];
+            }
+        } catch (error) {
+            console.error('❌ Error loading payment methods:', error);
+            this.paymentMethods = [];
+        }
+    }
+    
+    updateCartVisibility() {
+        // Cart is visible to all users, but actions are restricted to superusers
+        const cartDropdown = document.getElementById('cartDropdown');
+        const cartParent = cartDropdown ? cartDropdown.closest('.nav-item') : null;
+        
+        if (cartParent) {
+            // Always show cart - all users can see their pending payments
+            cartParent.style.display = 'block';
+        }
     }
 
     checkAuth() {
@@ -37,9 +83,15 @@ class Dashboard {
         const user = getCurrentUser();
         if (user) {
             document.getElementById('userDisplayName').textContent = user.username;
+            // Check if user is superuser
+            this.isSuperuser = user.is_superuser === true || user.is_superuser === 'true';
             console.log('✅ User authenticated:', user.username);
+            console.log('👤 Is Superuser:', this.isSuperuser);
             console.log('🔑 Session cookies should be available for API calls');
             console.log('🎯 Ready to load dashboard data');
+            
+            // Hide cart if not superuser
+            this.updateCartVisibility();
         } else {
             console.log('❌ User data not found, redirecting to login');
             this.showAlert('User data not found. Redirecting to login...', 'warning');
@@ -178,8 +230,8 @@ class Dashboard {
                     <i class="bi bi-calendar-x display-1 text-muted"></i>
                     <h4 class="text-muted mt-3">No events found</h4>
                     <p class="text-muted mb-3">No events match the current filter criteria.</p>
-                    <div class="alert alert-info">
-                        <strong>💡 Tip:</strong> Try selecting a different filter or create a new event!
+                    <div class="alert" style="background: linear-gradient(135deg, var(--muted) 0%, #f3e8ff 100%); border: 2px solid var(--accent); color: #000;">
+                        <strong style="color: #000;">💡 Tip:</strong> <span style="color: #000;">Try selecting a different filter or create a new event!</span>
                     </div>
                 </div>
             `;
@@ -224,32 +276,32 @@ class Dashboard {
                                 </span>
                                 <small class="text-muted" style="font-size: 0.75rem;">${this.formatDate(event.event_date)}</small>
                             </div>
-                            <h6 class="card-title text-primary mb-2" style="font-size: 0.9rem; line-height: 1.2;">${this.truncateText(event.title, 30)}</h6>
+                            <h6 class="card-title mb-2" style="font-size: 0.9rem; line-height: 1.2; color: var(--primary-start);">${this.truncateText(event.title, 30)}</h6>
                             <p class="card-text text-muted mb-2" style="font-size: 0.8rem;">
                                 <i class="bi bi-geo-alt"></i> ${this.truncateText(event.location || 'N/A', 20)}
                             </p>
                             
                             <div class="row text-center mb-2">
                                 <div class="col-3">
-                                    <div class="text-primary">
+                                    <div style="color: var(--primary-start);">
                                         <i class="bi bi-image" style="font-size: 0.8rem;"></i>
                                         <div style="font-size: 0.75rem;">${event.photo_count || 0}</div>
                                     </div>
                                 </div>
                                 <div class="col-3">
-                                    <div class="text-info">
+                                    <div style="color: var(--primary-end);">
                                         <i class="bi bi-camera-video" style="font-size: 0.8rem;"></i>
                                         <div style="font-size: 0.75rem;">${event.video_count || 0}</div>
                                     </div>
                                 </div>
                                 <div class="col-3">
-                                    <div class="text-secondary">
+                                    <div style="color: var(--accent);">
                                         <i class="bi bi-mic" style="font-size: 0.8rem;"></i>
                                         <div style="font-size: 0.75rem;">${event.voice_count || 0}</div>
                                     </div>
                                 </div>
                                 <div class="col-3">
-                                    <div class="text-success">
+                                    <div style="color: var(--confetti-2);">
                                         <i class="bi bi-people" style="font-size: 0.8rem;"></i>
                                         <div style="font-size: 0.75rem;">${event.total_guest_posts || 0}</div>
                                     </div>
@@ -257,13 +309,13 @@ class Dashboard {
                             </div>
                             
                             <div class="d-flex gap-1">
-                                <button class="btn btn-outline-primary btn-sm flex-fill" onclick="dashboard.viewEvent('${event.id}')" style="font-size: 0.75rem; padding: 0.25rem 0.4rem;">
+                                <button class="btn btn-sm flex-fill" onclick="dashboard.viewEvent('${event.id}')" style="font-size: 0.75rem; padding: 0.25rem 0.4rem; border: 1px solid var(--primary-start); color: var(--primary-start); background: transparent;">
                                     <i class="bi bi-eye"></i> View
                                 </button>
-                                <button class="btn btn-outline-info btn-sm flex-fill" onclick="dashboard.viewEventPosts('${event.id}')" style="font-size: 0.75rem; padding: 0.25rem 0.4rem;">
+                                <button class="btn btn-sm flex-fill" onclick="dashboard.viewEventPosts('${event.id}')" style="font-size: 0.75rem; padding: 0.25rem 0.4rem; border: 1px solid var(--primary-end); color: var(--primary-end); background: transparent;">
                                     <i class="bi bi-chat-dots"></i> Posts
                                 </button>
-                                <button class="btn btn-outline-success btn-sm flex-fill" onclick="dashboard.shareEvent('${event.id}')" style="font-size: 0.75rem; padding: 0.25rem 0.4rem;">
+                                <button class="btn btn-sm flex-fill" onclick="dashboard.shareEvent('${event.id}')" style="font-size: 0.75rem; padding: 0.25rem 0.4rem; border: 1px solid var(--confetti-2); color: var(--confetti-2); background: transparent;">
                                     <i class="bi bi-share"></i> Share
                                 </button>
                             </div>
@@ -583,7 +635,9 @@ class Dashboard {
             this.renderEvents();
             this.updateStatistics();
             this.resetForm();
-            this.showAlert('Event created successfully!', 'success');
+            // Reload pending payments to show the new payment
+            this.loadPendingPayments();
+            this.showAlert('Event created successfully! Payment has been added to your cart.', 'success');
             
         } catch (error) {
             console.error('❌ Error creating event:', error);
@@ -1398,7 +1452,8 @@ class Dashboard {
                 }
                 
                 hintElement.innerHTML = hintText;
-                hintElement.className = 'form-hint text-info small mt-1';
+                hintElement.className = 'form-hint small mt-1';
+                hintElement.style.color = 'var(--primary-end)';
             } else {
                 hintElement.innerHTML = `<i class="bi bi-info-circle"></i> <strong>Enter value between 1-50</strong>`;
                 hintElement.className = 'form-hint text-muted small mt-1';
@@ -1429,6 +1484,438 @@ class Dashboard {
         });
         
         console.log(`✅ Populated event type dropdown with ${eventTypes.length} event types`);
+    }
+
+    async loadPendingPayments() {
+        // All users can load their pending payments
+        try {
+            console.log('🛒 Loading pending payments...');
+            
+            // Load payments with pending status
+            const paymentsData = await API_UTILS.request(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PAYMENTS}`, {
+                method: 'GET',
+                mode: 'cors'
+            });
+
+            console.log('✅ Payments fetched successfully:', paymentsData);
+            
+            // Extract payments from response
+            let payments = [];
+            if (paymentsData.results && Array.isArray(paymentsData.results)) {
+                payments = paymentsData.results;
+            } else if (Array.isArray(paymentsData)) {
+                payments = paymentsData;
+            } else {
+                console.warn('⚠️ Unexpected payments response format:', paymentsData);
+                payments = [];
+            }
+            
+            // Filter only pending payments
+            // Superusers see all pending payments, regular users see only their own
+            const pendingPayments = payments.filter(payment => 
+                payment.status === 'pending' && 
+                payment.event && 
+                payment.event.payment_status === 'pending'
+            );
+            
+            console.log(`📊 Found ${pendingPayments.length} pending payments`);
+            
+            // Store payments for modal access
+            this.pendingPayments = pendingPayments;
+            
+            this.renderPendingPayments(pendingPayments);
+            
+        } catch (error) {
+            console.error('❌ Error loading pending payments:', error);
+            // Don't show alert for payment loading errors, just log
+            const paymentsList = document.getElementById('pendingPaymentsList');
+            if (paymentsList) {
+                paymentsList.innerHTML = `
+                    <div class="alert" style="background-color: var(--confetti-3); border-left: 4px solid var(--confetti-3); color: #000;">
+                        <i class="bi bi-exclamation-triangle"></i> 
+                        <span style="color: #000;">Unable to load pending payments. Please try again later.</span>
+                    </div>
+                `;
+            }
+        }
+    }
+
+    renderPendingPayments(payments) {
+        const paymentsSection = document.getElementById('pendingPaymentsSection');
+        const paymentsList = document.getElementById('pendingPaymentsList');
+        const paymentsCount = document.getElementById('pendingPaymentsCount');
+        const navbarCartBadge = document.getElementById('navbarCartBadge');
+        const cartDropdownContent = document.getElementById('cartDropdownContent');
+        const cartDropdownCount = document.getElementById('cartDropdownCount');
+        const cartDropdownFooter = document.getElementById('cartDropdownFooter');
+        
+        // Update navbar badge
+        if (navbarCartBadge) {
+            if (payments.length > 0) {
+                navbarCartBadge.textContent = payments.length;
+                navbarCartBadge.style.display = 'block';
+            } else {
+                navbarCartBadge.style.display = 'none';
+            }
+        }
+        
+        // Update dropdown count
+        if (cartDropdownCount) {
+            cartDropdownCount.textContent = payments.length;
+        }
+        
+        // Render dropdown cart (e-commerce style)
+        if (cartDropdownContent) {
+            if (payments.length === 0) {
+                cartDropdownContent.innerHTML = `
+                    <div class="text-center py-3" style="color: #000;">
+                        <i class="bi bi-cart-x" style="font-size: 2rem; color: var(--primary-start);"></i>
+                        <p class="mt-2 mb-0 small" style="color: #000;">No pending payments</p>
+                    </div>
+                `;
+                if (cartDropdownFooter) cartDropdownFooter.style.display = 'none';
+            } else {
+                // Show all payments in dropdown with details
+                cartDropdownContent.innerHTML = payments.map(payment => {
+                    const event = payment.event || {};
+                    const paymentMethod = payment.payment_method || {};
+                    const amount = parseFloat(payment.amount || 0);
+                    const createdDate = payment.created_at ? new Date(payment.created_at).toLocaleDateString() : 'N/A';
+                    const eventDate = event.event_date ? new Date(event.event_date).toLocaleDateString() : 'N/A';
+                    
+                    return `
+                        <div class="mb-3 pb-3" style="color: #000; border-bottom: 2px solid var(--primary-start);">
+                            <div class="d-flex align-items-start">
+                                <div class="flex-grow-1" style="color: #000;">
+                                    <h6 class="mb-1 small fw-bold" style="color: #000;" title="${event.title || 'Untitled Event'}">
+                                        ${event.title || 'Untitled Event'}
+                                    </h6>
+                                    <div class="small mb-1" style="color: var(--primary-start);">
+                                        <i class="bi bi-calendar"></i> Event: ${eventDate}
+                                    </div>
+                                    <div class="small mb-1" style="color: var(--primary-end);">
+                                        <i class="bi bi-box"></i> ${event.package?.name || 'N/A'}
+                                    </div>
+                                    <div class="mt-2 mb-2">
+                                        <strong style="color: #000; font-size: 1rem;">${amount.toLocaleString()} ETB</strong>
+                                        <small class="ms-2" style="color: var(--accent);">Created: ${createdDate}</small>
+                                    </div>
+                                    ${payment.transaction_id ? `
+                                        <div class="small mt-1" style="color: var(--primary-start);">
+                                            <i class="bi bi-receipt"></i> Transaction: <code style="color: #000;">${payment.transaction_id}</code>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                                ${this.isSuperuser && payment.status === 'pending' ? `
+                                <div class="ms-2">
+                                    <button class="btn btn-sm" style="background: linear-gradient(135deg, var(--confetti-2) 0%, #16a34a 100%); color: white; border: none;" onclick="dashboard.confirmPayment('${payment.id}'); event.stopPropagation();" title="Mark as Paid">
+                                        <i class="bi bi-check-circle"></i>
+                                    </button>
+                                </div>
+                                ` : ''}
+                            </div>
+                            <div class="mt-2">
+                                <button class="btn btn-sm w-100" type="button" data-bs-toggle="collapse" data-bs-target="#paymentInstructions${payment.id}" aria-expanded="false" onclick="event.stopPropagation();" style="background: linear-gradient(135deg, var(--primary-start) 0%, var(--primary-end) 100%); color: white; border: none; font-weight: 600; box-shadow: 0 4px 15px rgba(146, 64, 14, 0.3);">
+                                    <i class="bi bi-wallet2 payment-method-icon"></i> How to Pay
+                                    <span class="badge ms-2" style="background: var(--confetti-3); color: #000;">${this.paymentMethods.length} Methods</span>
+                                    <i class="bi bi-chevron-down ms-1"></i>
+                                </button>
+                                <div class="collapse mt-2" id="paymentInstructions${payment.id}">
+                                    <div class="how-to-pay-container" style="border: 2px solid var(--primary-start); border-radius: 0.75rem; padding: 1.25rem; box-shadow: 0 8px 30px rgba(146, 64, 14, 0.2);">
+                                        ${this.paymentMethods.length > 0 ? `
+                                            <div class="text-center mb-4">
+                                                <div class="mb-2" style="font-size: 2rem;">
+                                                    <i class="bi bi-credit-card-2-front" style="background: linear-gradient(135deg, var(--primary-start), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;"></i>
+                                                </div>
+                                                <h6 class="fw-bold mb-1" style="color: #000; font-size: 1.1rem;">
+                                                    Choose Your Payment Method
+                                                </h6>
+                                                <small style="color: #000; opacity: 0.7; font-size: 0.85rem;">Select any method below to complete your payment</small>
+                                            </div>
+                                            <div class="row g-3">
+                                                ${this.paymentMethods.map((method, index) => {
+                                                    // Use project color scheme
+                                                    const projectColors = [
+                                                        { bg: 'var(--primary-start)', dark: '#7a350b', light: '#fef3c7', icon: 'bi-bank', rgb: '146, 64, 14' },
+                                                        { bg: 'var(--primary-end)', dark: '#db2777', light: '#fce7f3', icon: 'bi-phone', rgb: '236, 72, 153' },
+                                                        { bg: 'var(--accent)', dark: '#9333ea', light: '#f3e8ff', icon: 'bi-wallet', rgb: '168, 85, 247' },
+                                                        { bg: 'var(--confetti-1)', dark: '#e11d48', light: '#ffe4e6', icon: 'bi-credit-card', rgb: '244, 63, 94' },
+                                                        { bg: 'var(--confetti-2)', dark: '#16a34a', light: '#dcfce7', icon: 'bi-paypal', rgb: '34, 197, 94' },
+                                                        { bg: 'var(--confetti-3)', dark: '#eab308', light: '#fefce8', icon: 'bi-cash-coin', rgb: '253, 224, 71' }
+                                                    ];
+                                                    const color = projectColors[index % projectColors.length];
+                                                    const isSelected = paymentMethod.id === method.id;
+                                                    
+                                                    return `
+                                                        <div class="col-12">
+                                                            <div class="payment-method-card card border-0 shadow-sm mb-0" style="border-left: 5px solid ${color.bg} !important; ${isSelected ? 'border: 3px solid ' + color.bg + ' !important; box-shadow: 0 8px 25px rgba(' + color.rgb + ', 0.3) !important;' : ''}">
+                                                                <div class="payment-method-header card-header py-3" style="background: linear-gradient(135deg, ${color.bg} 0%, ${color.dark} 100%); color: white; border: none;">
+                                                                    <div class="d-flex align-items-center justify-content-between">
+                                                                        <div class="d-flex align-items-center">
+                                                                            <div class="me-3" style="width: 40px; height: 40px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                                                                <i class="bi ${color.icon}" style="font-size: 1.3rem;"></i>
+                                                                            </div>
+                                                                            <div>
+                                                                                <strong style="font-size: 1rem; display: block; color: white;">${method.name || 'Payment Method'}</strong>
+                                                                                <small style="opacity: 0.9; font-size: 0.75rem; color: white;">Click to view details</small>
+                                                                            </div>
+                                                                        </div>
+                                                                        ${isSelected ? `
+                                                                            <span class="selected-badge-payment badge" style="background: var(--confetti-3); color: #000; font-size: 0.75rem; padding: 0.4rem 0.6rem;">
+                                                                                <i class="bi bi-check-circle-fill"></i> Selected
+                                                                            </span>
+                                                                        ` : `
+                                                                            <i class="bi bi-chevron-right" style="opacity: 0.7; color: white;"></i>
+                                                                        `}
+                                                                    </div>
+                                                                </div>
+                                                                <div class="card-body py-3" style="background: linear-gradient(135deg, #ffffff 0%, ${color.light} 100%);">
+                                                                    ${method.account_number ? `
+                                                                        <div class="mb-3">
+                                                                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                                                                                <div class="flex-grow-1">
+                                                                                    <div class="d-flex align-items-center mb-2">
+                                                                                        <i class="bi bi-bank me-2" style="color: ${color.bg}; font-size: 1.1rem;"></i>
+                                                                                        <small class="fw-bold" style="color: #000; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">
+                                                                                            Account Number
+                                                                                        </small>
+                                                                                    </div>
+                                                                                    <div class="payment-account-code" style="border-color: ${color.bg}; padding: 0.75rem 1rem; border-radius: 0.5rem; color: #000; font-size: 1.1rem; font-weight: bold; text-align: center; cursor: pointer;" onclick="navigator.clipboard.writeText('${method.account_number}'); dashboard.showAlert('Account number copied!', 'success'); event.stopPropagation();">
+                                                                                        <i class="bi bi-clipboard-check me-2" style="color: ${color.bg};"></i>
+                                                                                        ${method.account_number}
+                                                                                    </div>
+                                                                                </div>
+                                                                                <button class="copy-btn-payment btn btn-sm" style="background: linear-gradient(135deg, ${color.bg} 0%, ${color.dark} 100%); color: white; border: none; min-width: 80px; box-shadow: 0 4px 15px rgba(${color.rgb}, 0.3);" onclick="navigator.clipboard.writeText('${method.account_number}'); dashboard.showAlert('Account number copied!', 'success'); event.stopPropagation();">
+                                                                                    <i class="bi bi-clipboard"></i> Copy
+                                                                                </button>
+                                                                            </div>
+                                                                        </div>
+                                                                    ` : ''}
+                                                                    ${method.description ? `
+                                                                        <div class="mt-3">
+                                                                            <div class="d-flex align-items-center mb-2">
+                                                                                <i class="bi bi-info-circle-fill me-2" style="color: ${color.bg}; font-size: 1.1rem;"></i>
+                                                                                <strong style="color: #000; font-size: 0.9rem;">Payment Instructions</strong>
+                                                                            </div>
+                                                                            <div class="payment-instructions-box p-3 rounded" style="border-left-color: ${color.bg}; white-space: pre-wrap; color: #000; font-size: 0.85rem; line-height: 1.6;">
+${method.description}
+                                                                            </div>
+                                                                        </div>
+                                                                    ` : `
+                                                                        <div class="alert mb-0 py-2" style="font-size: 0.8rem; border-left: 3px solid ${color.bg}; background-color: ${color.light}; color: #000;">
+                                                                            <i class="bi bi-info-circle me-2" style="color: #000;"></i> <span style="color: #000;">Contact support for payment instructions.</span>
+                                                                        </div>
+                                                                    `}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    `;
+                                                }).join('')}
+                                            </div>
+                                            <div class="mt-4 p-3 rounded" style="background: linear-gradient(135deg, var(--muted) 0%, #f3e8ff 100%); border: 2px solid var(--accent); box-shadow: 0 4px 15px rgba(168, 85, 247, 0.2);">
+                                                <div class="d-flex align-items-start">
+                                                    <div class="me-3" style="width: 45px; height: 45px; background: linear-gradient(135deg, var(--primary-start) 0%, var(--primary-end) 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                                        <i class="bi bi-lightbulb-fill" style="font-size: 1.5rem; color: white;"></i>
+                                                    </div>
+                                                    <div>
+                                                        <strong style="color: #000; font-size: 0.95rem; display: block; margin-bottom: 0.5rem;">
+                                                            💡 Payment Tip
+                                                        </strong>
+                                                        <div style="color: #000; font-size: 0.85rem; line-height: 1.6;">
+                                                            You can use <strong style="color: #000;">any</strong> of the payment methods above. After completing the payment, ${this.isSuperuser ? 'click <strong style="color: #000;">"Mark as Paid"</strong> to activate your event.' : 'contact a superuser to confirm the payment and activate your event.'}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ` : `
+                                            <div class="alert mb-0 py-3" style="border-left: 4px solid var(--confetti-3); background-color: #fefce8; color: #000;">
+                                                <div class="d-flex align-items-center">
+                                                    <i class="bi bi-exclamation-triangle-fill me-2" style="font-size: 1.5rem; color: #000;"></i>
+                                                    <div>
+                                                        <strong style="color: #000;">No payment methods available</strong>
+                                                        <div class="small" style="color: #000;">Please contact support for assistance.</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        `}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                // Always hide footer (total is not shown)
+                if (cartDropdownFooter) {
+                    cartDropdownFooter.style.display = 'none';
+                }
+            }
+        }
+        
+        // Full section is no longer used - all details shown in modal
+        // Just update count if elements exist
+        if (paymentsSection && paymentsList && paymentsCount) {
+            paymentsCount.textContent = payments.length;
+            paymentsSection.style.display = 'none'; // Always hide the full section
+        }
+    }
+    
+    viewPaymentDetails(paymentId) {
+        // Find the payment from the loaded payments (handle both string and number IDs)
+        const payment = this.pendingPayments?.find(p => p.id == paymentId || String(p.id) === String(paymentId));
+        if (!payment) {
+            console.error('Payment not found:', paymentId, 'Available payments:', this.pendingPayments?.map(p => p.id));
+            this.showAlert('Payment not found', 'warning');
+            return;
+        }
+        
+        // Close the dropdown
+        const dropdown = document.getElementById('cartDropdown');
+        if (dropdown) {
+            const bsDropdown = bootstrap.Dropdown.getInstance(dropdown);
+            if (bsDropdown) bsDropdown.hide();
+        }
+        
+        // Show payment details in modal
+        const modal = new bootstrap.Modal(document.getElementById('paymentDetailsModal'));
+        const modalContent = document.getElementById('paymentDetailsContent');
+        const confirmBtn = document.getElementById('confirmPaymentBtn');
+        
+        const event = payment.event || {};
+        const paymentMethod = payment.payment_method || {};
+        const amount = parseFloat(payment.amount || 0);
+        const createdDate = payment.created_at ? new Date(payment.created_at).toLocaleString() : 'N/A';
+        const eventDate = event.event_date ? new Date(event.event_date).toLocaleString() : 'N/A';
+        
+        modalContent.innerHTML = `
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <h6 class="mb-2" style="color: #000;">Event Information</h6>
+                    <p class="mb-1" style="color: #000;"><strong>Title:</strong> ${event.title || 'N/A'}</p>
+                    <p class="mb-1" style="color: #000;"><strong>Date:</strong> ${eventDate}</p>
+                    <p class="mb-1" style="color: #000;"><strong>Location:</strong> ${event.location || 'N/A'}</p>
+                    <p class="mb-1" style="color: #000;"><strong>Package:</strong> ${event.package?.name || 'N/A'}</p>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <h6 class="mb-2" style="color: #000;">Payment Information</h6>
+                    <p class="mb-1" style="color: #000;"><strong>Amount:</strong> <span class="fw-bold" style="color: #000;">${amount.toLocaleString()} ETB</span></p>
+                    <p class="mb-1" style="color: #000;"><strong>Status:</strong> <span class="badge bg-warning text-dark">${payment.status || 'Pending'}</span></p>
+                    <p class="mb-1" style="color: #000;"><strong>Created:</strong> ${createdDate}</p>
+                    ${payment.transaction_id ? `
+                        <p class="mb-1" style="color: #000;"><strong>Transaction ID:</strong> <code style="color: #000;">${payment.transaction_id}</code></p>
+                    ` : ''}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-12 mb-3">
+                    <div class="card" style="border: 2px solid var(--primary-start);">
+                        <div class="card-header text-white" style="background: linear-gradient(135deg, var(--primary-start) 0%, var(--primary-end) 100%);">
+                            <h6 class="mb-0">
+                                <i class="bi bi-info-circle"></i> How to Pay
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <h6 class="fw-bold mb-2" style="color: #000;">
+                                    <i class="bi bi-credit-card"></i> Payment Method: ${paymentMethod.name || 'N/A'}
+                                </h6>
+                                ${paymentMethod.account_number ? `
+                                    <div class="alert alert-light border mb-3">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <strong class="me-2" style="color: #000;">Account Number:</strong>
+                                            <code class="fs-5 fw-bold" style="color: #000;">${paymentMethod.account_number}</code>
+                                            <button class="btn btn-sm ms-2" style="background: linear-gradient(135deg, var(--primary-start) 0%, var(--primary-end) 100%); color: white; border: none;" onclick="navigator.clipboard.writeText('${paymentMethod.account_number}'); dashboard.showAlert('Account number copied!', 'success');">
+                                                <i class="bi bi-clipboard"></i> Copy
+                                            </button>
+                                        </div>
+                                    </div>
+                                ` : ''}
+                                ${paymentMethod.description ? `
+                                    <div class="mb-3">
+                                        <strong style="color: #000;">Payment Instructions:</strong>
+                                        <div class="mt-2 p-3 bg-light rounded" style="white-space: pre-wrap; color: #000;">
+${paymentMethod.description}
+                                        </div>
+                                    </div>
+                                ` : `
+                                    <div class="alert mb-0" style="color: #000; background-color: var(--confetti-3); border-left: 4px solid var(--confetti-3);">
+                                        <i class="bi bi-exclamation-triangle"></i> <span style="color: #000;">No payment instructions available. Please contact support for payment details.</span>
+                                    </div>
+                                `}
+                            </div>
+                            <div class="alert mb-0" style="color: #000; background: linear-gradient(135deg, var(--muted) 0%, #f3e8ff 100%); border: 2px solid var(--accent);">
+                                <i class="bi bi-lightbulb"></i> <strong style="color: #000;">Note:</strong> <span style="color: #000;">After completing the payment, ${this.isSuperuser ? 'click "Mark as Paid" to activate your event.' : 'contact a superuser to confirm the payment and activate your event.'}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            ${event.description ? `
+                <div class="row">
+                    <div class="col-12">
+                        <h6 class="mb-2" style="color: #000;">Event Description</h6>
+                        <p style="color: #000;">${event.description}</p>
+                    </div>
+                </div>
+            ` : ''}
+        `;
+        
+        // Show confirm button only if payment is pending AND user is superuser
+        if (payment.status === 'pending' && this.isSuperuser) {
+            confirmBtn.style.display = 'block';
+            confirmBtn.setAttribute('data-payment-id', paymentId);
+        } else {
+            confirmBtn.style.display = 'none';
+        }
+        
+        modal.show();
+    }
+    
+    confirmPaymentFromModal() {
+        const confirmBtn = document.getElementById('confirmPaymentBtn');
+        const paymentId = confirmBtn.getAttribute('data-payment-id');
+        if (paymentId) {
+            // Close modal first
+            const modal = bootstrap.Modal.getInstance(document.getElementById('paymentDetailsModal'));
+            if (modal) modal.hide();
+            // Then confirm payment
+            this.confirmPayment(paymentId);
+        }
+    }
+    
+    viewAllPendingPayments() {
+        // This function is no longer needed - removed
+    }
+
+    async confirmPayment(paymentId) {
+        if (!confirm('Have you completed the payment? This will mark the payment as completed and activate the event.')) {
+            return;
+        }
+        
+        try {
+            console.log(`💳 Confirming payment: ${paymentId}`);
+            
+            const response = await API_UTILS.request(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PAYMENTS}${paymentId}/confirm/`, {
+                method: 'POST',
+                mode: 'cors'
+            });
+            
+            console.log('✅ Payment confirmed successfully:', response);
+            
+            this.showAlert('Payment confirmed! Event has been activated.', 'success');
+            
+            // Reload pending payments and events
+            this.loadPendingPayments();
+            this.loadEvents();
+            
+        } catch (error) {
+            console.error('❌ Error confirming payment:', error);
+            if (error.message && error.message.includes('superuser')) {
+                this.showAlert('Only superusers can confirm payments.', 'warning');
+            } else {
+                this.showAlert(`Error confirming payment: ${error.message}`, 'danger');
+            }
+        }
     }
 
 }

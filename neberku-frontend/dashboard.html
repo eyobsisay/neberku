@@ -108,6 +108,139 @@
             }
         }
         
+        /* Cart Icon Styles */
+        #cartDropdown {
+            transition: transform 0.2s ease;
+        }
+        #cartDropdown:hover {
+            transform: scale(1.1);
+        }
+        #navbarCartBadge {
+            font-size: 0.7rem;
+            padding: 0.25em 0.5em;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        #cartDropdownMenu {
+            box-shadow: 0 4px 20px rgba(146, 64, 14, 0.2);
+            border: 2px solid var(--primary-start);
+            background: #fff;
+        }
+        .dropdown-item:hover {
+            background-color: rgba(0,0,0,0.05);
+        }
+        
+        /* Payment Method Cards - Beautiful Styling */
+        .payment-method-card {
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .payment-method-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s;
+        }
+        .payment-method-card:hover::before {
+            left: 100%;
+        }
+        .payment-method-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
+        }
+        .payment-method-header {
+            position: relative;
+            overflow: hidden;
+        }
+        .payment-method-header::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 70%);
+            animation: shimmer 3s infinite;
+        }
+        @keyframes shimmer {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .payment-account-code {
+            font-family: 'Courier New', monospace;
+            letter-spacing: 1px;
+            position: relative;
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border: 2px dashed;
+            transition: all 0.3s ease;
+        }
+        .payment-account-code:hover {
+            border-style: solid;
+            transform: scale(1.02);
+        }
+        .copy-btn-payment {
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .copy-btn-payment::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.5);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+        .copy-btn-payment:active::after {
+            width: 300px;
+            height: 300px;
+        }
+        .payment-instructions-box {
+            position: relative;
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border-left: 4px solid;
+            transition: all 0.3s ease;
+        }
+        .payment-instructions-box:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .how-to-pay-container {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 50%, #f8f9fa 100%);
+            background-size: 200% 200%;
+            animation: gradientShift 5s ease infinite;
+        }
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        .payment-method-icon {
+            display: inline-block;
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+        }
+        .selected-badge-payment {
+            animation: bounce 2s infinite;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
         .navbar {
             background: linear-gradient(90deg, var(--primary-start) 0%, var(--primary-end) 45%, var(--accent) 100%) !important;
             box-shadow: 0 6px 24px rgba(0,0,0,0.25);
@@ -679,6 +812,32 @@
                     </li>
                 </ul>
                 <div class="navbar-nav">
+                    <!-- Cart Icon with Badge -->
+                    <div class="nav-item dropdown me-3">
+                        <a class="nav-link position-relative" href="#" id="cartDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer; color: #000 !important;" onclick="if(dashboard) dashboard.loadPendingPayments();">
+                            <i class="bi bi-cart3" style="font-size: 1.3rem; color: #000;"></i>
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="navbarCartBadge" style="display: none;">
+                                0
+                            </span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" id="cartDropdownMenu" style="min-width: 400px; max-width: 500px; max-height: 70vh; overflow-y: auto; color: #000;">
+                            <li>
+                                <h6 class="dropdown-header" style="color: #000;">
+                                    <i class="bi bi-cart-check"></i> Pending Payments
+                                    <span class="badge ms-2" id="cartDropdownCount" style="background: var(--confetti-3); color: #000;">0</span>
+                                </h6>
+                            </li>
+                            <li><hr class="dropdown-divider" style="border-color: var(--primary-start); opacity: 0.3;"></li>
+                            <li>
+                                <div id="cartDropdownContent" class="px-3 py-2" style="color: #000;">
+                                    <div class="text-center py-3" style="color: #000;">
+                                        <i class="bi bi-cart-x" style="font-size: 2rem; color: var(--primary-start);"></i>
+                                        <p class="mt-2 mb-0" style="color: #000;">No pending payments</p>
+                                    </div>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
                     <span class="navbar-text me-3">
                         <i class="bi bi-person-circle"></i> <span id="userDisplayName">Event Owner</span>
                     </span>
@@ -1009,6 +1168,33 @@
                             </div>
                             
                         </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment Details Modal -->
+        <div class="modal fade" id="paymentDetailsModal" tabindex="-1" aria-labelledby="paymentDetailsModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header bg-warning">
+                        <h5 class="modal-title" id="paymentDetailsModalLabel">
+                            <i class="bi bi-credit-card"></i> Payment Details
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body" id="paymentDetailsContent">
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-warning" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-success" id="confirmPaymentBtn" onclick="dashboard.confirmPaymentFromModal()" style="display: none;">
+                            <i class="bi bi-check-circle"></i> Mark as Paid
+                        </button>
                     </div>
                 </div>
             </div>

@@ -448,6 +448,7 @@ class PaymentSerializer(serializers.ModelSerializer):
         write_only=True,
         source='event'
     )
+    payment_method = PaymentMethodSerializer(read_only=True)
     
     class Meta:
         model = Payment

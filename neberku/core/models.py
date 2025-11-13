@@ -322,21 +322,18 @@ class Event(models.Model):
         ordering = ['-created_at']
 
 class Payment(models.Model):
-    """Payment tracking for events"""
-    event = models.OneToOneField(Event, on_delete=models.CASCADE, related_name='payment')
-    amount = models.DecimalField(max_digits=10, decimal_places=2)
-    payment_method = models.CharField(max_length=50, choices=[
-        ('stripe', 'Stripe'),
-        ('paypal', 'PayPal'),
-        ('manual', 'Manual'),
-    ])
-    transaction_id = models.CharField(max_length=100, blank=True)
-    status = models.CharField(max_length=20, choices=[
+    STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('completed', 'Completed'),
         ('failed', 'Failed'),
         ('refunded', 'Refunded'),
-    ], default='pending')
+    ]
+    """Payment tracking for events"""
+    event = models.OneToOneField(Event, on_delete=models.CASCADE, related_name='payment')
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    payment_method = models.ForeignKey(PaymentMethod, on_delete=models.CASCADE, related_name='payments')
+    transaction_id = models.CharField(max_length=100, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     paid_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     
