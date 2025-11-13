@@ -451,6 +451,7 @@ class PaymentViewSet(viewsets.ModelViewSet):
         # Update event payment status
         event = payment.event
         event.payment_status = 'paid'
+        event.status = 'active'
         event.save()
         
         serializer = self.get_serializer(payment)
