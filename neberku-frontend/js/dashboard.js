@@ -700,6 +700,14 @@ class Dashboard {
         document.getElementById('createEventButton').style.display = 'none';
         document.getElementById('createEventForm').style.display = 'block';
         
+        // Scroll to form smoothly without jumping to bottom
+        setTimeout(() => {
+            const formCard = createEventCard || document.querySelector('.row.mb-4');
+            if (formCard) {
+                formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }, 100);
+        
         // Load packages and event types when form is shown
         this.loadPackagesAndEventTypes();
     }

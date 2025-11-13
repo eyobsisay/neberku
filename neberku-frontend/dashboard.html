@@ -944,11 +944,11 @@
                             <div class="mb-3">
                                 <div class="d-flex align-items-center gap-2">
                                     <span class="badge bg-primary" id="stepBadge1">1</span>
-                                    <span id="stepLabel1" class="me-3">Event Details</span>
+                                    <span id="stepLabel1" class="me-3" style="color: white !important;">Event Details</span>
                                     <span class="badge bg-secondary" id="stepBadge2">2</span>
-                                    <span id="stepLabel2" class="me-3">Choose Package</span>
+                                    <span id="stepLabel2" class="me-3" style="color: white !important;">Choose Package</span>
                                     <span class="badge bg-secondary" id="stepBadge3">3</span>
-                                    <span id="stepLabel3">Payment Method</span>
+                                    <span id="stepLabel3" style="color: white !important;">Payment Method</span>
                                 </div>
                             </div>
 
@@ -1310,6 +1310,13 @@
                 b.classList.toggle('bg-primary', i===index);
                 b.classList.toggle('bg-secondary', i!==index);
             });
+            // Prevent auto-scroll when changing steps - scroll to form top instead
+            setTimeout(() => {
+                const formCard = document.querySelector('.row.mb-4[style*="display: block"]') || document.querySelector('.row.mb-4');
+                if (formCard) {
+                    formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }, 50);
         }
         // Expose setStep globally so it can be called after event creation
         window.resetWizardToStep1 = function() {
@@ -1367,7 +1374,8 @@
             if (!typeEl.value) { setInvalid(typeEl, 'Event type is required'); ok = false; } else { clearInvalid(typeEl); }
             return ok;
         }
-        if (toStep2Btn) toStep2Btn.addEventListener('click', ()=> {
+        if (toStep2Btn) toStep2Btn.addEventListener('click', (e)=> {
+            e.preventDefault();
             if (!validateStep1()) return;
             setStep(1);
         });
@@ -1458,7 +1466,8 @@
         }
         ensurePackages();
 
-        if (toStep3Btn) toStep3Btn.addEventListener('click', function(){
+        if (toStep3Btn) toStep3Btn.addEventListener('click', function(e){
+            e.preventDefault();
             if (!pkgHidden.value) return;
             setStep(2);
             if (window.dashboard && typeof window.dashboard.onPackageChange === 'function') {
