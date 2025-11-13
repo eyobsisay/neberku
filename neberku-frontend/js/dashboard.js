@@ -1587,7 +1587,7 @@ class Dashboard {
                         <div class="mb-3 pb-3" style="color: #000; border-bottom: 2px solid var(--primary-start);">
                             <div class="d-flex align-items-start">
                                 <div class="flex-grow-1" style="color: #000;">
-                                    <h6 class="mb-1 small fw-bold" style="color: #000;" title="${event.title || 'Untitled Event'}">
+                                    <h6 class="mb-1 small fw-bold" style="color: #000 !important;" title="${event.title || 'Untitled Event'}">
                                         ${event.title || 'Untitled Event'}
                                     </h6>
                                     <div class="small mb-1" style="color: var(--primary-start);">
