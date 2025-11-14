@@ -334,3 +334,22 @@ REDOC_SETTINGS = {
     'HIDE_LOADING': False,
     'JSON_EDITOR': True,
 }
+
+# Telegram Bot Configuration
+# Get your bot token from @BotFather on Telegram
+# Get your chat ID by messaging your bot and visiting: https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getUpdates
+
+# Single chat ID (for backward compatibility)
+TELEGRAM_BOT_TOKEN = "8391488891:AAHw1hvZbLpeSQC4XDTbb97trNwMptduJKw"  # Set this in your environment or local settings
+TELEGRAM_CHAT_ID = "346435059"    # Set this in your environment or local settings
+
+# Multiple chat IDs (optional - if set, messages will be sent to all listed IDs)
+# Can be a list of strings or integers
+# Example: TELEGRAM_CHAT_IDS = ["346435059", "123456789", "-987654321"]
+# If both TELEGRAM_CHAT_ID and TELEGRAM_CHAT_IDS are set, TELEGRAM_CHAT_IDS takes priority
+# To add more users, uncomment and add their chat IDs below:
+TELEGRAM_CHAT_IDS = [
+    "346435059",  # Your current chat ID
+    # "123456789",  # Uncomment and add more chat IDs here
+    # "-987654321",  # Group chat IDs are negative numbers
+]

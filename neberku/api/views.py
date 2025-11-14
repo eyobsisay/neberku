@@ -18,6 +18,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 from core.models import EventType, Package, Event, Payment, Guest, GuestPost, MediaFile, EventSettings, PaymentMethod
+from core.utils import send_telegram_message, format_event_creation_message, format_payment_confirmation_message
 from .serializers import (
     EventTypeSerializer, EventTypeCreateSerializer, PackageSerializer, PackageCreateSerializer, EventSerializer, EventCreateSerializer, EventGallerySerializer,
     EventSummarySerializer, EventGuestAccessSerializer, PaymentSerializer, PaymentCreateSerializer, GuestSerializer, GuestPostSerializer, GuestPostCreateSerializer,
@@ -263,12 +264,51 @@ class EventViewSet(viewsets.ModelViewSet):
                             status='pending'
                         )
                         print(f"Payment created for event {event.id}: {payment.id} - Amount: {payment.amount} ETB")
+                        
+                        # Send Telegram notification for event creation (to all configured recipients)
+                        try:
+                            message = format_event_creation_message(event, self.request.user, payment)
+                            # send_telegram_message will automatically handle multiple recipients if configured
+                            result = send_telegram_message(message)
+                            if isinstance(result, dict):
+                                # Multiple recipients
+                                if result.get('success_count', 0) > 0:
+                                    print(f"✅ Telegram notification sent to {result['success_count']} recipient(s) for event {event.id}")
+                                if result.get('failure_count', 0) > 0:
+                                    print(f"⚠️ Telegram notification failed for {result['failure_count']} recipient(s) for event {event.id}")
+                            elif not result:
+                                print(f"⚠️ Telegram notification failed for event {event.id} - check console for details")
+                        except Exception as e:
+                            # Don't fail event creation if Telegram fails
+                            print(f"❌ Exception sending Telegram notification for event {event.id}: {e}")
+                            import traceback
+                            traceback.print_exc()
                     else:
                         print(f"Warning: Could not create payment for event {event.id} - payment_method or package missing")
+                        # Send Telegram notification even if payment wasn't created
+                        try:
+                            message = format_event_creation_message(event, self.request.user, None)
+                            result = send_telegram_message(message)
+                            if not result:
+                                print(f"⚠️ Telegram notification failed for event {event.id} - check console for details")
+                        except Exception as e:
+                            print(f"❌ Exception sending Telegram notification for event {event.id}: {e}")
+                            import traceback
+                            traceback.print_exc()
                         
             except Exception as e:
                 # Log error but don't fail event creation
                 print(f"Error creating Payment for event {event.id}: {e}")
+                # Try to send Telegram notification anyway
+                try:
+                    message = format_event_creation_message(event, self.request.user, None)
+                    result = send_telegram_message(message)
+                    if not result:
+                        print(f"⚠️ Telegram notification failed for event {event.id} - check console for details")
+                except Exception as telegram_error:
+                    print(f"❌ Exception sending Telegram notification for event {event.id}: {telegram_error}")
+                    import traceback
+                    traceback.print_exc()
                 pass
                 
         except Exception as e:
@@ -453,6 +493,25 @@ class PaymentViewSet(viewsets.ModelViewSet):
         event.payment_status = 'paid'
         event.status = 'active'
         event.save()
+        
+        # Send Telegram notification for payment confirmation (to all configured recipients)
+        try:
+            message = format_payment_confirmation_message(payment, event, request.user)
+            # send_telegram_message will automatically handle multiple recipients if configured
+            result = send_telegram_message(message)
+            if isinstance(result, dict):
+                # Multiple recipients
+                if result.get('success_count', 0) > 0:
+                    print(f"✅ Telegram notification sent to {result['success_count']} recipient(s) for payment {payment.id}")
+                if result.get('failure_count', 0) > 0:
+                    print(f"⚠️ Telegram notification failed for {result['failure_count']} recipient(s) for payment {payment.id}")
+            elif not result:
+                print(f"⚠️ Telegram notification failed for payment {payment.id} - check console for details")
+        except Exception as e:
+            # Don't fail payment confirmation if Telegram fails
+            print(f"❌ Exception sending Telegram notification for payment {payment.id}: {e}")
+            import traceback
+            traceback.print_exc()
         
         serializer = self.get_serializer(payment)
         return Response(serializer.data)
