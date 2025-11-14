@@ -545,6 +545,9 @@ class EventDetail {
                                             <i class="bi bi-check-circle"></i> Approve
                                         </button>
                                     ` : ''}
+                                    <button class="btn btn-outline-info btn-sm" onclick="eventDetail.sharePost('${post.id}')" title="Share this post">
+                                        <i class="bi bi-share"></i> Share
+                                    </button>
                                 </div>
                             </div>
                             <div class="col-md-4">
@@ -720,6 +723,80 @@ class EventDetail {
         // Update total posts count
         document.getElementById('totalPosts').textContent = this.guestPosts.length;
         document.getElementById('totalGuests').textContent = this.guestPosts.length;
+    }
+
+    getPostById(postId) {
+        return this.guestPosts.find(post => post.id === postId);
+    }
+
+    getPostShareUrl(postId) {
+        // Generate share URL for the post (using the new beautiful post-view page)
+        const postUrl = `${window.location.origin}/post-view.html?id=${postId}`;
+        return postUrl;
+    }
+
+    getPostShareText(post) {
+        // Generate share text with post information
+        const guestName = post.guest?.name || 'Anonymous';
+        const wishText = post.wish_text ? this.truncateText(post.wish_text, 100) : 'Check out this post';
+        const eventTitle = this.event?.title || 'Event';
+        
+        return `${guestName} shared: "${wishText}" - ${eventTitle}`;
+    }
+
+    sharePost(postId) {
+        const post = this.getPostById(postId);
+        if (!post) {
+            this.showError('Post not found');
+            return;
+        }
+
+        const shareUrl = this.getPostShareUrl(postId);
+        const shareText = this.getPostShareText(post);
+        const eventTitle = this.event?.title || 'Event';
+
+        // Use Web Share API if available (mobile devices)
+        if (navigator.share) {
+            navigator.share({
+                title: `Post by ${post.guest?.name || 'Guest'} - ${eventTitle}`,
+                text: shareText,
+                url: shareUrl
+            }).then(() => {
+                this.showSuccess('Post shared successfully!');
+            }).catch((error) => {
+                if (error.name !== 'AbortError') {
+                    console.error('Error sharing:', error);
+                    // Fallback to copy link
+                    this.copyPostLink(postId);
+                }
+            });
+        } else {
+            // Fallback: copy link to clipboard
+            this.copyPostLink(postId);
+        }
+    }
+
+    copyPostLink(postId) {
+        const shareUrl = this.getPostShareUrl(postId);
+        
+        navigator.clipboard.writeText(shareUrl).then(() => {
+            this.showSuccess('Post link copied to clipboard!');
+        }).catch(() => {
+            // Fallback for older browsers
+            const textArea = document.createElement('textarea');
+            textArea.value = shareUrl;
+            textArea.style.position = 'fixed';
+            textArea.style.opacity = '0';
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                this.showSuccess('Post link copied to clipboard!');
+            } catch (err) {
+                this.showError('Failed to copy link');
+            }
+            document.body.removeChild(textArea);
+        });
     }
 
     formatDate(dateString) {

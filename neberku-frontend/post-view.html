@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="View a beautiful post from Neberku event">
+    <title>Post View - Neberku</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        /* Celebration palette from dashboard.html */
+        :root{
+            --primary-start:#92400e; /* much softer amber - minimal brightness */
+            --primary-end:#ec4899;   /* pink */
+            --accent:#a855f7;        /* purple */
+            --confetti-1:#f43f5e;    /* rose */
+            --confetti-2:#22c55e;    /* green */
+            --confetti-3:#fde047;    /* yellow */
+            --ink:#fff7ed;           /* warm off-white */
+            --muted:#f3e8ff;         /* soft lilac */
+            --panel-1:rgba(24, 19, 35, .62);
+            --panel-2:rgba(24, 19, 35, .44);
+            --line:rgba(250, 204, 21, .22); /* golden line */
+        }
+        
+        body {
+            background: radial-gradient(1200px 600px at 10% -10%, rgba(236,72,153,0.10), transparent 60%),
+                        radial-gradient(900px 500px at 110% 0%, rgba(245,158,11,0.10), transparent 40%),
+                        linear-gradient(180deg, #120c1b 0%, #1a1327 100%);
+            background-size: 160% 160%, 140% 140%, 100% 100%;
+            animation: bgShift 18s ease-in-out infinite;
+            color: var(--ink);
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+            padding: 2rem 0;
+        }
+        
+        @keyframes bgShift{
+            0%,100%{ background-position: 0% 0%, 100% 0%, 0% 0%; }
+            50%{ background-position: 20% 10%, 90% 8%, 0% 0%; }
+        }
+        
+        /* Post Container */
+        .post-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+        
+        .post-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, .1), rgba(255, 255, 255, .05)) !important;
+            border: 2px solid var(--line) !important;
+            border-radius: 30px;
+            backdrop-filter: blur(20px) saturate(150%);
+            box-shadow: 0 25px 70px rgba(2,6,23,.6), 
+                        0 0 0 1px rgba(255,255,255,0.1) inset !important;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            animation: cardEntrance 0.8s ease-out;
+            position: relative;
+        }
+        
+        @keyframes cardEntrance {
+            from {
+                opacity: 0;
+                transform: translateY(30px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        
+        .post-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-start), var(--primary-end), var(--accent));
+            opacity: 0.8;
+        }
+        
+        .post-card:hover {
+            transform: translateY(-8px) scale(1.01);
+            box-shadow: 0 30px 80px rgba(2,6,23,.7), 
+                        0 0 0 1px rgba(255,255,255,0.2) inset !important;
+        }
+        
+        /* Post Header - Enhanced for Social Media */
+        .post-header {
+            background: linear-gradient(135deg, var(--primary-start) 0%, var(--primary-end) 45%, var(--accent) 100%);
+            padding: 3rem 2rem;
+            color: white;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .post-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: shimmer 8s ease-in-out infinite;
+        }
+        
+        @keyframes shimmer {
+            0%, 100% { transform: translate(-50%, -50%) rotate(0deg); }
+            50% { transform: translate(-50%, -50%) rotate(180deg); }
+        }
+        
+        .post-header > * {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .post-header .guest-name {
+            font-size: 1.3rem;
+            opacity: 0.95;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .post-header .guest-name i {
+            font-size: 1.5rem;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        .post-header h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.4);
+            letter-spacing: -0.5px;
+            line-height: 1.2;
+            animation: fadeInUp 0.8s ease-out;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .post-header .post-date {
+            font-size: 1rem;
+            opacity: 0.9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-weight: 500;
+        }
+        
+        /* Post Content */
+        .post-content {
+            padding: 2.5rem;
+        }
+        
+        .wish-text {
+            font-size: 1.4rem;
+            line-height: 2;
+            color: var(--ink);
+            margin-bottom: 2rem;
+            text-align: center;
+            font-style: italic;
+            font-weight: 400;
+            padding: 2rem;
+            background: linear-gradient(135deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+            border-radius: 20px;
+            border-left: 4px solid var(--primary-start);
+            position: relative;
+            animation: fadeIn 1s ease-out 0.3s both;
+        }
+        
+        .wish-text::before {
+            content: '"';
+            font-size: 4rem;
+            position: absolute;
+            top: -10px;
+            left: 20px;
+            color: var(--primary-start);
+            opacity: 0.3;
+            font-family: Georgia, serif;
+        }
+        
+        .wish-text::after {
+            content: '"';
+            font-size: 4rem;
+            position: absolute;
+            bottom: -30px;
+            right: 20px;
+            color: var(--primary-end);
+            opacity: 0.3;
+            font-family: Georgia, serif;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        /* Media Gallery */
+        .media-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+        
+        .media-item {
+            position: relative;
+            border-radius: 20px;
+            overflow: hidden;
+            background: rgba(0,0,0,0.2);
+            aspect-ratio: 1;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 2px solid transparent;
+            animation: slideIn 0.6s ease-out both;
+        }
+        
+        .media-item:nth-child(1) { animation-delay: 0.1s; }
+        .media-item:nth-child(2) { animation-delay: 0.2s; }
+        .media-item:nth-child(3) { animation-delay: 0.3s; }
+        .media-item:nth-child(4) { animation-delay: 0.4s; }
+        .media-item:nth-child(5) { animation-delay: 0.5s; }
+        .media-item:nth-child(6) { animation-delay: 0.6s; }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px) scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        
+        .media-item:hover {
+            transform: scale(1.08) translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.6);
+            border-color: var(--primary-start);
+        }
+        
+        .media-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .media-item video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .media-item.voice {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, rgba(139,92,246,.2), rgba(139,92,246,.1));
+            border: 2px solid rgba(139,92,246,.3);
+        }
+        
+        .media-item.voice i {
+            font-size: 3rem;
+            color: var(--accent);
+        }
+        
+        .media-item.voice audio {
+            width: 100%;
+            padding: 1rem;
+        }
+        
+        .media-badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: linear-gradient(135deg, rgba(0,0,0,0.8), rgba(0,0,0,0.6));
+            color: white;
+            padding: 0.4rem 0.9rem;
+            border-radius: 25px;
+            font-size: 0.8rem;
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255,255,255,0.2);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            animation: badgePulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes badgePulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        /* Event Info - Enhanced */
+        .event-info {
+            margin-top: 2rem;
+            padding: 2rem;
+            background: linear-gradient(135deg, rgba(255,255,255,.08), rgba(255,255,255,.03));
+            border-radius: 20px;
+            border: 2px solid var(--line);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            animation: fadeIn 1s ease-out 0.5s both;
+        }
+        
+        .event-info::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            animation: shine 3s infinite;
+        }
+        
+        @keyframes shine {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+        
+        .event-info h5 {
+            color: var(--ink);
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        
+        .event-info h5 i {
+            color: var(--primary-start);
+            animation: bounce 2s ease-in-out infinite;
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+        
+        .event-info p {
+            color: var(--muted);
+            margin: 0;
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+        
+        /* Loading State */
+        .loading-container {
+            text-align: center;
+            padding: 4rem 2rem;
+        }
+        
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255,255,255,0.1);
+            border-top-color: var(--primary-start);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 2rem;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Error State */
+        .error-container {
+            text-align: center;
+            padding: 4rem 2rem;
+        }
+        
+        .error-container i {
+            font-size: 4rem;
+            color: var(--confetti-1);
+            margin-bottom: 1rem;
+        }
+        
+        /* Share Button - Enhanced */
+        .share-button {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-start), var(--primary-end));
+            border: 3px solid rgba(255,255,255,0.3);
+            color: white;
+            font-size: 1.8rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 0 0 rgba(236,72,153,0.7);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .share-button:hover {
+            transform: scale(1.15) translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.6), 0 0 0 10px rgba(236,72,153,0.1);
+            animation: none;
+        }
+        
+        .share-button:active {
+            transform: scale(1.05);
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .post-header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .post-content {
+                padding: 1.5rem;
+            }
+            
+            .wish-text {
+                font-size: 1.1rem;
+            }
+            
+            .media-gallery {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .share-button {
+                width: 50px;
+                height: 50px;
+                font-size: 1.2rem;
+                bottom: 1rem;
+                right: 1rem;
+            }
+        }
+        
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--muted);
+            animation: fadeIn 0.8s ease-out;
+        }
+        
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        /* Social Media Optimized */
+        .post-container {
+            animation: fadeIn 0.6s ease-out;
+        }
+        
+        /* Decorative Elements */
+        .decorative-dots {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+        }
+        
+        .dot {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: var(--confetti-1);
+            border-radius: 50%;
+            opacity: 0.3;
+            animation: floatDot 15s infinite;
+        }
+        
+        @keyframes floatDot {
+            0% {
+                transform: translateY(0) translateX(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 0.3;
+            }
+            90% {
+                opacity: 0.3;
+            }
+            100% {
+                transform: translateY(-100vh) translateX(50px);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="post-container">
+        <!-- Decorative Background Dots -->
+        <div class="decorative-dots" id="decorativeDots"></div>
+        
+        <!-- Loading State -->
+        <div id="loadingState" class="loading-container">
+            <div class="loading-spinner"></div>
+            <h3>Loading post...</h3>
+            <p class="text-muted">Please wait while we fetch the post content.</p>
+        </div>
+        
+        <!-- Error State -->
+        <div id="errorState" class="error-container" style="display: none;">
+            <i class="bi bi-exclamation-triangle"></i>
+            <h3>Post Not Found</h3>
+            <p class="text-muted">The post you're looking for doesn't exist or is no longer available.</p>
+        </div>
+        
+        <!-- Post Content -->
+        <div id="postContent" style="display: none;">
+            <div class="post-card">
+                <!-- Post Header -->
+                <div class="post-header">
+                    <div class="guest-name" id="guestName">
+                        <i class="bi bi-person-circle"></i> Loading...
+                    </div>
+                    <h1 id="eventTitle">Loading...</h1>
+                    <div class="post-date" id="postDate">
+                        <i class="bi bi-calendar3"></i> Loading...
+                    </div>
+                </div>
+                
+                <!-- Post Content -->
+                <div class="post-content">
+                    <!-- Wish Text -->
+                    <div class="wish-text" id="wishText">
+                        Loading...
+                    </div>
+                    
+                    <!-- Media Gallery -->
+                    <div id="mediaGallery" class="media-gallery">
+                        <!-- Media items will be rendered here -->
+                    </div>
+                    
+                    <!-- Event Info -->
+                    <div class="event-info" id="eventInfo" style="display: none;">
+                        <h5><i class="bi bi-calendar-event"></i> <span id="eventName">Event</span></h5>
+                        <p id="eventDescription">Event description</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Share Button -->
+    <button class="share-button" id="shareButton" onclick="sharePost()" title="Share this post" style="display: none;">
+        <i class="bi bi-share"></i>
+    </button>
+    
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/post-view.js"></script>
+</body>
+</html>
+

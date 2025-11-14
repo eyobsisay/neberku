@@ -117,11 +117,42 @@ class GuestSerializer(serializers.ModelSerializer):
 class GuestPostSerializer(serializers.ModelSerializer):
     """Serializer for GuestPost model"""
     guest = GuestSerializer(read_only=True)
+    event = serializers.SerializerMethodField()
     media_files = serializers.SerializerMethodField()
     total_media_files = serializers.ReadOnlyField()
     photo_count = serializers.ReadOnlyField()
     video_count = serializers.ReadOnlyField()
     voice_count = serializers.ReadOnlyField()
+    
+    def get_event(self, obj):
+        """Return event details for the post"""
+        if obj.event:
+            request = self.context.get('request')
+            event_thumbnail = None
+            event_banner = None
+            
+            if obj.event.event_thumbnail:
+                if request:
+                    event_thumbnail = request.build_absolute_uri(obj.event.event_thumbnail.url)
+                else:
+                    event_thumbnail = obj.event.event_thumbnail.url
+            
+            if obj.event.event_banner:
+                if request:
+                    event_banner = request.build_absolute_uri(obj.event.event_banner.url)
+                else:
+                    event_banner = obj.event.event_banner.url
+            
+            return {
+                'id': str(obj.event.id),
+                'title': obj.event.title,
+                'description': obj.event.description,
+                'event_date': obj.event.event_date,
+                'location': obj.event.location,
+                'event_thumbnail': event_thumbnail,
+                'event_banner': event_banner,
+            }
+        return None
     
     def get_media_files(self, obj):
         """Filter media files based on user permissions"""

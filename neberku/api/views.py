@@ -685,8 +685,8 @@ class GuestPostViewSet(viewsets.ModelViewSet):
     parser_classes = [MultiPartParser, FormParser]
     
     def get_permissions(self):
-        """Allow anyone to create posts, but require auth for other actions"""
-        if self.action in ['create', 'list']:
+        """Allow anyone to create, list, and retrieve approved posts from live events"""
+        if self.action in ['create', 'list', 'retrieve']:
             permission_classes = [permissions.AllowAny]
         else:
             permission_classes = [permissions.IsAuthenticated]
@@ -705,12 +705,19 @@ class GuestPostViewSet(viewsets.ModelViewSet):
                 return GuestPost.objects.all()
             return GuestPost.objects.filter(event__host=user)
         
-        # For unauthenticated users, only show approved posts from live events
-        return GuestPost.objects.filter(
-            event__status='active',
-            event__payment_status='paid',  # Fixed: was payment_status, should be event__payment_status
-            is_approved=True
-        )
+        # For unauthenticated users:
+        # - For retrieve (viewing single post by ID): Allow any approved post (for social media sharing)
+        # - For list: Only show approved posts from live events
+        if self.action == 'retrieve':
+            # Allow viewing any approved post when accessed directly (shared links)
+            return GuestPost.objects.filter(is_approved=True)
+        else:
+            # For listing, only show approved posts from live events
+            return GuestPost.objects.filter(
+                event__status='active',
+                event__payment_status='paid',
+                is_approved=True
+            )
     
     def get_serializer_class(self):
         """Use different serializers for different actions"""
