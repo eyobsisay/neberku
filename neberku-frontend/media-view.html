@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="View a beautiful post from Neberku event">
-    <title>Post View - Neberku</title>
+    <meta name="description" content="View a beautiful media item from Neberku event">
+    <title>Media View - Neberku</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
     <style>
@@ -41,14 +41,14 @@
             50%{ background-position: 20% 10%, 90% 8%, 0% 0%; }
         }
         
-        /* Post Container */
-        .post-container {
-            max-width: 900px;
+        /* Media Container */
+        .media-container {
+            max-width: 1000px;
             margin: 0 auto;
             padding: 0 1rem;
         }
         
-        .post-card {
+        .media-card {
             background: linear-gradient(135deg, rgba(255, 255, 255, .1), rgba(255, 255, 255, .05)) !important;
             border: 2px solid var(--line) !important;
             border-radius: 30px;
@@ -72,7 +72,7 @@
             }
         }
         
-        .post-card::before {
+        .media-card::before {
             content: '';
             position: absolute;
             top: 0;
@@ -83,23 +83,17 @@
             opacity: 0.8;
         }
         
-        .post-card:hover {
-            transform: translateY(-8px) scale(1.01);
-            box-shadow: 0 30px 80px rgba(2,6,23,.7), 
-                        0 0 0 1px rgba(255,255,255,0.2) inset !important;
-        }
-        
-        /* Post Header - Enhanced for Social Media */
-        .post-header {
+        /* Media Header */
+        .media-header {
             background: linear-gradient(135deg, var(--primary-start) 0%, var(--primary-end) 45%, var(--accent) 100%);
-            padding: 3rem 2rem;
+            padding: 2.5rem 2rem;
             color: white;
             text-align: center;
             position: relative;
             overflow: hidden;
         }
         
-        .post-header::before {
+        .media-header::before {
             content: '';
             position: absolute;
             top: -50%;
@@ -115,13 +109,13 @@
             50% { transform: translate(-50%, -50%) rotate(180deg); }
         }
         
-        .post-header > * {
+        .media-header > * {
             position: relative;
             z-index: 1;
         }
         
-        .post-header .guest-name {
-            font-size: 1.3rem;
+        .media-header .guest-name {
+            font-size: 1.2rem;
             opacity: 0.95;
             margin-bottom: 1rem;
             display: flex;
@@ -132,7 +126,7 @@
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
         
-        .post-header .guest-name i {
+        .media-header .guest-name i {
             font-size: 1.5rem;
             animation: pulse 2s ease-in-out infinite;
         }
@@ -142,10 +136,10 @@
             50% { transform: scale(1.1); }
         }
         
-        .post-header h1 {
-            font-size: 2.5rem;
+        .media-header h1 {
+            font-size: 2rem;
             font-weight: 800;
-            margin-bottom: 1rem;
+            margin-bottom: 0.5rem;
             text-shadow: 3px 3px 6px rgba(0,0,0,0.4);
             letter-spacing: -0.5px;
             line-height: 1.2;
@@ -163,8 +157,8 @@
             }
         }
         
-        .post-header .post-date {
-            font-size: 1rem;
+        .media-header .media-date {
+            font-size: 0.9rem;
             opacity: 0.9;
             display: flex;
             align-items: center;
@@ -173,13 +167,14 @@
             font-weight: 500;
         }
         
-        /* Post Content */
-        .post-content {
-            padding: 2.5rem;
+        /* Media Content */
+        .media-content {
+            padding: 2rem;
         }
         
+        /* Wish Text */
         .wish-text {
-            font-size: 1.4rem;
+            font-size: 1.3rem;
             line-height: 2;
             color: var(--ink);
             margin-bottom: 2rem;
@@ -221,105 +216,73 @@
             to { opacity: 1; }
         }
         
-        /* Media Gallery */
-        .media-gallery {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-            margin-top: 2rem;
-        }
-        
-        .media-item {
-            position: relative;
+        /* Media Display */
+        .media-display {
+            margin: 2rem 0;
             border-radius: 20px;
             overflow: hidden;
             background: rgba(0,0,0,0.2);
-            aspect-ratio: 1;
-            cursor: pointer;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            border: 2px solid transparent;
-            animation: slideIn 0.6s ease-out both;
+            position: relative;
+            animation: fadeIn 1s ease-out 0.5s both;
         }
         
-        .media-item:nth-child(1) { animation-delay: 0.1s; }
-        .media-item:nth-child(2) { animation-delay: 0.2s; }
-        .media-item:nth-child(3) { animation-delay: 0.3s; }
-        .media-item:nth-child(4) { animation-delay: 0.4s; }
-        .media-item:nth-child(5) { animation-delay: 0.5s; }
-        .media-item:nth-child(6) { animation-delay: 0.6s; }
-        
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(30px) scale(0.9);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
-        }
-        
-        .media-item:hover {
-            transform: scale(1.08) translateY(-5px);
-            box-shadow: 0 15px 40px rgba(0,0,0,0.6);
-            border-color: var(--primary-start);
-        }
-        
-        .media-item img {
+        .media-display img {
             width: 100%;
-            height: 100%;
-            object-fit: cover;
+            height: auto;
+            display: block;
+            max-height: 70vh;
+            object-fit: contain;
         }
         
-        .media-item video {
+        .media-display video {
             width: 100%;
-            height: 100%;
-            object-fit: cover;
+            height: auto;
+            display: block;
+            max-height: 70vh;
         }
         
-        .media-item.voice {
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        .media-display.voice {
+            padding: 3rem;
             background: linear-gradient(135deg, rgba(139,92,246,.2), rgba(139,92,246,.1));
             border: 2px solid rgba(139,92,246,.3);
+            text-align: center;
         }
         
-        .media-item.voice i {
-            font-size: 3rem;
+        .media-display.voice i {
+            font-size: 5rem;
             color: var(--accent);
+            margin-bottom: 2rem;
+            display: block;
+            animation: pulse 2s ease-in-out infinite;
         }
         
-        .media-item.voice audio {
+        .media-display.voice audio {
             width: 100%;
-            padding: 1rem;
+            max-width: 500px;
+            margin: 0 auto;
+            display: block;
         }
         
-        .media-badge {
+        .media-type-badge {
             position: absolute;
-            top: 12px;
-            right: 12px;
+            top: 20px;
+            right: 20px;
             background: linear-gradient(135deg, rgba(0,0,0,0.8), rgba(0,0,0,0.6));
             color: white;
-            padding: 0.4rem 0.9rem;
+            padding: 0.5rem 1rem;
             border-radius: 25px;
-            font-size: 0.8rem;
+            font-size: 0.9rem;
             backdrop-filter: blur(15px);
             border: 1px solid rgba(255,255,255,0.2);
             font-weight: 600;
             display: flex;
             align-items: center;
-            gap: 0.3rem;
+            gap: 0.5rem;
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            animation: badgePulse 2s ease-in-out infinite;
+            z-index: 10;
         }
         
-        @keyframes badgePulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
-        
-        /* Event Info - Enhanced */
+        /* Event Info */
         .event-info {
             margin-top: 2rem;
             padding: 2rem;
@@ -329,7 +292,7 @@
             text-align: center;
             position: relative;
             overflow: hidden;
-            animation: fadeIn 1s ease-out 0.5s both;
+            animation: fadeIn 1s ease-out 0.7s both;
         }
         
         .event-info::before {
@@ -408,7 +371,7 @@
             margin-bottom: 1rem;
         }
         
-        /* Share Button - Enhanced */
+        /* Share Button */
         .share-button {
             position: fixed;
             bottom: 2rem;
@@ -420,7 +383,7 @@
             border: 3px solid rgba(255,255,255,0.3);
             color: white;
             font-size: 1.8rem;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 0 0 rgba(236,72,153,0.7);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             cursor: pointer;
             transition: all 0.3s ease;
             z-index: 1000;
@@ -441,27 +404,19 @@
             animation: none;
         }
         
-        .share-button:active {
-            transform: scale(1.05);
-        }
-        
         /* Responsive */
         @media (max-width: 768px) {
-            .post-header h1 {
+            .media-header h1 {
                 font-size: 1.5rem;
             }
             
-            .post-content {
+            .media-content {
                 padding: 1.5rem;
             }
             
             .wish-text {
                 font-size: 1.1rem;
-            }
-            
-            .media-gallery {
-                grid-template-columns: 1fr;
-                gap: 1rem;
+                padding: 1.5rem;
             }
             
             .share-button {
@@ -471,26 +426,6 @@
                 bottom: 1rem;
                 right: 1rem;
             }
-        }
-        
-        /* Empty State */
-        .empty-state {
-            text-align: center;
-            padding: 3rem;
-            color: var(--muted);
-            animation: fadeIn 0.8s ease-out;
-        }
-        
-        .empty-state i {
-            font-size: 4rem;
-            margin-bottom: 1rem;
-            opacity: 0.5;
-            animation: float 3s ease-in-out infinite;
-        }
-        
-        /* Social Media Optimized */
-        .post-container {
-            animation: fadeIn 0.6s ease-out;
         }
         
         /* Decorative Elements */
@@ -588,48 +523,48 @@
     </style>
 </head>
 <body>
-    <div class="post-container">
+    <div class="media-container">
         <!-- Decorative Background Dots -->
         <div class="decorative-dots" id="decorativeDots"></div>
         
         <!-- Loading State -->
         <div id="loadingState" class="loading-container">
             <div class="loading-spinner"></div>
-            <h3>Loading post...</h3>
-            <p class="text-muted">Please wait while we fetch the post content.</p>
+            <h3>Loading media...</h3>
+            <p class="text-muted">Please wait while we fetch the content.</p>
         </div>
         
         <!-- Error State -->
         <div id="errorState" class="error-container" style="display: none;">
             <i class="bi bi-exclamation-triangle"></i>
-            <h3>Post Not Found</h3>
-            <p class="text-muted">The post you're looking for doesn't exist or is no longer available.</p>
+            <h3>Media Not Found</h3>
+            <p class="text-muted">The media you're looking for doesn't exist or is no longer available.</p>
         </div>
         
-        <!-- Post Content -->
-        <div id="postContent" style="display: none;">
-            <div class="post-card">
-                <!-- Post Header -->
-                <div class="post-header">
+        <!-- Media Content -->
+        <div id="mediaContent" style="display: none;">
+            <div class="media-card">
+                <!-- Media Header -->
+                <div class="media-header">
                     <div class="guest-name" id="guestName">
                         <i class="bi bi-person-circle"></i> Loading...
                     </div>
                     <h1 id="eventTitle">Loading...</h1>
-                    <div class="post-date" id="postDate">
+                    <div class="media-date" id="mediaDate">
                         <i class="bi bi-calendar3"></i> Loading...
                     </div>
                 </div>
                 
-                <!-- Post Content -->
-                <div class="post-content">
+                <!-- Media Content -->
+                <div class="media-content">
                     <!-- Wish Text -->
                     <div class="wish-text" id="wishText">
                         Loading...
                     </div>
                     
-                    <!-- Media Gallery -->
-                    <div id="mediaGallery" class="media-gallery">
-                        <!-- Media items will be rendered here -->
+                    <!-- Media Display -->
+                    <div id="mediaDisplay" class="media-display">
+                        <!-- Media will be rendered here -->
                     </div>
                     
                     <!-- Event Info -->
@@ -651,14 +586,14 @@
     </div>
     
     <!-- Share Button -->
-    <button class="share-button" id="shareButton" onclick="sharePost()" title="Share this post" style="display: none;">
+    <button class="share-button" id="shareButton" onclick="shareMedia()" title="Share this media" style="display: none;">
         <i class="bi bi-share"></i>
     </button>
     
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/config.js"></script>
-    <script src="js/post-view.js"></script>
+    <script src="js/media-view.js"></script>
 </body>
 </html>
 

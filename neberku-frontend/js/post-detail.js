@@ -150,8 +150,9 @@ class PostDetail {
 
         // Render media gallery
         let galleryHTML = '';
+        let mediaIndex = 0;
         
-        this.post.media_files.forEach(media => {
+        this.post.media_files.forEach((media, index) => {
             // Create approval status badge
             const approvalBadge = media.is_approved 
                 ? '<span class="media-approval-badge bg-success"><i class="bi bi-check-circle"></i> Approved</span>'
@@ -166,6 +167,9 @@ class PostDetail {
                             <div style="position: absolute; top: 8px; left: 8px;">
                                 ${approvalBadge}
                             </div>
+                            <button class="media-share-btn" onclick="event.stopPropagation(); shareMediaItem('${this.postId}', '${media.id}', 'photo')" title="Share this photo">
+                                <i class="bi bi-share"></i>
+                            </button>
                         </div>
                         <div class="media-info">
                             <small class="text-muted">${media.file_name}</small>
@@ -185,6 +189,9 @@ class PostDetail {
                             <div style="position: absolute; top: 8px; left: 8px;">
                                 ${approvalBadge}
                             </div>
+                            <button class="media-share-btn" onclick="event.stopPropagation(); shareMediaItem('${this.postId}', '${media.id}', 'video')" title="Share this video">
+                                <i class="bi bi-share"></i>
+                            </button>
                         </div>
                         <div class="media-info">
                             <small class="text-muted">${media.file_name}</small>
@@ -216,6 +223,9 @@ class PostDetail {
                             <div style="position: absolute; top: 8px; left: 8px;">
                                 ${approvalBadge}
                             </div>
+                            <button class="media-share-btn" onclick="event.stopPropagation(); shareMediaItem('${this.postId}', '${media.id}', 'voice')" title="Share this voice recording">
+                                <i class="bi bi-share"></i>
+                            </button>
                         </div>
                         <div class="media-info">
                             <small class="text-muted">${media.file_name}</small>
@@ -225,6 +235,7 @@ class PostDetail {
                     </div>
                 `;
             }
+            mediaIndex++;
         });
 
         mediaGallery.innerHTML = galleryHTML;
@@ -425,6 +436,159 @@ function downloadMedia() {
     if (window.postDetail) {
         window.postDetail.downloadMedia();
     }
+}
+
+function sharePost() {
+    if (!window.postDetail || !window.postDetail.postId) {
+        alert('Post information not available');
+        return;
+    }
+    
+    const postId = window.postDetail.postId;
+    const shareUrl = `${window.location.origin}/post-view.html?id=${postId}`;
+    
+    // Use Web Share API if available
+    if (navigator.share) {
+        const post = window.postDetail.post;
+        const guestName = post?.guest?.name || 'Guest';
+        const wishText = post?.wish_text ? post.wish_text.substring(0, 100) : 'Check out this post';
+        let eventTitle = 'Event';
+        if (post?.event && typeof post.event === 'object' && post.event.title) {
+            eventTitle = post.event.title;
+        } else if (post?.event) {
+            eventTitle = 'Event';
+        }
+        
+        navigator.share({
+            title: `Post by ${guestName} - ${eventTitle}`,
+            text: `${guestName} shared: "${wishText}" - ${eventTitle}`,
+            url: shareUrl
+        }).then(() => {
+            showShareSuccess('Post shared successfully!');
+        }).catch((error) => {
+            if (error.name !== 'AbortError') {
+                console.error('Error sharing:', error);
+                copyPostLink(shareUrl);
+            }
+        });
+    } else {
+        // Fallback: copy link to clipboard
+        copyPostLink(shareUrl);
+    }
+}
+
+function shareMediaItem(postId, mediaId, mediaType) {
+    if (!window.postDetail || !window.postDetail.post) {
+        alert('Post information not available');
+        return;
+    }
+    
+    // Find the specific media item
+    const post = window.postDetail.post;
+    const media = post.media_files?.find(m => m.id === mediaId);
+    
+    if (!media) {
+        alert('Media item not found');
+        return;
+    }
+    
+    // Create shareable link to media-view.html template
+    const shareUrl = `${window.location.origin}/media-view.html?post=${postId}&media=${mediaId}`;
+    const guestName = post.guest?.name || 'Guest';
+    let eventTitle = 'Event';
+    if (post.event && typeof post.event === 'object' && post.event.title) {
+        eventTitle = post.event.title;
+    }
+    
+    // Create share text based on media type
+    let shareText = '';
+    let shareTitle = '';
+    
+    if (mediaType === 'photo') {
+        shareText = `${guestName} shared a photo from ${eventTitle}`;
+        shareTitle = `Photo by ${guestName} - ${eventTitle}`;
+    } else if (mediaType === 'video') {
+        shareText = `${guestName} shared a video from ${eventTitle}`;
+        shareTitle = `Video by ${guestName} - ${eventTitle}`;
+    } else if (mediaType === 'voice') {
+        shareText = `${guestName} shared a voice recording from ${eventTitle}`;
+        shareTitle = `Voice Recording by ${guestName} - ${eventTitle}`;
+    }
+    
+    // Use Web Share API if available
+    if (navigator.share) {
+        navigator.share({
+            title: shareTitle,
+            text: shareText,
+            url: shareUrl
+        }).then(() => {
+            showShareSuccess(`${mediaType.charAt(0).toUpperCase() + mediaType.slice(1)} shared successfully!`);
+        }).catch((error) => {
+            if (error.name !== 'AbortError') {
+                console.error('Error sharing:', error);
+                copyMediaLink(shareUrl);
+            }
+        });
+    } else {
+        // Fallback: copy link to clipboard
+        copyMediaLink(shareUrl);
+    }
+}
+
+function copyMediaLink(shareUrl) {
+    navigator.clipboard.writeText(shareUrl).then(() => {
+        showShareSuccess('Media link copied to clipboard!');
+    }).catch(() => {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = shareUrl;
+        textArea.style.position = 'fixed';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            showShareSuccess('Media link copied to clipboard!');
+        } catch (err) {
+            alert('Failed to copy link. Please copy manually: ' + shareUrl);
+        }
+        document.body.removeChild(textArea);
+    });
+}
+
+function copyPostLink(shareUrl) {
+    navigator.clipboard.writeText(shareUrl).then(() => {
+        showShareSuccess('Link copied to clipboard!');
+    }).catch(() => {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = shareUrl;
+        textArea.style.position = 'fixed';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            showShareSuccess('Link copied to clipboard!');
+        } catch (err) {
+            alert('Failed to copy link. Please copy manually: ' + shareUrl);
+        }
+        document.body.removeChild(textArea);
+    });
+}
+
+function showShareSuccess(message = 'Shared successfully!') {
+    const alert = document.createElement('div');
+    alert.className = 'alert alert-success position-fixed';
+    alert.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px; background: linear-gradient(135deg, var(--confetti-2), var(--confetti-3)); border: none; color: white; font-weight: 600;';
+    alert.innerHTML = `<i class="bi bi-check-circle-fill"></i> ${message}`;
+    document.body.appendChild(alert);
+    
+    setTimeout(() => {
+        alert.style.opacity = '0';
+        alert.style.transition = 'opacity 0.3s';
+        setTimeout(() => alert.remove(), 300);
+    }, 2000);
 }
 
 function openMediaModal(mediaUrl, fileName, mediaType) {

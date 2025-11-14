@@ -390,6 +390,39 @@
             padding: 0.4rem 0.8rem;
             margin-bottom: 0.5rem;
         }
+        
+        /* Media Share Button */
+        .media-share-btn {
+            position: absolute;
+            bottom: 12px;
+            right: 12px;
+            background: linear-gradient(135deg, var(--primary-start), var(--primary-end));
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            transition: all 0.3s ease;
+            z-index: 10;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+        
+        .media-share-btn:hover {
+            transform: scale(1.15);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.6);
+            background: linear-gradient(135deg, var(--primary-end), var(--accent));
+        }
+        
+        .media-share-btn:active {
+            transform: scale(1.05);
+        }
     </style>
 </head>
 <body>
@@ -514,6 +547,9 @@
                             </button>
                             <button id="rejectBtn" class="btn btn-danger" onclick="rejectPost()" style="display: none;">
                                 <i class="bi bi-x-circle"></i> Reject Post
+                            </button>
+                            <button class="btn btn-primary" onclick="sharePost()" id="sharePostBtn">
+                                <i class="bi bi-share"></i> Share Post
                             </button>
                             <button class="btn btn-outline-primary" onclick="downloadMedia()">
                                 <i class="bi bi-download"></i> Download All Media
