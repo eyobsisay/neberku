@@ -272,51 +272,23 @@ class EventViewSet(viewsets.ModelViewSet):
                         
                         # Send Telegram notification for event creation (to all configured recipients)
                         try:
-                            print(f"📧 Preparing to send Telegram notifications for event {event.id}...")
                             message = format_event_creation_message(event, self.request.user, payment)
-                            print(f"📝 Event creation message formatted, sending...")
                             # send_telegram_message will automatically handle multiple recipients if configured
-                            result = send_telegram_message(message)
-                            print(f"📬 Event creation message result: {result}")
-                            
-                            if isinstance(result, dict):
-                                # Multiple recipients
-                                if result.get('success_count', 0) > 0:
-                                    print(f"✅ Telegram notification sent to {result['success_count']} recipient(s) for event {event.id}")
-                                if result.get('failure_count', 0) > 0:
-                                    print(f"⚠️ Telegram notification failed for {result['failure_count']} recipient(s) for event {event.id}")
-                            elif not result:
-                                print(f"⚠️ Telegram notification failed for event {event.id} - check console for details")
+                            send_telegram_message(message)
                         except Exception as e:
                             # Don't fail event creation if Telegram fails
-                            print(f"❌ Exception sending Telegram notification for event {event.id}: {e}")
-                            import traceback
-                            traceback.print_exc()
+                            import logging
+                            logger = logging.getLogger(__name__)
+                            logger.error(f'Exception sending Telegram notification for event {event.id}: {e}')
                         
                         # Also send payment pending notification with action buttons (separate try block)
                         try:
-                            print(f"💳 Preparing payment pending notification with buttons for payment {payment.id}...")
                             pending_message, reply_markup = format_payment_pending_message(payment, event)
-                            print(f"📎 Sending payment pending message with buttons for payment {payment.id}")
-                            print(f"   Reply markup keys: {list(reply_markup.keys()) if reply_markup else 'None'}")
-                            if reply_markup and 'inline_keyboard' in reply_markup:
-                                print(f"   Buttons: {len(reply_markup['inline_keyboard'])} row(s)")
-                            
-                            pending_result = send_telegram_message(pending_message, reply_markup=reply_markup)
-                            print(f"📬 Payment pending message result: {pending_result}")
-                            
-                            if isinstance(pending_result, dict):
-                                print(f"✅ Payment pending notification sent to {pending_result.get('success_count', 0)} recipient(s)")
-                                if pending_result.get('failure_count', 0) > 0:
-                                    print(f"⚠️ Payment pending notification failed for {pending_result.get('failure_count', 0)} recipient(s)")
-                            elif pending_result:
-                                print(f"✅ Payment pending notification sent successfully")
-                            else:
-                                print(f"⚠️ Failed to send payment pending notification - check console for details")
+                            send_telegram_message(pending_message, reply_markup=reply_markup)
                         except Exception as e:
-                            print(f"❌ Failed to send payment pending notification: {e}")
-                            import traceback
-                            traceback.print_exc()
+                            import logging
+                            logger = logging.getLogger(__name__)
+                            logger.error(f'Failed to send payment pending notification: {e}')
                     else:
                         print(f"Warning: Could not create payment for event {event.id} - payment_method or package missing")
                         # Send Telegram notification even if payment wasn't created

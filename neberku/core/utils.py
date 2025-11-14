@@ -26,7 +26,6 @@ def send_telegram_message(message, chat_id=None, reply_markup=None):
     if not bot_token:
         error_msg = 'TELEGRAM_BOT_TOKEN not configured in settings'
         logger.warning(error_msg)
-        print(f"⚠️ {error_msg}")
         return False
     
     # Handle multiple chat IDs
@@ -49,7 +48,6 @@ def send_telegram_message(message, chat_id=None, reply_markup=None):
     if not chat_id:
         error_msg = 'TELEGRAM_CHAT_ID or TELEGRAM_CHAT_IDS not configured in settings'
         logger.warning(error_msg)
-        print(f"⚠️ {error_msg}")
         return False
     
     # Use the single message sender
@@ -61,25 +59,14 @@ def send_telegram_message_single(message, chat_id, reply_markup=None):
     Send a message to a single Telegram chat ID (internal function).
     This is the actual implementation that sends the message.
     """
-    # IMMEDIATE PRINT - no try block, no nothing, just print
-    print("   ====== FUNCTION ENTERED ======")
-    print(f"   🔧🔧 FUNCTION START: send_telegram_message_single")
-    print(f"   chat_id={chat_id}, reply_markup={bool(reply_markup)}")
-    
     try:
-        import sys
-        print(f"   🔧 Inside try block: send_telegram_message_single processing...")
-        sys.stdout.flush()
-        
         from django.conf import settings
         import requests
         
         bot_token = getattr(settings, 'TELEGRAM_BOT_TOKEN', None)
         if not bot_token:
-            print(f"   ❌ Bot token not found in settings")
+            logger.warning('TELEGRAM_BOT_TOKEN not found in settings')
             return False
-        
-        print(f"   ✅ Bot token found: {bot_token[:10]}...")
         
         # Convert chat_id to integer if it's a string (Telegram API accepts both)
         try:
@@ -101,12 +88,8 @@ def send_telegram_message_single(message, chat_id, reply_markup=None):
         # Add inline keyboard if provided
         if reply_markup:
             payload['reply_markup'] = reply_markup
-            print(f"🔘 Adding inline keyboard buttons to message")
         
         try:
-            print(f"📤 Attempting to send Telegram message to chat {chat_id}...")
-            if reply_markup:
-                print(f"   ✅ Message includes inline keyboard buttons")
             logger.info(f'Attempting to send Telegram message to chat {chat_id}')
             
             response = requests.post(url, json=payload, timeout=10)
@@ -115,76 +98,61 @@ def send_telegram_message_single(message, chat_id, reply_markup=None):
             if response.status_code == 200:
                 response_data = response.json()
                 if not response_data.get('ok') and 'parse' in str(response_data.get('description', '')).lower():
-                    print(f"⚠️ HTML parsing error, retrying with plain text...")
-                    payload['parse_mode'] = None
-                    del payload['parse_mode']
+                    payload.pop('parse_mode', None)
                     response = requests.post(url, json=payload, timeout=10)
             
-            # Log the response for debugging
-            print(f"📡 Telegram API Response Status: {response.status_code}")
             logger.info(f'Telegram API Response Status: {response.status_code}')
             
             # Check if response is successful
             if response.status_code == 200:
                 response_data = response.json()
                 if response_data.get('ok'):
-                    success_msg = f'✅ Telegram message sent successfully to chat {chat_id}'
-                    logger.info(success_msg)
-                    print(success_msg)
+                    logger.info(f'Telegram message sent successfully to chat {chat_id}')
                     return True
                 else:
                     error_description = response_data.get('description', 'Unknown error')
-                    error_msg = f'❌ Telegram API error: {error_description}'
+                    error_msg = f'Telegram API error: {error_description}'
                     logger.error(error_msg)
-                    print(error_msg)
-                    print(f"   Full response: {response_data}")
                     return False
             else:
                 # Try to get error details from response
                 try:
                     error_data = response.json()
                     error_description = error_data.get('description', f'HTTP {response.status_code}')
-                    error_msg = f'❌ Telegram API HTTP error {response.status_code}: {error_description}'
+                    error_msg = f'Telegram API HTTP error {response.status_code}: {error_description}'
                     logger.error(error_msg)
-                    print(error_msg)
-                    print(f"   Full response: {error_data}")
                 except:
-                    error_msg = f'❌ Telegram API HTTP error {response.status_code}: {response.text}'
+                    error_msg = f'Telegram API HTTP error {response.status_code}: {response.text}'
                     logger.error(error_msg)
-                    print(error_msg)
                 return False
                 
         except requests.exceptions.Timeout:
-            error_msg = '❌ Telegram API request timed out'
+            error_msg = 'Telegram API request timed out'
             logger.error(error_msg)
-            print(error_msg)
             return False
         except requests.exceptions.ConnectionError as e:
-            error_msg = f'❌ Telegram API connection error: {e}'
+            error_msg = f'Telegram API connection error: {e}'
             logger.error(error_msg)
-            print(error_msg)
             return False
         except requests.exceptions.RequestException as e:
-            error_msg = f'❌ Failed to send Telegram message: {e}'
+            error_msg = f'Failed to send Telegram message: {e}'
             logger.error(error_msg)
-            print(error_msg)
             return False
         except Exception as e:
-            error_msg = f'❌ Unexpected error sending Telegram message: {e}'
+            error_msg = f'Unexpected error sending Telegram message: {e}'
             logger.error(error_msg)
-            print(error_msg)
             import traceback
-            print(traceback.format_exc())
+            logger.error(traceback.format_exc())
             return False
             
     except Exception as e:
-        print(f"   ❌❌ CRITICAL ERROR in send_telegram_message_single: {e}")
+        logger.error(f'Critical error in send_telegram_message_single: {e}')
         import traceback
-        traceback.print_exc()
+        logger.error(traceback.format_exc())
         return False
     
     # Safety net - should never reach here, but ensure we always return something
-    print(f"   ⚠️⚠️ UNEXPECTED: Function reached end without returning!")
+    logger.warning('Function reached end without returning')
     return False
 
 
@@ -206,37 +174,17 @@ def send_telegram_message_multiple(message, chat_ids, reply_markup=None):
             }
     """
     if not chat_ids:
-        print("⚠️ No chat IDs provided for multiple message sending")
+        logger.warning('No chat IDs provided for multiple message sending')
         return {'success_count': 0, 'failure_count': 0, 'results': {}}
     
     results = {}
     success_count = 0
     failure_count = 0
     
-    print(f"📤 Sending message to {len(chat_ids)} recipient(s)...")
-    if reply_markup:
-        print(f"📎 Message includes inline keyboard buttons")
-    
     for chat_id in chat_ids:
         try:
-            print(f"   📨 Calling send_telegram_message_single for chat {chat_id}...")
-            print(f"   📋 Message length: {len(message)} chars, reply_markup: {bool(reply_markup)}")
-            print(f"   🔍 Function object: {send_telegram_message_single}")
-            print(f"   🔍 Function type: {type(send_telegram_message_single)}")
-            print(f"   🔍 Function module: {send_telegram_message_single.__module__ if hasattr(send_telegram_message_single, '__module__') else 'N/A'}")
-            
-            # Call the function and capture any exceptions
-            try:
-                result = send_telegram_message_single(message, chat_id, reply_markup)
-                print(f"   📥 Result from send_telegram_message_single: {result} (type: {type(result)})")
-            except Exception as inner_e:
-                print(f"   ❌❌ EXCEPTION INSIDE FUNCTION CALL: {inner_e}")
-                import traceback
-                traceback.print_exc()
-                result = None
-            
+            result = send_telegram_message_single(message, chat_id, reply_markup)
             if result is None:
-                print(f"   ⚠️⚠️ WARNING: Function returned None instead of True/False!")
                 result = False  # Convert None to False
             results[chat_id] = result
             if result:
@@ -244,13 +192,11 @@ def send_telegram_message_multiple(message, chat_ids, reply_markup=None):
             else:
                 failure_count += 1
         except Exception as e:
-            print(f"❌ Error sending to chat {chat_id}: {e}")
+            logger.error(f'Error sending to chat {chat_id}: {e}')
             import traceback
-            traceback.print_exc()
+            logger.error(traceback.format_exc())
             results[chat_id] = False
             failure_count += 1
-    
-    print(f"📊 Message delivery summary: {success_count} successful, {failure_count} failed")
     
     return {
         'success_count': success_count,
