@@ -341,7 +341,7 @@ REDOC_SETTINGS = {
 
 # Single chat ID (for backward compatibility)
 TELEGRAM_BOT_TOKEN = "8391488891:AAHw1hvZbLpeSQC4XDTbb97trNwMptduJKw"  # Set this in your environment or local settings
-TELEGRAM_CHAT_ID = "346435059"    # Set this in your environment or local settings
+# TELEGRAM_CHAT_ID = "346435059"    # Set this in your environment or local settings
 
 # Multiple chat IDs (optional - if set, messages will be sent to all listed IDs)
 # Can be a list of strings or integers

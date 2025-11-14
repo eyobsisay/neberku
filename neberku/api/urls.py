@@ -40,4 +40,7 @@ urlpatterns = [
     
     # Public media endpoint (secure - only returns approved media from approved posts)
     path('public/posts/<uuid:post_id>/media/<uuid:media_id>/', views.public_media_item, name='public_media_item'),
+    
+    # Telegram webhook endpoint
+    path('telegram/webhook/', views.telegram_webhook, name='telegram_webhook'),
 ] 

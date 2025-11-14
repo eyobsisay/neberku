@@ -18,7 +18,12 @@ from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 from core.models import EventType, Package, Event, Payment, Guest, GuestPost, MediaFile, EventSettings, PaymentMethod
-from core.utils import send_telegram_message, format_event_creation_message, format_payment_confirmation_message
+from core.utils import (
+    send_telegram_message, 
+    format_event_creation_message, 
+    format_payment_confirmation_message,
+    format_payment_pending_message
+)
 from .serializers import (
     EventTypeSerializer, EventTypeCreateSerializer, PackageSerializer, PackageCreateSerializer, EventSerializer, EventCreateSerializer, EventGallerySerializer,
     EventSummarySerializer, EventGuestAccessSerializer, PaymentSerializer, PaymentCreateSerializer, GuestSerializer, GuestPostSerializer, GuestPostCreateSerializer,
@@ -267,9 +272,13 @@ class EventViewSet(viewsets.ModelViewSet):
                         
                         # Send Telegram notification for event creation (to all configured recipients)
                         try:
+                            print(f"📧 Preparing to send Telegram notifications for event {event.id}...")
                             message = format_event_creation_message(event, self.request.user, payment)
+                            print(f"📝 Event creation message formatted, sending...")
                             # send_telegram_message will automatically handle multiple recipients if configured
                             result = send_telegram_message(message)
+                            print(f"📬 Event creation message result: {result}")
+                            
                             if isinstance(result, dict):
                                 # Multiple recipients
                                 if result.get('success_count', 0) > 0:
@@ -281,6 +290,31 @@ class EventViewSet(viewsets.ModelViewSet):
                         except Exception as e:
                             # Don't fail event creation if Telegram fails
                             print(f"❌ Exception sending Telegram notification for event {event.id}: {e}")
+                            import traceback
+                            traceback.print_exc()
+                        
+                        # Also send payment pending notification with action buttons (separate try block)
+                        try:
+                            print(f"💳 Preparing payment pending notification with buttons for payment {payment.id}...")
+                            pending_message, reply_markup = format_payment_pending_message(payment, event)
+                            print(f"📎 Sending payment pending message with buttons for payment {payment.id}")
+                            print(f"   Reply markup keys: {list(reply_markup.keys()) if reply_markup else 'None'}")
+                            if reply_markup and 'inline_keyboard' in reply_markup:
+                                print(f"   Buttons: {len(reply_markup['inline_keyboard'])} row(s)")
+                            
+                            pending_result = send_telegram_message(pending_message, reply_markup=reply_markup)
+                            print(f"📬 Payment pending message result: {pending_result}")
+                            
+                            if isinstance(pending_result, dict):
+                                print(f"✅ Payment pending notification sent to {pending_result.get('success_count', 0)} recipient(s)")
+                                if pending_result.get('failure_count', 0) > 0:
+                                    print(f"⚠️ Payment pending notification failed for {pending_result.get('failure_count', 0)} recipient(s)")
+                            elif pending_result:
+                                print(f"✅ Payment pending notification sent successfully")
+                            else:
+                                print(f"⚠️ Failed to send payment pending notification - check console for details")
+                        except Exception as e:
+                            print(f"❌ Failed to send payment pending notification: {e}")
                             import traceback
                             traceback.print_exc()
                     else:
@@ -1496,6 +1530,197 @@ def guest_event_by_id(request, event_id):
     # Serialize the event for guest access
     serializer = EventGuestAccessSerializer(event, context={'request': request})
     return Response(serializer.data)
+
+
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def telegram_webhook(request):
+    """
+    Handle Telegram webhook callbacks for button clicks.
+    This endpoint receives callback queries when users click inline keyboard buttons.
+    Telegram sends updates in the format: {"update_id": 123, "callback_query": {...}}
+    """
+    try:
+        import json
+        data = json.loads(request.body)
+        
+        # Telegram sends updates in this format: {"update_id": 123, "callback_query": {...}}
+        # Check if this is a callback query (button click)
+        if 'callback_query' in data:
+            callback_query = data['callback_query']
+            callback_data = callback_query.get('data', '')
+            chat_id = callback_query['message']['chat']['id']
+            message_id = callback_query['message']['message_id']
+            
+            # Extract payment ID from callback data
+            if callback_data.startswith('confirm_payment_'):
+                payment_id = callback_data.replace('confirm_payment_', '').strip()
+                return handle_payment_confirmation(payment_id, chat_id, message_id, callback_query['id'])
+            elif callback_data.startswith('reject_payment_'):
+                payment_id = callback_data.replace('reject_payment_', '').strip()
+                return handle_payment_rejection(payment_id, chat_id, message_id, callback_query['id'])
+        
+        return Response({'ok': True}, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        print(f"Error processing Telegram webhook: {e}")
+        import traceback
+        traceback.print_exc()
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+def handle_payment_confirmation(payment_id, chat_id, message_id, callback_query_id):
+    """Handle payment confirmation from Telegram button click"""
+    try:
+        from django.conf import settings
+        import requests
+        
+        # Get payment object
+        try:
+            payment = Payment.objects.get(id=payment_id)
+        except Payment.DoesNotExist:
+            answer_callback_query(callback_query_id, "❌ Payment not found", show_alert=True)
+            return Response({'ok': False, 'error': 'Payment not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Check if payment is already confirmed
+        if payment.status == 'completed':
+            answer_callback_query(callback_query_id, "⚠️ Payment already confirmed", show_alert=True)
+            return Response({'ok': False, 'error': 'Payment already confirmed'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Confirm the payment (similar to the confirm endpoint)
+        payment.status = 'completed'
+        payment.paid_at = timezone.now()
+        payment.save()
+        
+        # Update event payment status
+        event = payment.event
+        event.payment_status = 'paid'
+        event.status = 'active'
+        event.save()
+        
+        # Answer the callback query
+        answer_callback_query(callback_query_id, "✅ Payment confirmed successfully!")
+        
+        # Update the message to show confirmation
+        confirmation_message = format_payment_confirmation_message(
+            payment, 
+            event, 
+            User.objects.filter(is_superuser=True).first() or event.host
+        )
+        
+        # Edit the original message
+        edit_message_text(chat_id, message_id, confirmation_message)
+        
+        # Send confirmation notification to all configured recipients
+        try:
+            send_telegram_message(confirmation_message)
+        except Exception as e:
+            print(f"Failed to send confirmation notification: {e}")
+        
+        return Response({'ok': True, 'message': 'Payment confirmed'}, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        print(f"Error confirming payment: {e}")
+        import traceback
+        traceback.print_exc()
+        answer_callback_query(callback_query_id, f"❌ Error: {str(e)}", show_alert=True)
+        return Response({'ok': False, 'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+def handle_payment_rejection(payment_id, chat_id, message_id, callback_query_id):
+    """Handle payment rejection from Telegram button click"""
+    try:
+        from django.conf import settings
+        import requests
+        
+        # Get payment object
+        try:
+            payment = Payment.objects.get(id=payment_id)
+        except Payment.DoesNotExist:
+            answer_callback_query(callback_query_id, "❌ Payment not found", show_alert=True)
+            return Response({'ok': False, 'error': 'Payment not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Check if payment is already processed
+        if payment.status == 'completed':
+            answer_callback_query(callback_query_id, "⚠️ Payment already confirmed", show_alert=True)
+            return Response({'ok': False, 'error': 'Payment already confirmed'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Reject the payment
+        payment.status = 'failed'
+        payment.save()
+        
+        # Answer the callback query
+        answer_callback_query(callback_query_id, "❌ Payment rejected")
+        
+        # Update the message
+        rejection_message = f"""
+❌ <b>Payment Rejected</b>
+
+💳 <b>Payment ID:</b> {payment.id}
+📅 <b>Event:</b> {payment.event.title}
+💰 <b>Amount:</b> {payment.amount} ETB
+📊 <b>Status:</b> Rejected
+"""
+        edit_message_text(chat_id, message_id, rejection_message)
+        
+        return Response({'ok': True, 'message': 'Payment rejected'}, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        print(f"Error rejecting payment: {e}")
+        import traceback
+        traceback.print_exc()
+        answer_callback_query(callback_query_id, f"❌ Error: {str(e)}", show_alert=True)
+        return Response({'ok': False, 'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+def answer_callback_query(callback_query_id, text, show_alert=False):
+    """Answer a Telegram callback query"""
+    from django.conf import settings
+    import requests
+    
+    bot_token = getattr(settings, 'TELEGRAM_BOT_TOKEN', None)
+    if not bot_token:
+        return False
+    
+    url = f'https://api.telegram.org/bot{bot_token}/answerCallbackQuery'
+    payload = {
+        'callback_query_id': callback_query_id,
+        'text': text,
+        'show_alert': show_alert
+    }
+    
+    try:
+        response = requests.post(url, json=payload, timeout=5)
+        return response.status_code == 200
+    except Exception as e:
+        print(f"Error answering callback query: {e}")
+        return False
+
+
+def edit_message_text(chat_id, message_id, text):
+    """Edit a Telegram message"""
+    from django.conf import settings
+    import requests
+    
+    bot_token = getattr(settings, 'TELEGRAM_BOT_TOKEN', None)
+    if not bot_token:
+        return False
+    
+    url = f'https://api.telegram.org/bot{bot_token}/editMessageText'
+    payload = {
+        'chat_id': chat_id,
+        'message_id': message_id,
+        'text': text,
+        'parse_mode': 'HTML'
+    }
+    
+    try:
+        response = requests.post(url, json=payload, timeout=5)
+        return response.status_code == 200
+    except Exception as e:
+        print(f"Error editing message: {e}")
+        return False
 
 
 @api_view(['GET'])
