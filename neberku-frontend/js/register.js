@@ -66,6 +66,35 @@ class Registration {
                 }
                 break;
 
+            case 'firstName':
+                if (value.length < 2) {
+                    isValid = false;
+                    errorMessage = 'First name must be at least 2 characters long.';
+                } else if (!/^[a-zA-Z\s'-]+$/.test(value)) {
+                    isValid = false;
+                    errorMessage = 'First name can only contain letters, spaces, hyphens, and apostrophes.';
+                }
+                break;
+
+            case 'lastName':
+                if (value.length < 2) {
+                    isValid = false;
+                    errorMessage = 'Last name must be at least 2 characters long.';
+                } else if (!/^[a-zA-Z\s'-]+$/.test(value)) {
+                    isValid = false;
+                    errorMessage = 'Last name can only contain letters, spaces, hyphens, and apostrophes.';
+                }
+                break;
+
+            case 'phoneNumber':
+                // Phone number must be in format: 09xxxxxxxx (10 digits starting with 09)
+                const phoneRegex = /^09\d{8}$/;
+                if (!phoneRegex.test(value.replace(/\s/g, ''))) {
+                    isValid = false;
+                    errorMessage = 'Phone number must be in format: 09xxxxxxxx (10 digits starting with 09).';
+                }
+                break;
+
             case 'password':
                 if (value.length < 8) {
                     isValid = false;
@@ -164,7 +193,10 @@ class Registration {
             username: document.getElementById('username').value.trim(),
             email: document.getElementById('email').value.trim(),
             password: document.getElementById('password').value,
-            password2: document.getElementById('confirmPassword').value
+            password2: document.getElementById('confirmPassword').value,
+            first_name: document.getElementById('firstName').value.trim(),
+            last_name: document.getElementById('lastName').value.trim(),
+            phone_number: document.getElementById('phoneNumber').value.trim()
         };
 
         try {
@@ -210,7 +242,10 @@ class Registration {
             username: document.getElementById('username').value.trim(),
             email: document.getElementById('email').value.trim(),
             password: document.getElementById('password').value,
-            password2: document.getElementById('confirmPassword').value
+            password2: document.getElementById('confirmPassword').value,
+            first_name: document.getElementById('firstName').value.trim(),
+            last_name: document.getElementById('lastName').value.trim(),
+            phone_number: document.getElementById('phoneNumber').value.trim()
         };
 
         try {

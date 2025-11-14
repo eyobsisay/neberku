@@ -1144,10 +1144,21 @@ def api_register(request):
     email = request.data.get('email')
     password = request.data.get('password')
     password2 = request.data.get('password2')
+    first_name = request.data.get('first_name', '').strip()
+    last_name = request.data.get('last_name', '').strip()
+    phone_number = request.data.get('phone_number', '').strip()
+    
+    # Validate phone number format: 09xxxxxxxx (10 digits starting with 09)
+    if phone_number:
+        if not phone_number.startswith('09') or len(phone_number) != 10 or not phone_number.isdigit():
+            return Response(
+                {'error': 'Phone number must be in format: 09xxxxxxxx (10 digits starting with 09)'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
     
     if not username or not email or not password or not password2:
         return Response(
-            {'error': 'All fields are required'},
+            {'error': 'Username, email, and password are required'},
             status=status.HTTP_400_BAD_REQUEST
         )
     
@@ -1173,15 +1184,29 @@ def api_register(request):
         user = User.objects.create_user(
             username=username,
             email=email,
-            password=password
+            password=password,
+            first_name=first_name,
+            last_name=last_name
         )
+        
+        # Store phone number in user profile if available, or in a custom field
+        # For now, we'll store it in a UserProfile if it exists, otherwise skip
+        # You can extend this later to create a UserProfile model
+        if phone_number:
+            # If you have a UserProfile model, uncomment this:
+            # from core.models import UserProfile
+            # UserProfile.objects.create(user=user, phone_number=phone_number)
+            # For now, we'll just store it in a note or skip it
+            pass
         
         return Response({
             'success': True,
             'user': {
                 'id': user.id,
                 'username': user.username,
-                'email': user.email
+                'email': user.email,
+                'first_name': user.first_name,
+                'last_name': user.last_name
             },
             'message': 'User created successfully'
         }, status=status.HTTP_201_CREATED)
