@@ -790,6 +790,86 @@
             border-color: #198754 !important;
             box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.25) !important;
         }
+        
+        /* Profile Modal Styling - Beautiful white form with black text */
+        #profileModal .modal-content {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%) !important;
+            border: none !important;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2) !important;
+            border-radius: 15px !important;
+            overflow: hidden !important;
+        }
+        
+        #profileModal .form-control {
+            background: #ffffff !important;
+            color: #212529 !important;
+            border: 1px solid #ced4da !important;
+            border-radius: 6px !important;
+            padding: 0.5rem !important;
+            font-size: 0.9rem !important;
+            transition: all 0.3s ease !important;
+        }
+        
+        #profileModal .form-control-sm {
+            padding: 0.5rem !important;
+            font-size: 0.875rem !important;
+        }
+        
+        #profileModal .form-control:focus {
+            background: #ffffff !important;
+            color: #212529 !important;
+            border-color: var(--primary-start) !important;
+            box-shadow: 0 0 0 0.2rem rgba(146, 64, 14, 0.25) !important;
+            outline: none !important;
+        }
+        
+        #profileModal .form-control:disabled,
+        #profileModal .form-control[readonly] {
+            background: #e9ecef !important;
+            color: #495057 !important;
+            border: 1px solid #ced4da !important;
+            cursor: not-allowed !important;
+        }
+        
+        #profileModal .form-label {
+            color: #212529 !important;
+            font-weight: 500 !important;
+            margin-bottom: 0.25rem !important;
+            font-size: 0.9rem !important;
+        }
+        
+        #profileModal .form-text {
+            color: #6c757d !important;
+            font-size: 0.75rem !important;
+            margin-top: 0.15rem !important;
+        }
+        
+        #profileModal .invalid-feedback {
+            color: #dc3545 !important;
+            font-size: 0.875rem !important;
+        }
+        
+        #profileModal .modal-body {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%) !important;
+            padding: 1.25rem !important;
+        }
+        
+        
+        #profileModal .modal-footer {
+            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%) !important;
+            border-top: 2px solid #dee2e6 !important;
+        }
+        
+        #profileModal hr {
+            border-color: #dee2e6 !important;
+            border-width: 2px !important;
+            opacity: 1 !important;
+        }
+        
+        #profileModal h6 {
+            color: #212529 !important;
+            font-weight: 600 !important;
+        }
     </style>
 </head>
 <body>
@@ -841,6 +921,9 @@
                     <span class="navbar-text me-3">
                         <i class="bi bi-person-circle"></i> <span id="userDisplayName">Event Owner</span>
                     </span>
+                    <button class="btn btn-outline-light me-2" onclick="dashboard.showProfileModal()" title="View Profile">
+                        <i class="bi bi-person"></i> Profile
+                    </button>
                     <button class="btn btn-outline-light" onclick="logoutUser()">
                         <i class="bi bi-box-arrow-right"></i> Logout
                     </button>
@@ -1168,6 +1251,94 @@
                             </div>
                             
                         </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Profile Modal -->
+        <div class="modal fade" id="profileModal" tabindex="-1" aria-labelledby="profileModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-md">
+                <div class="modal-content" style="background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%); border: none; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+                    <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-start), var(--primary-end)); color: white; border: none; padding: 1rem;">
+                        <h5 class="modal-title" id="profileModalLabel" style="font-weight: 600; font-size: 1.1rem;">
+                            <i class="bi bi-person-circle"></i> User Profile
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body" style="background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%); padding: 1.25rem;">
+                        <form id="profileForm" novalidate>
+                            <div class="row g-2">
+                                <div class="col-12 mb-2">
+                                    <label for="profileUsername" class="form-label" style="color: #212529; font-weight: 500; font-size: 0.9rem; margin-bottom: 0.25rem;">Username</label>
+                                    <input type="text" class="form-control form-control-sm" id="profileUsername" readonly disabled style="background: #e9ecef; color: #495057; border: 1px solid #ced4da; padding: 0.5rem;">
+                                </div>
+                                <div class="col-12 mb-2">
+                                    <label for="profileEmail" class="form-label" style="color: #212529; font-weight: 500; font-size: 0.9rem; margin-bottom: 0.25rem;">Email Address <span class="text-danger">*</span></label>
+                                    <input type="email" class="form-control form-control-sm" id="profileEmail" required style="background: #ffffff; color: #212529; border: 1px solid #ced4da; padding: 0.5rem;">
+                                    <div class="invalid-feedback" style="font-size: 0.8rem;">Please provide a valid email address.</div>
+                                </div>
+                            </div>
+                            <div class="row g-2">
+                                <div class="col-6 mb-2">
+                                    <label for="profileFirstName" class="form-label" style="color: #212529; font-weight: 500; font-size: 0.9rem; margin-bottom: 0.25rem;">First Name <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control form-control-sm" id="profileFirstName" required style="background: #ffffff; color: #212529; border: 1px solid #ced4da; padding: 0.5rem;">
+                                    <div class="invalid-feedback" style="font-size: 0.8rem;">Required.</div>
+                                </div>
+                                <div class="col-6 mb-2">
+                                    <label for="profileLastName" class="form-label" style="color: #212529; font-weight: 500; font-size: 0.9rem; margin-bottom: 0.25rem;">Last Name <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control form-control-sm" id="profileLastName" required style="background: #ffffff; color: #212529; border: 1px solid #ced4da; padding: 0.5rem;">
+                                    <div class="invalid-feedback" style="font-size: 0.8rem;">Required.</div>
+                                </div>
+                            </div>
+                            <div class="row g-2">
+                                <div class="col-6 mb-2">
+                                    <label for="profilePhoneNumber" class="form-label" style="color: #212529; font-weight: 500; font-size: 0.9rem; margin-bottom: 0.25rem;">Phone Number</label>
+                                    <input type="tel" class="form-control form-control-sm" id="profilePhoneNumber" 
+                                           pattern="09\d{8}" maxlength="10" placeholder="09xxxxxxxx"
+                                           style="background: #ffffff; color: #212529; border: 1px solid #ced4da; padding: 0.5rem;">
+                                    <div class="invalid-feedback" style="font-size: 0.8rem;">Format: 09xxxxxxxx</div>
+                                </div>
+                                <div class="col-6 mb-2">
+                                    <label class="form-label" style="color: #212529; font-weight: 500; font-size: 0.9rem; margin-bottom: 0.25rem;">Account Type</label>
+                                    <input type="text" class="form-control form-control-sm" id="profileAccountType" readonly disabled style="background: #e9ecef; color: #495057; border: 1px solid #ced4da; padding: 0.5rem;">
+                                </div>
+                            </div>
+                            
+                            <!-- Password Change Section -->
+                            <hr class="my-2" style="border-color: #dee2e6; border-width: 1px; margin: 1rem 0;">
+                            <h6 class="mb-2" style="color: #212529; font-weight: 600; font-size: 1rem;">
+                                <i class="bi bi-lock"></i> Change Password
+                            </h6>
+                            <div class="row g-2">
+                                <div class="col-12 mb-2">
+                                    <label for="currentPassword" class="form-label" style="color: #212529; font-weight: 500; font-size: 0.9rem; margin-bottom: 0.25rem;">Current Password</label>
+                                    <input type="password" class="form-control form-control-sm" id="currentPassword" placeholder="Current password" style="background: #ffffff; color: #212529; border: 1px solid #ced4da; padding: 0.5rem;">
+                                    <div class="invalid-feedback" style="font-size: 0.8rem;">Required.</div>
+                                </div>
+                            </div>
+                            <div class="row g-2">
+                                <div class="col-6 mb-2">
+                                    <label for="newPassword" class="form-label" style="color: #212529; font-weight: 500; font-size: 0.9rem; margin-bottom: 0.25rem;">New Password</label>
+                                    <input type="password" class="form-control form-control-sm" id="newPassword" placeholder="New password" style="background: #ffffff; color: #212529; border: 1px solid #ced4da; padding: 0.5rem;">
+                                    <div class="invalid-feedback" style="font-size: 0.8rem;">Min 8 chars.</div>
+                                </div>
+                                <div class="col-6 mb-2">
+                                    <label for="confirmNewPassword" class="form-label" style="color: #212529; font-weight: 500; font-size: 0.9rem; margin-bottom: 0.25rem;">Confirm Password</label>
+                                    <input type="password" class="form-control form-control-sm" id="confirmNewPassword" placeholder="Confirm password" style="background: #ffffff; color: #212529; border: 1px solid #ced4da; padding: 0.5rem;">
+                                    <div class="invalid-feedback" style="font-size: 0.8rem;">Must match.</div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer" style="background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%); border-top: 2px solid #dee2e6; padding: 0.75rem;">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal" style="color: #fff;">Close</button>
+                        <button type="button" class="btn btn-warning btn-sm" onclick="dashboard.changePassword()" id="changePasswordBtn" style="color: #212529; font-weight: 500;">
+                            <i class="bi bi-key"></i> Change Password
+                        </button>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="dashboard.updateProfile()" id="updateProfileBtn" style="font-weight: 500;">
+                            <i class="bi bi-save"></i> Save Profile
+                        </button>
                     </div>
                 </div>
             </div>

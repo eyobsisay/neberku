@@ -1926,6 +1926,289 @@ ${paymentMethod.description}
         }
     }
 
+    async showProfileModal() {
+        try {
+            // Load user profile data
+            const token = localStorage.getItem('neberku_access_token');
+            if (!token) {
+                this.showAlert('Authentication required', 'danger');
+                return;
+            }
+
+            const response = await fetch(`${API_CONFIG.BASE_URL}/api/user/profile/`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (response.ok) {
+                const userData = await response.json();
+                
+                // Populate form fields (with null checks for safety)
+                const usernameEl = document.getElementById('profileUsername');
+                const emailEl = document.getElementById('profileEmail');
+                const firstNameEl = document.getElementById('profileFirstName');
+                const lastNameEl = document.getElementById('profileLastName');
+                const phoneEl = document.getElementById('profilePhoneNumber');
+                
+                if (usernameEl) usernameEl.value = userData.username || '';
+                if (emailEl) emailEl.value = userData.email || '';
+                if (firstNameEl) firstNameEl.value = userData.first_name || '';
+                if (lastNameEl) lastNameEl.value = userData.last_name || '';
+                if (phoneEl) phoneEl.value = userData.phone_number || '';
+                
+                // Account type
+                let accountType = 'Standard User';
+                if (userData.is_superuser) accountType = 'Superuser';
+                else if (userData.is_staff) accountType = 'Staff';
+                const accountTypeEl = document.getElementById('profileAccountType');
+                if (accountTypeEl) {
+                    accountTypeEl.value = accountType;
+                }
+                
+                // Date joined (optional field - may not exist in compact modal)
+                if (userData.date_joined) {
+                    const dateJoinedEl = document.getElementById('profileDateJoined');
+                    if (dateJoinedEl) {
+                        const date = new Date(userData.date_joined);
+                        dateJoinedEl.value = date.toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                        });
+                    }
+                }
+                
+                // Clear validation states (with null checks)
+                if (emailEl) emailEl.classList.remove('is-invalid', 'is-valid');
+                if (firstNameEl) firstNameEl.classList.remove('is-invalid', 'is-valid');
+                if (lastNameEl) lastNameEl.classList.remove('is-invalid', 'is-valid');
+                if (phoneEl) phoneEl.classList.remove('is-invalid', 'is-valid');
+                
+                // Clear password fields (with null checks)
+                const currentPasswordEl = document.getElementById('currentPassword');
+                const newPasswordEl = document.getElementById('newPassword');
+                const confirmPasswordEl = document.getElementById('confirmNewPassword');
+                
+                if (currentPasswordEl) {
+                    currentPasswordEl.value = '';
+                    currentPasswordEl.classList.remove('is-invalid', 'is-valid');
+                }
+                if (newPasswordEl) {
+                    newPasswordEl.value = '';
+                    newPasswordEl.classList.remove('is-invalid', 'is-valid');
+                }
+                if (confirmPasswordEl) {
+                    confirmPasswordEl.value = '';
+                    confirmPasswordEl.classList.remove('is-invalid', 'is-valid');
+                }
+                
+                // Show modal
+                const modal = new bootstrap.Modal(document.getElementById('profileModal'));
+                modal.show();
+            } else {
+                const errorData = await response.json().catch(() => ({}));
+                this.showAlert(`Failed to load profile: ${errorData.error || 'Unknown error'}`, 'danger');
+            }
+        } catch (error) {
+            console.error('Error loading profile:', error);
+            this.showAlert('Failed to load profile. Please try again.', 'danger');
+        }
+    }
+
+    async updateProfile() {
+        const updateBtn = document.getElementById('updateProfileBtn');
+        const originalText = updateBtn.innerHTML;
+        
+        try {
+            // Validate form
+            const email = document.getElementById('profileEmail').value.trim();
+            const firstName = document.getElementById('profileFirstName').value.trim();
+            const lastName = document.getElementById('profileLastName').value.trim();
+            const phoneNumber = document.getElementById('profilePhoneNumber').value.trim();
+            
+            // Clear previous validation
+            document.getElementById('profileEmail').classList.remove('is-invalid', 'is-valid');
+            document.getElementById('profileFirstName').classList.remove('is-invalid', 'is-valid');
+            document.getElementById('profileLastName').classList.remove('is-invalid', 'is-valid');
+            document.getElementById('profilePhoneNumber').classList.remove('is-invalid', 'is-valid');
+            
+            // Validate required fields
+            if (!email || !firstName || !lastName) {
+                this.showAlert('Please fill in all required fields', 'warning');
+                if (!email) document.getElementById('profileEmail').classList.add('is-invalid');
+                if (!firstName) document.getElementById('profileFirstName').classList.add('is-invalid');
+                if (!lastName) document.getElementById('profileLastName').classList.add('is-invalid');
+                return;
+            }
+            
+            // Validate email
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                document.getElementById('profileEmail').classList.add('is-invalid');
+                this.showAlert('Please enter a valid email address', 'warning');
+                return;
+            }
+            
+            // Validate phone number if provided
+            if (phoneNumber) {
+                const phoneRegex = /^09\d{8}$/;
+                if (!phoneRegex.test(phoneNumber)) {
+                    document.getElementById('profilePhoneNumber').classList.add('is-invalid');
+                    this.showAlert('Phone number must be in format: 09xxxxxxxx (10 digits starting with 09)', 'warning');
+                    return;
+                }
+            }
+            
+            // Show loading state
+            updateBtn.disabled = true;
+            updateBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+            
+            const token = localStorage.getItem('neberku_access_token');
+            const response = await fetch(`${API_CONFIG.BASE_URL}/api/user/profile/`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    email: email,
+                    first_name: firstName,
+                    last_name: lastName,
+                    phone_number: phoneNumber
+                })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                this.showAlert('Profile updated successfully!', 'success');
+                
+                // Update user data in localStorage
+                const currentUser = getCurrentUser();
+                if (currentUser) {
+                    currentUser.email = data.user.email;
+                    currentUser.first_name = data.user.first_name;
+                    currentUser.last_name = data.user.last_name;
+                    localStorage.setItem('neberku_user', JSON.stringify(currentUser));
+                    
+                    // Update display name
+                    const displayName = `${data.user.first_name} ${data.user.last_name}`.trim() || data.user.username;
+                    document.getElementById('userDisplayName').textContent = displayName;
+                }
+                
+                // Close modal after a short delay
+                setTimeout(() => {
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('profileModal'));
+                    if (modal) modal.hide();
+                }, 1500);
+            } else {
+                const errorData = await response.json().catch(() => ({}));
+                this.showAlert(`Failed to update profile: ${errorData.error || 'Unknown error'}`, 'danger');
+            }
+        } catch (error) {
+            console.error('Error updating profile:', error);
+            this.showAlert('Failed to update profile. Please try again.', 'danger');
+        } finally {
+            updateBtn.disabled = false;
+            updateBtn.innerHTML = originalText;
+        }
+    }
+
+    async changePassword() {
+        const changePasswordBtn = document.getElementById('changePasswordBtn');
+        const originalText = changePasswordBtn.innerHTML;
+        
+        try {
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmNewPassword = document.getElementById('confirmNewPassword').value;
+            
+            // Clear previous validation
+            document.getElementById('currentPassword').classList.remove('is-invalid', 'is-valid');
+            document.getElementById('newPassword').classList.remove('is-invalid', 'is-valid');
+            document.getElementById('confirmNewPassword').classList.remove('is-invalid', 'is-valid');
+            
+            // Validate fields
+            if (!currentPassword) {
+                document.getElementById('currentPassword').classList.add('is-invalid');
+                this.showAlert('Please enter your current password', 'warning');
+                return;
+            }
+            
+            if (!newPassword) {
+                document.getElementById('newPassword').classList.add('is-invalid');
+                this.showAlert('Please enter a new password', 'warning');
+                return;
+            }
+            
+            if (newPassword.length < 8) {
+                document.getElementById('newPassword').classList.add('is-invalid');
+                this.showAlert('Password must be at least 8 characters long', 'warning');
+                return;
+            }
+            
+            if (newPassword !== confirmNewPassword) {
+                document.getElementById('confirmNewPassword').classList.add('is-invalid');
+                this.showAlert('New passwords do not match', 'warning');
+                return;
+            }
+            
+            // Show loading state
+            changePasswordBtn.disabled = true;
+            changePasswordBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Changing...';
+            
+            const token = localStorage.getItem('neberku_access_token');
+            const response = await fetch(`${API_CONFIG.BASE_URL}/api/user/change-password/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    old_password: currentPassword,
+                    new_password: newPassword,
+                    confirm_password: confirmNewPassword
+                })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                this.showAlert('Password changed successfully!', 'success');
+                
+                // Clear password fields
+                document.getElementById('currentPassword').value = '';
+                document.getElementById('newPassword').value = '';
+                document.getElementById('confirmNewPassword').value = '';
+                document.getElementById('currentPassword').classList.remove('is-invalid', 'is-valid');
+                document.getElementById('newPassword').classList.remove('is-invalid', 'is-valid');
+                document.getElementById('confirmNewPassword').classList.remove('is-invalid', 'is-valid');
+            } else {
+                const errorData = await response.json().catch(() => ({}));
+                const errorMessage = errorData.error || 'Unknown error';
+                this.showAlert(`Failed to change password: ${errorMessage}`, 'danger');
+                
+                // Mark invalid fields
+                if (errorMessage.includes('Current password') || errorMessage.includes('current password')) {
+                    document.getElementById('currentPassword').classList.add('is-invalid');
+                }
+                if (errorMessage.includes('at least 8')) {
+                    document.getElementById('newPassword').classList.add('is-invalid');
+                }
+                if (errorMessage.includes('do not match')) {
+                    document.getElementById('confirmNewPassword').classList.add('is-invalid');
+                }
+            }
+        } catch (error) {
+            console.error('Error changing password:', error);
+            this.showAlert('Failed to change password. Please try again.', 'danger');
+        } finally {
+            changePasswordBtn.disabled = false;
+            changePasswordBtn.innerHTML = originalText;
+        }
+    }
+
 }
 
 // Initialize dashboard when page loads

@@ -1218,6 +1218,131 @@ def api_register(request):
         )
 
 
+@api_view(['GET', 'PUT', 'PATCH'])
+@permission_classes([permissions.IsAuthenticated])
+def api_user_profile(request):
+    """API endpoint to get and update user profile"""
+    user = request.user
+    
+    if request.method == 'GET':
+        # Return user profile data
+        return Response({
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'is_superuser': user.is_superuser,
+            'is_staff': user.is_staff,
+            'date_joined': user.date_joined
+        }, status=status.HTTP_200_OK)
+    
+    elif request.method in ['PUT', 'PATCH']:
+        # Update user profile
+        first_name = request.data.get('first_name', '').strip()
+        last_name = request.data.get('last_name', '').strip()
+        email = request.data.get('email', '').strip()
+        phone_number = request.data.get('phone_number', '').strip()
+        
+        # Validate email if provided
+        if email:
+            if User.objects.filter(email=email).exclude(id=user.id).exists():
+                return Response(
+                    {'error': 'Email already exists'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            user.email = email
+        
+        # Validate phone number format if provided: 09xxxxxxxx
+        if phone_number:
+            if not phone_number.startswith('09') or len(phone_number) != 10 or not phone_number.isdigit():
+                return Response(
+                    {'error': 'Phone number must be in format: 09xxxxxxxx (10 digits starting with 09)'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            # Store phone number - for now we'll skip it since there's no UserProfile model
+            # You can extend this later to create a UserProfile model
+        
+        # Update user fields
+        if first_name:
+            user.first_name = first_name
+        if last_name:
+            user.last_name = last_name
+        
+        try:
+            user.save()
+            return Response({
+                'success': True,
+                'user': {
+                    'id': user.id,
+                    'username': user.username,
+                    'email': user.email,
+                    'first_name': user.first_name,
+                    'last_name': user.last_name
+                },
+                'message': 'Profile updated successfully'
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response(
+                {'error': f'Error updating profile: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def api_change_password(request):
+    """API endpoint to change user password"""
+    user = request.user
+    
+    old_password = request.data.get('old_password')
+    new_password = request.data.get('new_password')
+    confirm_password = request.data.get('confirm_password')
+    
+    if not old_password or not new_password or not confirm_password:
+        return Response(
+            {'error': 'Old password, new password, and confirmation are required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    if new_password != confirm_password:
+        return Response(
+            {'error': 'New passwords do not match'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    if len(new_password) < 8:
+        return Response(
+            {'error': 'New password must be at least 8 characters long'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    # Verify old password
+    if not user.check_password(old_password):
+        return Response(
+            {'error': 'Current password is incorrect'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    # Check if new password is same as old password
+    if user.check_password(new_password):
+        return Response(
+            {'error': 'New password must be different from current password'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    try:
+        user.set_password(new_password)
+        user.save()
+        return Response({
+            'success': True,
+            'message': 'Password changed successfully'
+        }, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response(
+            {'error': f'Error changing password: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def api_logout(request):

@@ -29,6 +29,10 @@ urlpatterns = [
     path('register/', views.api_register, name='api_register'),
     path('logout/', views.api_logout, name='api_logout'),
     
+    # User profile endpoints
+    path('user/profile/', views.api_user_profile, name='api_user_profile'),
+    path('user/change-password/', views.api_change_password, name='api_change_password'),
+    
     # Guest access endpoints
     path('guest/event/', views.guest_event_access, name='guest_event_access'),
     path('guest/event-by-id/<uuid:event_id>/', views.guest_event_by_id, name='guest_event_by_id'),
