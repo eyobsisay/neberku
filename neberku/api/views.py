@@ -980,6 +980,80 @@ class PublicEventViewSet(viewsets.ReadOnlyModelViewSet):
             'message': 'Event liked!' if is_liked else 'Event unliked!'
         })
 
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def public_media_item(request, post_id, media_id):
+    """
+    Public endpoint to retrieve a specific approved media item from an approved post.
+    This endpoint validates that:
+    - The post is approved
+    - The media item is approved
+    - The media belongs to the post
+    This prevents users from accessing unapproved media by changing the URL.
+    """
+    try:
+        # Get the post and verify it's approved
+        try:
+            post = GuestPost.objects.get(id=post_id, is_approved=True)
+        except GuestPost.DoesNotExist:
+            return Response(
+                {'error': 'Post not found or not approved', 'post_id': str(post_id)},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Get the media file and verify it belongs to the post and is approved
+        try:
+            media_file = MediaFile.objects.get(
+                id=media_id,
+                post=post,
+                is_approved=True
+            )
+        except MediaFile.DoesNotExist:
+            # Check if media exists but is not approved or doesn't belong to post
+            media_exists = MediaFile.objects.filter(id=media_id).exists()
+            if media_exists:
+                return Response(
+                    {'error': 'Media item exists but is not approved or does not belong to this post', 
+                     'media_id': str(media_id), 'post_id': str(post_id)},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            else:
+                return Response(
+                    {'error': 'Media item not found', 'media_id': str(media_id)},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+        
+        # Serialize the media file with post context
+        serializer = MediaFileSerializer(media_file, context={'request': request})
+        
+        # Include minimal post info for context
+        response_data = serializer.data
+        response_data['post'] = {
+            'id': str(post.id),
+            'guest': {
+                'name': post.guest.name if post.guest else 'Anonymous'
+            },
+            'wish_text': post.wish_text,
+            'created_at': post.created_at,
+            'event': {
+                'id': str(post.event.id),
+                'title': post.event.title,
+                'description': post.event.description,
+                'event_date': post.event.event_date,
+                'location': post.event.location,
+            } if post.event else None
+        }
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
+        return Response(
+            {'error': f'Error retrieving media: {str(e)}', 'trace': error_trace},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
 class PaymentMethodViewSet(viewsets.ReadOnlyModelViewSet):
     """Read-only ViewSet for listing active payment methods"""
     queryset = PaymentMethod.objects.filter(is_active=True).order_by('sort_order', 'name')

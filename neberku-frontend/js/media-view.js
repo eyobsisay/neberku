@@ -31,47 +31,55 @@ class MediaView {
 
     async loadPostAndMedia() {
         try {
-            console.log('📡 Loading post and media');
+            console.log('📡 Loading media item securely');
+            console.log('📋 Post ID:', this.postId);
+            console.log('📋 Media ID:', this.mediaId);
             
-            // Load post without authentication (public view)
-            const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.GUEST_POST_DETAIL.replace('{id}', this.postId)}`, {
+            // Use the secure public media endpoint that validates:
+            // - Post is approved
+            // - Media is approved
+            // - Media belongs to the post
+            const apiUrl = `${API_CONFIG.BASE_URL}/api/public/posts/${this.postId}/media/${this.mediaId}/`;
+            console.log('🔗 API URL:', apiUrl);
+            
+            const response = await fetch(apiUrl, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json'
                 }
             });
 
+            console.log('📡 Response status:', response.status);
+
             if (response.ok) {
-                this.post = await response.json();
-                console.log('✅ Post loaded successfully:', this.post);
+                const data = await response.json();
+                console.log('✅ Media loaded successfully:', data);
                 
-                // Find the specific media item
-                if (this.post.media_files && this.post.media_files.length > 0) {
-                    this.media = this.post.media_files.find(m => m.id === this.mediaId);
-                    
-                    if (this.media) {
-                        console.log('✅ Media found:', this.media);
-                        this.renderMedia();
-                    } else {
-                        this.showError('Media item not found in this post');
-                    }
+                // The endpoint returns media with post context
+                this.media = data;
+                this.post = data.post; // Post info is included in the response
+                
+                if (this.media && this.post) {
+                    console.log('✅ Media and post data ready');
+                    this.renderMedia();
                 } else {
-                    this.showError('No media files found in this post');
+                    console.error('❌ Missing data:', { media: this.media, post: this.post });
+                    this.showError('Media item data is incomplete');
                 }
             } else {
                 const errorData = await response.json().catch(() => ({}));
-                console.error('❌ Error loading post:', errorData);
+                console.error('❌ Error loading media:', errorData);
+                console.error('❌ Response status:', response.status);
                 
-                if (response.status === 401 || response.status === 403) {
-                    this.showError('This post is not publicly available. It may require authentication or the post may not be approved yet.');
-                } else if (response.status === 404) {
-                    this.showError('Post not found. The post may have been removed or does not exist.');
+                if (response.status === 404) {
+                    this.showError('Media item not found. It may not be approved or may not belong to this post.');
                 } else {
-                    this.showError(`Unable to load post: ${errorData.detail || 'Unknown error'}`);
+                    this.showError(`Unable to load media: ${errorData.error || errorData.detail || 'Unknown error'}`);
                 }
             }
         } catch (error) {
-            console.error('❌ Error loading post:', error);
+            console.error('❌ Error loading media:', error);
+            console.error('❌ Error details:', error.message, error.stack);
             this.showError('Unable to load media. Please check your connection and try again.');
         }
     }
@@ -86,18 +94,18 @@ class MediaView {
         document.getElementById('mediaContent').style.display = 'block';
         document.getElementById('shareButton').style.display = 'flex';
 
-        // Guest name
+        // Guest name - post data structure from the secure endpoint
         const guestName = this.post.guest?.name || 'Anonymous';
         document.getElementById('guestName').innerHTML = `<i class="bi bi-person-circle"></i> ${guestName}`;
 
-        // Event title
+        // Event title - post data structure from the secure endpoint
         let eventTitle = 'Event';
         if (this.post.event && typeof this.post.event === 'object' && this.post.event.title) {
             eventTitle = this.post.event.title;
         }
         document.getElementById('eventTitle').textContent = eventTitle;
 
-        // Media date
+        // Media date - use post created_at
         document.getElementById('mediaDate').innerHTML = `<i class="bi bi-calendar3"></i> ${this.formatDate(this.post.created_at)}`;
 
         // Wish text
@@ -107,7 +115,7 @@ class MediaView {
         // Render media
         this.renderMediaDisplay();
 
-        // Event info
+        // Event info - post data structure from the secure endpoint
         if (this.post.event && typeof this.post.event === 'object') {
             document.getElementById('eventInfo').style.display = 'block';
             document.getElementById('eventName').textContent = this.post.event.title || 'Event';
