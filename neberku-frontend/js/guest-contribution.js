@@ -21,15 +21,59 @@ class GuestContributionManager {
     checkDirectAccess() {
         const urlParams = new URLSearchParams(window.location.search);
         const eventId = urlParams.get('event');
+        const contributorCode = urlParams.get('code');
         
         console.log('🔍 Checking for direct access...');
         console.log('🔍 URL parameters:', Object.fromEntries(urlParams.entries()));
         
-        if (eventId) {
+        if (eventId && contributorCode) {
+            // QR code or share link with code - automatically access with the code
+            console.log('🔗 QR code/share link detected with contributor code');
+            this.handleDirectAccessWithCode(eventId, contributorCode);
+        } else if (eventId) {
+            // Direct access without code - try to access directly
             console.log('🔗 Direct access detected for event:', eventId);
             this.handleDirectAccess(eventId);
         } else {
             console.log('🔍 No direct access detected - showing normal access form');
+        }
+    }
+
+    async handleDirectAccessWithCode(eventId, contributorCode) {
+        try {
+            this.showLoading(true);
+            this.showAlert('Loading event details...', 'info');
+            
+            // Pre-fill the contributor code in the form
+            const codeInput = document.getElementById('contributorCode');
+            if (codeInput) {
+                codeInput.value = contributorCode;
+            }
+            
+            // Use the contributor code to access the event
+            const url = `${API_CONFIG.BASE_URL}/api/guest/event/?code=${contributorCode}`;
+            const response = await fetch(url);
+            const data = await response.json();
+            
+            if (response.ok) {
+                // Verify the event ID matches
+                if (data.id === eventId) {
+                    this.currentEvent = data;
+                    this.showEventDetails(data);
+                } else {
+                    this.showAlert('Event mismatch. Please try again.', 'warning');
+                    this.showAccessForm();
+                }
+            } else {
+                this.showAlert(data.error || 'Failed to access event', 'danger');
+                this.showAccessForm();
+            }
+        } catch (error) {
+            console.error('Error with direct access using code:', error);
+            this.showAlert('Unable to load event. Please try again.', 'danger');
+            this.showAccessForm();
+        } finally {
+            this.showLoading(false);
         }
     }
 
@@ -306,11 +350,20 @@ class GuestContributionManager {
     showEventDetails(event) {
         this.currentEvent = event;
         
-        // Get the contributor code that was used to access this event
-        const contributorCode = document.getElementById('contributorCode').value.trim();
+        // Get the contributor code from URL parameters first, then from form input
+        const urlParams = new URLSearchParams(window.location.search);
+        let contributorCode = urlParams.get('code');
+        
+        if (!contributorCode) {
+            // Fall back to form input if not in URL
+            const codeInput = document.getElementById('contributorCode');
+            if (codeInput) {
+                contributorCode = codeInput.value.trim();
+            }
+        }
         
         // Always redirect to the event detail page with the contributor code
-        const redirectUrl = `event-detail-guest.html?event=${event.id}&code=${contributorCode}`;
+        const redirectUrl = `event-detail-guest.html?event=${event.id}${contributorCode ? `&code=${contributorCode}` : ''}`;
         
         console.log('🔗 Redirecting to event detail with code:', redirectUrl);
         window.location.href = redirectUrl;

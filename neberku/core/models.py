@@ -147,8 +147,12 @@ class Event(models.Model):
         """Generate QR code for the event"""
         try:
             if not self.qr_code and self.id:
-                # Create QR code data - use frontend URL for guest contribution
-                qr_data = f"{settings.FRONTEND_URL}/guest-contribution.html?event={self.id}"
+                # Ensure contributor code exists
+                if not self.contributor_code:
+                    self.generate_contributor_code()
+                
+                # Create QR code data - use frontend URL for guest contribution with contributor code
+                qr_data = f"{settings.FRONTEND_URL}/guest-contribution.html?event={self.id}&code={self.contributor_code}"
                 
                 # Generate QR code
                 qr = qrcode.QRCode(
