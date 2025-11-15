@@ -953,13 +953,32 @@ class EventDetail {
             const qrContainer = document.getElementById('qrCodeContainer');
             if (!qrContainer) return;
 
-            // Always generate QR code using frontend URL for consistency
-            const shareUrl = document.getElementById('shareLinkInput')?.value || 
-                           `${window.location.origin}/guest-contribution.html?event=${this.event.id}`;
+            // First, try to use the backend-generated QR code (includes the code in the data)
+            if (this.event.qr_code) {
+                console.log('✅ Using backend-generated QR code:', this.event.qr_code);
+                const qrImage = document.createElement('img');
+                qrImage.src = this.event.qr_code;
+                qrImage.alt = 'Event QR Code';
+                qrImage.className = 'img-fluid';
+                qrImage.style.maxWidth = '200px';
+                
+                // Clear loading spinner and add QR code
+                qrContainer.innerHTML = '';
+                qrContainer.appendChild(qrImage);
+                console.log('✅ QR code displayed successfully from backend');
+                return;
+            }
+
+            // Fallback: Generate QR code client-side with contributor code included in QR data
+            // Build URL with contributor code for QR code (but share link stays without code)
+            let qrDataUrl = `${window.location.origin}/guest-contribution.html?event=${this.event.id}`;
+            if (this.event.contributor_code) {
+                qrDataUrl += `&code=${this.event.contributor_code}`;
+            }
             
             // Use QRServer API to generate QR code
-            const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(shareUrl)}`;
-            console.log('✅ Generated QR code using frontend URL:', shareUrl);
+            const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrDataUrl)}`;
+            console.log('✅ Generated QR code with access code:', qrDataUrl);
             
             // Create QR code image
             const qrImage = document.createElement('img');
@@ -972,7 +991,7 @@ class EventDetail {
             qrContainer.innerHTML = '';
             qrContainer.appendChild(qrImage);
             
-            console.log('✅ QR code displayed successfully');
+            console.log('✅ QR code displayed successfully (fallback with code)');
         } catch (error) {
             console.error('❌ Error generating QR code:', error);
             const qrContainer = document.getElementById('qrCodeContainer');

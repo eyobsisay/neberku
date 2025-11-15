@@ -323,6 +323,7 @@ class EventSerializer(serializers.ModelSerializer):
     video_count = serializers.SerializerMethodField()
     voice_count = serializers.SerializerMethodField()
     is_live = serializers.ReadOnlyField()
+    qr_code = serializers.SerializerMethodField()
     
     class Meta:
         model = Event
@@ -338,6 +339,15 @@ class EventSerializer(serializers.ModelSerializer):
                            'share_link', 'created_at', 'updated_at', 'published_at',
                            'settings', 'total_guest_posts', 'total_media_files', 'photo_count', 'video_count', 'voice_count', 'is_live',
                            'contributor_code']
+    
+    def get_qr_code(self, obj):
+        """Get QR code URL if it exists - returns full absolute URL"""
+        if obj.qr_code:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.qr_code.url)
+            return obj.qr_code.url
+        return None
     
     def get_total_guest_posts(self, obj):
         """Count guest posts based on user permissions"""
