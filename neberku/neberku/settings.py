@@ -24,14 +24,14 @@ SECRET_KEY = 'django-insecure-rx7umt2qsa+snr9z*8zv8m8x#@r73k-_rq45h5k&d5al)4c0&y
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-
+fake_production = False
 ALLOWED_HOSTS = ['neberku.et','api.koshkoshe.com', 'www.api.koshkoshe.com', 'www.koshkoshe.com', 'koshkoshe.com','localhost','127.0.0.1']
 
 # Site URL for generating QR codes and share links
-SITE_URL = 'http://localhost:8000' if DEBUG else 'https://api.koshkoshe.com'
+SITE_URL = 'http://localhost:8000' if fake_production else 'https://api.koshkoshe.com'
 
 # Frontend URL for guest contribution links
-FRONTEND_URL = 'http://localhost:3000' if DEBUG else 'https://koshkoshe.com'
+FRONTEND_URL = 'http://localhost:3000' if fake_production else 'https://neberku.et'
 
 
 # Application definition
