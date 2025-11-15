@@ -147,9 +147,13 @@ class Event(models.Model):
         """Generate QR code for the event"""
         try:
             if not self.qr_code and self.id:
-                # Ensure contributor code exists
+                # Ensure contributor code exists and is not empty
                 if not self.contributor_code:
                     self.generate_contributor_code()
+                
+                # Double-check that contributor code exists before generating QR code
+                if not self.contributor_code:
+                    raise ValueError(f"Cannot generate QR code for event {self.id}: contributor_code is missing")
                 
                 # Create QR code data - use frontend URL for guest contribution with contributor code
                 qr_data = f"{settings.FRONTEND_URL}/guest-contribution.html?event={self.id}&code={self.contributor_code}"
@@ -238,19 +242,20 @@ class Event(models.Model):
             # Save first to get the ID
             super().save(*args, **kwargs)
             
-            # Generate QR code, share link, and contributor code if they don't exist
+            # Generate contributor code FIRST (before QR code, since QR code needs it)
             needs_save = False
             
+            if not self.contributor_code:
+                self.generate_contributor_code()
+                needs_save = True
+            
+            # Now generate QR code (which requires contributor_code)
             if not self.qr_code:
                 self.generate_qr_code()
                 needs_save = True
                 
             if not self.share_link:
                 self.generate_share_link()
-                needs_save = True
-                
-            if not self.contributor_code:
-                self.generate_contributor_code()
                 needs_save = True
                 
             if self.status == 'active' and not self.published_at:
