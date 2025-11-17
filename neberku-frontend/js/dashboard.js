@@ -9,6 +9,7 @@ class Dashboard {
         this.selectedPackage = null; // Store selected package data
         this.isSuperuser = false; // Track if user is superuser
         this.paymentMethods = []; // Store all payment methods
+        this.paymentCountdownTimers = {}; // Track countdown intervals per payment
         this.init();
     }
 
@@ -1613,6 +1614,9 @@ class Dashboard {
                                     <div class="mt-2 mb-2">
                                         <strong style="color: #000; font-size: 1rem;">${amount.toLocaleString()} ETB</strong>
                                         <small class="ms-2" style="color: var(--accent);">Created: ${createdDate}</small>
+                                        <div class="small mt-1" id="paymentCountdown-${payment.id}" style="color: var(--confetti-1); font-weight: 600;">
+                                            <!-- countdown populated via JS -->
+                                        </div>
                                     </div>
                                     ${payment.transaction_id ? `
                                         <div class="small mt-1" style="color: var(--primary-start);">
@@ -1764,6 +1768,9 @@ ${method.description}
                     cartDropdownFooter.style.display = 'none';
                 }
             }
+            
+            // Setup countdown timers for each payment
+            this.initializePaymentCountdowns(payments);
         }
         
         // Full section is no longer used - all details shown in modal
@@ -1772,6 +1779,52 @@ ${method.description}
             paymentsCount.textContent = payments.length;
             paymentsSection.style.display = 'none'; // Always hide the full section
         }
+    }
+    
+    initializePaymentCountdowns(payments = []) {
+        // Clear existing timers
+        if (this.paymentCountdownTimers && typeof this.paymentCountdownTimers === 'object') {
+            Object.values(this.paymentCountdownTimers).forEach(intervalId => clearInterval(intervalId));
+        }
+        this.paymentCountdownTimers = {};
+        
+        payments.forEach(payment => this.startPaymentCountdown(payment));
+    }
+    
+    startPaymentCountdown(payment) {
+        const countdownEl = document.getElementById(`paymentCountdown-${payment.id}`);
+        if (!countdownEl || !payment?.created_at) {
+            return;
+        }
+        
+        const createdTime = new Date(payment.created_at).getTime();
+        const expiryTime = createdTime + (10 * 60 * 1000); // 10 minutes
+        
+        const updateCountdown = () => {
+            const now = Date.now();
+            const remaining = expiryTime - now;
+            
+            if (remaining <= 0) {
+                countdownEl.textContent = '⏰ Confirmation window expired';
+                countdownEl.classList.remove('text-warning');
+                countdownEl.classList.add('text-danger', 'fw-bold');
+                clearInterval(this.paymentCountdownTimers[payment.id]);
+                return;
+            }
+            
+            const minutes = Math.floor(remaining / 60000);
+            const seconds = Math.floor((remaining % 60000) / 1000);
+            countdownEl.textContent = `Confirm within ${minutes}:${seconds.toString().padStart(2, '0')} min`;
+            
+            if (remaining <= 2 * 60 * 1000) {
+                countdownEl.classList.add('text-warning', 'fw-bold');
+            } else {
+                countdownEl.classList.remove('text-warning');
+            }
+        };
+        
+        updateCountdown();
+        this.paymentCountdownTimers[payment.id] = setInterval(updateCountdown, 1000);
     }
     
     viewPaymentDetails(paymentId) {
