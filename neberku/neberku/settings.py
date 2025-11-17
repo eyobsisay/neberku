@@ -49,11 +49,37 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'corsheaders',
     'drf_yasg',
+    'ckeditor',
     
     # Local apps
     'core',
     'api',
 ]
+
+CKEDITOR_CONFIGS = {
+    'default': {
+        'toolbar': 'Advanced',
+        'height': 250,
+        'width': '100%',
+        'toolbar_Advanced': [
+            ['Format', 'Font', 'FontSize'],
+            ['Bold', 'Italic', 'Underline', 'Strike', 'Subscript', 'Superscript', '-', 'RemoveFormat'],
+            ['TextColor', 'BGColor'],
+            ['NumberedList', 'BulletedList', '-', 'Outdent', 'Indent'],
+            ['JustifyLeft', 'JustifyCenter', 'JustifyRight', 'JustifyBlock'],
+            ['Link', 'Unlink'],
+            ['Undo', 'Redo'],
+            ['Source']
+        ],
+        'extraPlugins': ','.join([
+            'font',
+            'colorbutton',
+            'justify'
+        ]),
+        'removeDialogTabs': 'image:advanced;link:advanced',
+        'forcePasteAsPlainText': False,
+    }
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

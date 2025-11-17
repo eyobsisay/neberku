@@ -7,6 +7,7 @@ from io import BytesIO
 from django.core.files import File
 from django.conf import settings
 import os
+from ckeditor.fields import RichTextField
 
 class EventType(models.Model):
     """Dynamic event types that can be managed through admin"""
@@ -29,7 +30,7 @@ class EventType(models.Model):
 class Package(models.Model):
     """Event packages with different features and pricing"""
     name = models.CharField(max_length=100, help_text="Package name (e.g., Basic, Premium, Enterprise)")
-    description = models.TextField(null=True, blank=True, help_text="Package description for customers")
+    description = RichTextField(null=True, blank=True, help_text="Package description for customers")
     price = models.DecimalField(max_digits=10, decimal_places=2, help_text="Package price in ETB")
     max_guests = models.PositiveIntegerField(
         null=True, blank=True,
@@ -61,7 +62,7 @@ class PaymentMethod(models.Model):
     """Available payment methods (e.g., Stripe, PayPal, Manual)"""
     code = models.CharField(max_length=50, unique=True, help_text="Identifier used in code/integrations")
     name = models.CharField(max_length=100, help_text="Display name for the payment method")
-    description = models.TextField(blank=True)
+    description = RichTextField(blank=True, null=True, help_text="Detailed payment instructions shown to users")
     account_number = models.CharField(max_length=100, blank=True, null=True, help_text="Optional receiving account number or wallet ID")
     is_active = models.BooleanField(default=True)
     sort_order = models.PositiveIntegerField(default=0)

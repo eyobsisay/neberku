@@ -1,3 +1,77 @@
+function sanitizeRichText(input) {
+    if (!input) return '';
+    const temp = document.createElement('div');
+    temp.innerHTML = input;
+    const allowedTags = new Set(['A','B','BR','EM','I','LI','OL','P','SPAN','STRONG','SUB','SUP','U','UL']);
+    const allowedAttrs = {
+        'A': ['href', 'title', 'target', 'rel', 'style'],
+        'SPAN': ['style'],
+        'P': ['style'],
+        'EM': ['style'],
+        'STRONG': ['style'],
+        'B': ['style'],
+        'I': ['style'],
+        '*': []
+    };
+    const allowedStyleProps = new Set(['color','background-color','font-weight','font-style','text-decoration','font-size']);
+    const sanitizeStyle = (styleValue) => {
+        if (!styleValue) return '';
+        return styleValue.split(';').map(rule => {
+            const [prop, val] = rule.split(':').map(p => p && p.trim());
+            if (!prop || !val) return '';
+            if (!allowedStyleProps.has(prop.toLowerCase())) return '';
+            return `${prop}: ${val}`;
+        }).filter(Boolean).join('; ');
+    };
+    const cleanNode = (node) => {
+        if (node.nodeType === Node.ELEMENT_NODE) {
+            const tagName = node.tagName.toUpperCase();
+            if (!allowedTags.has(tagName)) {
+                const parent = node.parentNode;
+                while (node.firstChild) {
+                    parent.insertBefore(node.firstChild, node);
+                }
+                parent.removeChild(node);
+                return;
+            }
+            [...node.attributes].forEach(attr => {
+                const attrName = attr.name.toLowerCase();
+                const tagAllowed = (allowedAttrs[tagName] || allowedAttrs['*'] || []).map(a => a.toLowerCase());
+                if (!tagAllowed.includes(attrName)) {
+                    node.removeAttribute(attr.name);
+                    return;
+                }
+                if (attrName === 'href') {
+                    const value = attr.value.trim().toLowerCase();
+                    if (value.startsWith('javascript:')) {
+                        node.removeAttribute(attr.name);
+                    } else {
+                        node.setAttribute('target', '_blank');
+                        node.setAttribute('rel', 'noopener noreferrer');
+                    }
+                } else if (attrName === 'style') {
+                    const sanitizedStyle = sanitizeStyle(attr.value);
+                    if (sanitizedStyle) {
+                        node.setAttribute('style', sanitizedStyle);
+                    } else {
+                        node.removeAttribute('style');
+                    }
+                }
+            });
+        }
+        [...node.childNodes].forEach(child => cleanNode(child));
+    };
+    [...temp.childNodes].forEach(child => cleanNode(child));
+    return temp.innerHTML;
+}
+
+function stripRichText(input) {
+    if (!input) return '';
+    const temp = document.createElement('div');
+    temp.innerHTML = sanitizeRichText(input);
+    return temp.textContent || temp.innerText || '';
+}
+
 // Dashboard functionality for event owners
 class Dashboard {
     constructor() {
@@ -1597,19 +1671,21 @@ class Dashboard {
                     const amount = parseFloat(payment.amount || 0);
                     const createdDate = payment.created_at ? new Date(payment.created_at).toLocaleDateString() : 'N/A';
                     const eventDate = event.event_date ? new Date(event.event_date).toLocaleDateString() : 'N/A';
+                    const eventTitle = stripRichText(event.title || 'Untitled Event');
+                    const packageName = stripRichText(event.package?.name || 'N/A');
                     
                     return `
                         <div class="mb-3 pb-3" style="color: #000; border-bottom: 2px solid var(--primary-start);">
                             <div class="d-flex align-items-start">
                                 <div class="flex-grow-1" style="color: #000;">
-                                    <h6 class="mb-1 small fw-bold" style="color: #000 !important;" title="${event.title || 'Untitled Event'}">
-                                        ${event.title || 'Untitled Event'}
+                                    <h6 class="mb-1 small fw-bold" style="color: #000 !important;" title="${eventTitle}">
+                                        ${eventTitle}
                                     </h6>
                                     <div class="small mb-1" style="color: var(--primary-start);">
                                         <i class="bi bi-calendar"></i> Event: ${eventDate}
                                     </div>
                                     <div class="small mb-1" style="color: var(--primary-end);">
-                                        <i class="bi bi-box"></i> ${event.package?.name || 'N/A'}
+                                        <i class="bi bi-box"></i> ${packageName}
                                     </div>
                                     <div class="mt-2 mb-2">
                                         <strong style="color: #000; font-size: 1rem;">${amount.toLocaleString()} ETB</strong>
@@ -1663,6 +1739,8 @@ class Dashboard {
                                                     ];
                                                     const color = projectColors[index % projectColors.length];
                                                     const isSelected = paymentMethod.id === method.id;
+                                                    const safeMethodName = stripRichText(method.name || 'Payment Method');
+                                                    const safeMethodDescription = sanitizeRichText(method.description || '');
                                                     
                                                     return `
                                                         <div class="col-12">
@@ -1674,7 +1752,7 @@ class Dashboard {
                                                                                 <i class="bi ${color.icon}" style="font-size: 1.3rem;"></i>
                                                                             </div>
                                                                             <div>
-                                                                                <strong style="font-size: 1rem; display: block; color: white;">${method.name || 'Payment Method'}</strong>
+                                                                                <strong style="font-size: 1rem; display: block; color: white;">${safeMethodName}</strong>
                                                                                 <small style="opacity: 0.9; font-size: 0.75rem; color: white;">Click to view details</small>
                                                                             </div>
                                                                         </div>
@@ -1709,14 +1787,14 @@ class Dashboard {
                                                                             </div>
                                                                         </div>
                                                                     ` : ''}
-                                                                    ${method.description ? `
+                                                                    ${safeMethodDescription ? `
                                                                         <div class="mt-3">
                                                                             <div class="d-flex align-items-center mb-2">
                                                                                 <i class="bi bi-info-circle-fill me-2" style="color: ${color.bg}; font-size: 1.1rem;"></i>
                                                                                 <strong style="color: #000; font-size: 0.9rem;">Payment Instructions</strong>
                                                                             </div>
-                                                                            <div class="payment-instructions-box p-3 rounded" style="border-left-color: ${color.bg}; white-space: pre-wrap; color: #000; font-size: 0.85rem; line-height: 1.6;">
-${method.description}
+                                                                            <div class="payment-instructions-box p-3 rounded" style="border-left-color: ${color.bg}; color: #000; font-size: 0.85rem; line-height: 1.6;">
+${safeMethodDescription}
                                                                             </div>
                                                                         </div>
                                                                     ` : `
@@ -1853,6 +1931,8 @@ ${method.description}
         const amount = parseFloat(payment.amount || 0);
         const createdDate = payment.created_at ? new Date(payment.created_at).toLocaleString() : 'N/A';
         const eventDate = event.event_date ? new Date(event.event_date).toLocaleString() : 'N/A';
+        const safePaymentInstructions = sanitizeRichText(paymentMethod.description || '');
+        const safeEventDescription = sanitizeRichText(event.description || '');
         
         modalContent.innerHTML = `
             <div class="row">
@@ -1897,11 +1977,11 @@ ${method.description}
                                         </div>
                                     </div>
                                 ` : ''}
-                                ${paymentMethod.description ? `
+                                ${safePaymentInstructions ? `
                                     <div class="mb-3">
                                         <strong style="color: #000;">Payment Instructions:</strong>
-                                        <div class="mt-2 p-3 bg-light rounded" style="white-space: pre-wrap; color: #000;">
-${paymentMethod.description}
+                                        <div class="mt-2 p-3 bg-light rounded" style="color: #000;">
+${safePaymentInstructions}
                                         </div>
                                     </div>
                                 ` : `
@@ -1917,11 +1997,11 @@ ${paymentMethod.description}
                     </div>
                 </div>
             </div>
-            ${event.description ? `
+            ${safeEventDescription ? `
                 <div class="row">
                     <div class="col-12">
                         <h6 class="mb-2" style="color: #000;">Event Description</h6>
-                        <p style="color: #000;">${event.description}</p>
+                        <p style="color: #000;">${safeEventDescription}</p>
                     </div>
                 </div>
             ` : ''}

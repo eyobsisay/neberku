@@ -1479,6 +1479,80 @@
         const apiResponsePanel = document.getElementById('apiResponsePanel');
         const apiResponsePre = document.getElementById('apiResponsePre');
 
+        function sanitizeHtml(input) {
+            if (!input) return '';
+            const temp = document.createElement('div');
+            temp.innerHTML = input;
+            const allowedTags = new Set(['A','B','BR','EM','I','LI','OL','P','SPAN','STRONG','SUB','SUP','U','UL']);
+            const allowedAttrs = {
+                'A': ['href', 'title', 'target', 'rel', 'style'],
+                'SPAN': ['style'],
+                'P': ['style'],
+                'EM': ['style'],
+                'STRONG': ['style'],
+                'B': ['style'],
+                'I': ['style'],
+                '*': []
+            };
+            const allowedStyleProps = new Set(['color','background-color','font-weight','font-style','text-decoration','font-size']);
+            const sanitizeStyle = (styleValue) => {
+                if (!styleValue) return '';
+                return styleValue.split(';').map(rule => {
+                    const [prop, val] = rule.split(':').map(p => p && p.trim());
+                    if (!prop || !val) return '';
+                    if (!allowedStyleProps.has(prop.toLowerCase())) return '';
+                    return `${prop}: ${val}`;
+                }).filter(Boolean).join('; ');
+            };
+            const cleanNode = (node) => {
+                if (node.nodeType === Node.ELEMENT_NODE) {
+                    const tagName = node.tagName.toUpperCase();
+                    if (!allowedTags.has(tagName)) {
+                        const parent = node.parentNode;
+                        while (node.firstChild) {
+                            parent.insertBefore(node.firstChild, node);
+                        }
+                        parent.removeChild(node);
+                        return;
+                    }
+                    [...node.attributes].forEach(attr => {
+                        const attrName = attr.name.toLowerCase();
+                        const tagAllowed = (allowedAttrs[tagName] || allowedAttrs['*'] || []).map(a => a.toLowerCase());
+                        if (!tagAllowed.includes(attrName)) {
+                            node.removeAttribute(attr.name);
+                            return;
+                        }
+                        if (attrName === 'href') {
+                            const value = attr.value.trim().toLowerCase();
+                            if (value.startsWith('javascript:')) {
+                                node.removeAttribute(attr.name);
+                            } else {
+                                node.setAttribute('target', '_blank');
+                                node.setAttribute('rel', 'noopener noreferrer');
+                            }
+                        } else if (attrName === 'style') {
+                            const sanitizedStyle = sanitizeStyle(attr.value);
+                            if (sanitizedStyle) {
+                                node.setAttribute('style', sanitizedStyle);
+                            } else {
+                                node.removeAttribute('style');
+                            }
+                        }
+                    });
+                }
+                [...node.childNodes].forEach(child => cleanNode(child));
+            };
+            [...temp.childNodes].forEach(child => cleanNode(child));
+            return temp.innerHTML;
+        }
+
+        function stripHtml(input) {
+            if (!input) return '';
+            const temp = document.createElement('div');
+            temp.innerHTML = sanitizeHtml(input);
+            return temp.textContent || temp.innerText || '';
+        }
+
         function setStep(index){
             steps.forEach((el,i)=>{ el.style.display = (i===index)?'block':'none'; });
             stepBadges.forEach((b,i)=>{
@@ -1577,14 +1651,32 @@
                 card.className = 'card text-center h-100 card-hover' + (idx === popularIndex ? ' border-primary' : '');
                 card.style.cursor = 'pointer';
                 const features = Array.isArray(p.features) ? p.features : (p.features ? Object.values(p.features) : []);
-                const featuresHtml = (features || []).map(f=>`<li class="mb-2"><i class=\"bi bi-check text-success me-2\"></i>${f}</li>`).join('');
+                const featuresHtml = (features || []).map(f=>{
+                    const safeFeature = stripHtml(String(f));
+                    return `<li class="mb-2"><i class="bi bi-check text-success me-2"></i>${safeFeature}</li>`;
+                }).join('');
                 const extrasHtml = `
                     ${p.max_photos ? `<li class=\"mb-2\"><i class=\"bi bi-check text-success me-2\"></i>Up to ${parseInt(p.max_photos).toLocaleString()} photos</li>` : ''}
                     ${p.max_videos ? `<li class=\"mb-2\"><i class=\"bi bi-check text-success me-2\"></i>Up to ${parseInt(p.max_videos).toLocaleString()} videos</li>` : ''}
                     ${p.max_guests ? `<li class=\"mb-2\"><i class=\"bi bi-check text-success me-2\"></i>Up to ${parseInt(p.max_guests).toLocaleString()} guests</li>` : ''}
                 `;
+                const safeDescription = sanitizeHtml(p.description || '');
                 card.innerHTML = `
-                    <div class=\"card-header bg-primary text-white\">\n                        <h4 class=\"mb-0\">${p.name}</h4>\n                        ${idx === popularIndex ? '<span class=\\"badge bg-warning\\">Most Popular</span>' : ''}\n                    </div>\n                    <div class=\"card-body text-white\">\n                        <h2 class=\"card-title\">${parseFloat(p.price).toLocaleString()} ETB</h2>\n                        ${p.description ? `<p class=\\"card-text\\">${p.description}</p>` : ''}\n                        <ul class=\"list-unstyled text-white\">\n                            ${featuresHtml}\n                            ${extrasHtml}\n                        </ul>\n                        <div class=\"d-grid\">\n                            <button type=\"button\" class=\"btn btn-primary select-package-btn\">Select</button>\n                        </div>\n                    </div>
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="mb-0">${stripHtml(p.name || '')}</h4>
+                        ${idx === popularIndex ? '<span class="badge bg-warning">Most Popular</span>' : ''}
+                    </div>
+                    <div class="card-body text-white">
+                        <h2 class="card-title">${parseFloat(p.price).toLocaleString()} ETB</h2>
+                        ${safeDescription ? `<div class="card-text">${safeDescription}</div>` : ''}
+                        <ul class="list-unstyled text-white">
+                            ${featuresHtml}
+                            ${extrasHtml}
+                        </ul>
+                        <div class="d-grid">
+                            <button type="button" class="btn btn-primary select-package-btn">Select</button>
+                        </div>
+                    </div>
                 `;
                 function select(){
                     pkgHidden.value = p.id;
@@ -1686,12 +1778,14 @@
                 col.className = 'col-12';
                 const card = document.createElement('div');
                 card.className = 'card';
+                const safeName = stripHtml(m.name || '-');
+                const safeDesc = sanitizeHtml(m.description || '');
                 card.innerHTML = `
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
-                                <div class="fw-bold">${m.name || '-'}</div>
-                                <div class="text-muted small">${m.description || ''}</div>
+                                <div class="fw-bold">${safeName}</div>
+                                ${safeDesc ? `<div class="small">${safeDesc}</div>` : ''}
                                 <div class="mt-1"><span class="text-warning">Account / Wallet:</span> <span class="text-white">${m.account_number || '-'}</span></div>
                             </div>
                             <span class="badge bg-success">${m.code || ''}</span>
