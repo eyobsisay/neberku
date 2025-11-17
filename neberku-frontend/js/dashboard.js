@@ -710,6 +710,9 @@ class Dashboard {
         
         // Load packages and event types when form is shown
         this.loadPackagesAndEventTypes();
+        
+        // Hide other dashboard sections for focused form experience
+        document.body.classList.add('creating-event');
     }
     
     hideCreateEventForm() {
@@ -725,6 +728,9 @@ class Dashboard {
         
         // Show centered button again
         document.getElementById('floatingCreateButton').style.display = 'block';
+        
+        // Restore dashboard sections
+        document.body.classList.remove('creating-event');
     }
 
     updateStatistics() {
