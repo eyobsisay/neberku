@@ -67,14 +67,14 @@ class EventTypeAdmin(admin.ModelAdmin):
 
 @admin.register(Package)
 class PackageAdmin(admin.ModelAdmin):
-    list_display = ['name', 'price', 'max_guests', 'max_photos', 'max_videos', 'max_voice', 'is_active', 'created_at']
-    list_filter = ['is_active', 'created_at']
+    list_display = ['name', 'price', 'max_guests', 'max_photos', 'max_videos', 'max_voice', 'is_try', 'is_active', 'created_at']
+    list_filter = ['is_active', 'is_try', 'created_at']
     search_fields = ['name', 'description']
     ordering = ['price']
     
     fieldsets = (
         ('Basic Information', {
-            'fields': ('name', 'description', 'price', 'is_active')
+            'fields': ('name', 'description', 'price', 'is_active', 'is_try')
         }),
         ('Limits', {
             'fields': ('max_guests', 'max_photos', 'max_videos', 'max_voice')

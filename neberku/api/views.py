@@ -219,6 +219,9 @@ class EventViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """Set the host when creating an event"""
         try:
+            if serializer.validated_data['package'].is_try:
+                serializer.validated_data['status'] = 'active'
+                serializer.validated_data['payment_status'] = 'paid'
             event = serializer.save(host=self.request.user)
             print(f"Event created successfully: {event.id}")
             
@@ -266,7 +269,7 @@ class EventViewSet(viewsets.ModelViewSet):
                             event=event,
                             amount=event.package.price,
                             payment_method=payment_method,
-                            status='pending'
+                            status='paid' if event.package.is_try else 'pending'
                         )
                         print(f"Payment created for event {event.id}: {payment.id} - Amount: {payment.amount} ETB")
                         

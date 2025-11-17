@@ -50,6 +50,10 @@ class Package(models.Model):
     )
     features = models.JSONField(default=list, null=True, blank=True, help_text="List of features as JSON array (e.g., ['QR Code', 'Analytics', 'Support'])")
     is_active = models.BooleanField(default=True, help_text="Whether this package is available for selection")
+    is_try = models.BooleanField(
+        default=False,
+        help_text="If true, events created with this package are activated immediately without payment"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
