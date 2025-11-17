@@ -190,13 +190,6 @@ class Dashboard {
                 this.onPackageChange(e.target.value);
             }
         });
-
-        // Event settings validation on input
-        document.addEventListener('input', (e) => {
-            if (['maxImagePerPost', 'maxVideoPerPost', 'maxVoicePerPost'].includes(e.target.id)) {
-                this.validateEventSettings();
-            }
-        });
     }
 
     async loadDashboardData() {
@@ -552,17 +545,17 @@ class Dashboard {
         formData.append('description', document.getElementById('eventDescription').value.trim());
         formData.append('package_id', document.getElementById('eventPackage').value);
         formData.append('event_type_id', document.getElementById('eventType').value);
-        formData.append('allow_photos', document.getElementById('allowPhotos').value === 'true');
-        formData.append('allow_videos', document.getElementById('allowVideos').value === 'true');
-        formData.append('allow_wishes', document.getElementById('allowWishes').value === 'true');
-        formData.append('auto_approve_posts', document.getElementById('autoApprovePosts').value === 'true');
-        formData.append('is_public', document.getElementById('isPublic').value === 'true');
+        formData.append('allow_photos', true);
+        formData.append('allow_videos', true);
+        formData.append('allow_wishes', true);
+        formData.append('auto_approve_posts', false);
+        formData.append('is_public', false);
         
         // Add event settings fields
         const formMaxPostsPerGuest = document.getElementById('maxPostsPerGuest')?.value || '5';
-        const formMaxImagePerPost = document.getElementById('maxImagePerPost')?.value || '3';
-        const formMaxVideoPerPost = document.getElementById('maxVideoPerPost')?.value || '2';
-        const formMaxVoicePerPost = document.getElementById('maxVoicePerPost')?.value || '1';
+        const formMaxImagePerPost = '3';
+        const formMaxVideoPerPost = '2';
+        const formMaxVoicePerPost = '1';
         
         // Debug: Log the values being retrieved from form
         console.log('🔍 Form field values:');
@@ -737,17 +730,8 @@ class Dashboard {
         document.getElementById('eventDescription').value = '';
         document.getElementById('eventPackage').value = '';
         document.getElementById('eventType').value = '';
-        document.getElementById('allowPhotos').value = 'true';
-        document.getElementById('allowVideos').value = 'true';
-        document.getElementById('allowWishes').value = 'true';
-        document.getElementById('autoApprovePosts').value = 'false';
-        document.getElementById('isPublic').value = 'false';
-        
         // Reset event settings fields
         if (document.getElementById('maxPostsPerGuest')) document.getElementById('maxPostsPerGuest').value = '5';
-        if (document.getElementById('maxImagePerPost')) document.getElementById('maxImagePerPost').value = '3';
-        if (document.getElementById('maxVideoPerPost')) document.getElementById('maxVideoPerPost').value = '2';
-        if (document.getElementById('maxVoicePerPost')) document.getElementById('maxVoicePerPost').value = '1';
         
         // Reset package selection and limits
         this.selectedPackage = null;
@@ -1353,6 +1337,11 @@ class Dashboard {
         const maxImageInput = document.getElementById('maxImagePerPost');
         const maxVideoInput = document.getElementById('maxVideoPerPost');
         const maxVoiceInput = document.getElementById('maxVoicePerPost');
+        const hasMediaFields = maxImageInput || maxVideoInput || maxVoiceInput;
+
+        if (!hasMediaFields) {
+            return;
+        }
 
         if (!this.selectedPackage) {
             // Reset to defaults when no package selected
@@ -1399,6 +1388,14 @@ class Dashboard {
     showPackageLimitsInfo() {
         if (!this.selectedPackage) return;
 
+        const maxImageInput = document.getElementById('maxImagePerPost');
+        const maxVideoInput = document.getElementById('maxVideoPerPost');
+        const maxVoiceInput = document.getElementById('maxVoicePerPost');
+
+        if (!maxImageInput && !maxVideoInput && !maxVoiceInput) {
+            return;
+        }
+
         const maxPhotos = this.selectedPackage.max_photos;
         const maxVideos = this.selectedPackage.max_videos;
         const maxVoice = this.selectedPackage.max_voice;
@@ -1417,17 +1414,27 @@ class Dashboard {
         }
 
         // Update the info text in the form
-        const infoElement = document.querySelector('.form-text.text-muted');
-        if (infoElement) {
-            infoElement.innerHTML = `
-                <i class="bi bi-info-circle"></i> 
-                <strong>Media Limits:</strong> These settings control how many media files guests can upload per post. 
-                <br><strong>${limitsText}</strong> - Values cannot exceed total package support.
-            `;
+        const infoElement = document.querySelector('.form-text.text-muted[data-media-limits]');
+        if (!infoElement) {
+            return;
         }
+
+        infoElement.innerHTML = `
+            <i class="bi bi-info-circle"></i> 
+            <strong>Media Limits:</strong> These settings control how many media files guests can upload per post. 
+            <br><strong>${limitsText}</strong> - Values cannot exceed total package support.
+        `;
     }
 
     validateEventSettings() {
+        const hasMediaFields = document.getElementById('maxImagePerPost') ||
+            document.getElementById('maxVideoPerPost') ||
+            document.getElementById('maxVoicePerPost');
+
+        if (!hasMediaFields) {
+            return true;
+        }
+
         if (!this.selectedPackage) {
             this.clearFieldErrors();
             return true;
