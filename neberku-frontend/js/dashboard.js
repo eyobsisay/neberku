@@ -253,7 +253,7 @@ class Dashboard {
             
             return `
                 <div class="col-md-6 col-lg-4 mb-2 event-card" data-event-id="${event.id}">
-                    <div class="card h-100 shadow-sm">
+                    <div class="card h-100 shadow-sm" role="button" tabindex="0" style="cursor: pointer;" onclick="dashboard.viewEvent('${event.id}')">
                         ${event.event_thumbnail ? `
                             <div class="card-img-top-container" style="height: 200px; overflow: hidden;">
                                 <img src="${this.getFullUrl(event.event_thumbnail)}" 
@@ -309,13 +309,13 @@ class Dashboard {
                             </div>
                             
                             <div class="d-flex gap-1">
-                                <button class="btn btn-sm flex-fill" onclick="dashboard.viewEvent('${event.id}')" style="font-size: 0.75rem; padding: 0.25rem 0.4rem; border: 1px solid var(--primary-start); color: var(--primary-start); background: transparent;">
+                                <button class="btn btn-sm flex-fill" onclick="event.stopPropagation(); dashboard.viewEvent('${event.id}')" style="font-size: 0.75rem; padding: 0.25rem 0.4rem; border: 1px solid var(--primary-start); color: var(--primary-start); background: transparent;">
                                     <i class="bi bi-eye"></i> View
                                 </button>
-                                <button class="btn btn-sm flex-fill" onclick="dashboard.viewEventPosts('${event.id}')" style="font-size: 0.75rem; padding: 0.25rem 0.4rem; border: 1px solid var(--primary-end); color: var(--primary-end); background: transparent;">
+                                <button class="btn btn-sm flex-fill" onclick="event.stopPropagation(); dashboard.viewEventPosts('${event.id}')" style="font-size: 0.75rem; padding: 0.25rem 0.4rem; border: 1px solid var(--primary-end); color: var(--primary-end); background: transparent;">
                                     <i class="bi bi-chat-dots"></i> Posts
                                 </button>
-                                <button class="btn btn-sm flex-fill" onclick="dashboard.shareEvent('${event.id}')" style="font-size: 0.75rem; padding: 0.25rem 0.4rem; border: 1px solid var(--confetti-2); color: var(--confetti-2); background: transparent;">
+                                <button class="btn btn-sm flex-fill" onclick="event.stopPropagation(); dashboard.shareEvent('${event.id}')" style="font-size: 0.75rem; padding: 0.25rem 0.4rem; border: 1px solid var(--confetti-2); color: var(--confetti-2); background: transparent;">
                                     <i class="bi bi-share"></i> Share
                                 </button>
                             </div>
