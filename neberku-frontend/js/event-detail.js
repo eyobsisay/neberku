@@ -77,6 +77,22 @@ class EventDetail {
                 }
             });
         });
+
+        const quickSettingsForm = document.getElementById('quickSettingsForm');
+        if (quickSettingsForm) {
+            quickSettingsForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.saveQuickSettings();
+            });
+        }
+
+        const quickSettingsResetBtn = document.getElementById('quickSettingsResetBtn');
+        if (quickSettingsResetBtn) {
+            quickSettingsResetBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.populateQuickSettingsForm();
+            });
+        }
     }
 
     async loadEventDetail() {
@@ -364,6 +380,40 @@ class EventDetail {
         document.getElementById('eventDescriptionDetail').textContent = this.event.description || 'No description available';
         document.getElementById('updatedAt').textContent = this.formatDate(this.event.updated_at);
         
+        const parseSettingValue = (value, fallback = 0, allowZero = false) => {
+            const numericVal = typeof value === 'number' ? value : parseInt(value || '0', 10);
+            if (Number.isFinite(numericVal) && numericVal > 0) {
+                return numericVal;
+            }
+            return allowZero ? 0 : fallback;
+        };
+        
+        const maxPostsValue = parseSettingValue(this.event.max_posts_per_guest, 0, true);
+        const maxPostsText = maxPostsValue ? `${maxPostsValue}` : 'Not set';
+        const maxPostsDetail = document.getElementById('maxPostsPerGuestDetail');
+        if (maxPostsDetail) {
+            maxPostsDetail.textContent = maxPostsText;
+        }
+        
+        const maxImagesValue = parseSettingValue(this.event.max_image_per_post, 3);
+        const maxVideosValue = parseSettingValue(this.event.max_video_per_post, 2);
+        const maxVoiceValue = parseSettingValue(this.event.max_voice_per_post, 1);
+        
+        const maxImagesDetail = document.getElementById('maxImagesPerPostDetail');
+        if (maxImagesDetail) {
+            maxImagesDetail.textContent = `${maxImagesValue}`;
+        }
+        
+        const maxVideosDetail = document.getElementById('maxVideosPerPostDetail');
+        if (maxVideosDetail) {
+            maxVideosDetail.textContent = `${maxVideosValue}`;
+        }
+        
+        const maxVoiceDetail = document.getElementById('maxVoicePerPostDetail');
+        if (maxVoiceDetail) {
+            maxVoiceDetail.textContent = `${maxVoiceValue}`;
+        }
+        
         // Payment status - update both header and detail tab
         const paymentStatus = document.getElementById('paymentStatus');
         if (paymentStatus) {
@@ -399,6 +449,26 @@ class EventDetail {
             contributorCodeDetail.textContent = this.event.contributor_code || 'Not generated';
         }
         
+        const maxPostsSetting = document.getElementById('maxPostsSetting');
+        if (maxPostsSetting) {
+            maxPostsSetting.textContent = `Max Posts per Guest: ${maxPostsText}`;
+        }
+        
+        const maxImagesSetting = document.getElementById('maxImagesSetting');
+        if (maxImagesSetting) {
+            maxImagesSetting.textContent = `Images per post: ${maxImagesValue}`;
+        }
+        
+        const maxVideosSetting = document.getElementById('maxVideosSetting');
+        if (maxVideosSetting) {
+            maxVideosSetting.textContent = `Videos per post: ${maxVideosValue}`;
+        }
+        
+        const maxVoiceSetting = document.getElementById('maxVoiceSetting');
+        if (maxVoiceSetting) {
+            maxVoiceSetting.textContent = `Voice per post: ${maxVoiceValue}`;
+        }
+        
         // Event media previews
         this.renderEventMediaPreviews();
 
@@ -406,16 +476,134 @@ class EventDetail {
         this.renderEventBanner();
 
         // Event settings - update settings tab
-        document.getElementById('photosAllowed').textContent = `Photos: ${this.event.allow_photos ? 'Allowed' : 'Not Allowed'}`;
-        document.getElementById('videosAllowed').textContent = `Videos: ${this.event.allow_videos ? 'Allowed' : 'Not Allowed'}`;
-        document.getElementById('wishesAllowed').textContent = `Wishes: ${this.event.allow_wishes ? 'Allowed' : 'Not Allowed'}`;
-        document.getElementById('autoApprove').textContent = `Auto-approve: ${this.event.auto_approve_posts ? 'Yes' : 'No'}`;
+        const photosAllowed = document.getElementById('photosAllowed');
+        if (photosAllowed) {
+            photosAllowed.textContent = `Photos: ${this.event.allow_photos ? 'Allowed' : 'Not Allowed'}`;
+        }
+        const videosAllowed = document.getElementById('videosAllowed');
+        if (videosAllowed) {
+            videosAllowed.textContent = `Videos: ${this.event.allow_videos ? 'Allowed' : 'Not Allowed'}`;
+        }
+        const voiceAllowed = document.getElementById('voiceAllowed');
+        if (voiceAllowed) {
+            voiceAllowed.textContent = `Voice: ${this.event.allow_voice ? 'Allowed' : 'Not Allowed'}`;
+        }
+        const wishesAllowed = document.getElementById('wishesAllowed');
+        if (wishesAllowed) {
+            wishesAllowed.textContent = `Wishes: ${this.event.allow_wishes ? 'Allowed' : 'Not Allowed'}`;
+        }
+        const autoApprove = document.getElementById('autoApprove');
+        if (autoApprove) {
+            autoApprove.textContent = `Auto-approve: ${this.event.auto_approve_posts ? 'Yes' : 'No'}`;
+        }
+
+        this.populateQuickSettingsForm();
 
         // Setup QR code and share functionality
         this.setupQRCodeAndShare();
 
         // Update page title
         document.title = `${this.event.title} - Event Detail - Neberku`;
+    }
+
+    populateQuickSettingsForm() {
+        if (!this.event) return;
+
+        const setCheckbox = (id, value) => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.checked = Boolean(value);
+            }
+        };
+
+        setCheckbox('settingsAllowPhotos', this.event.allow_photos);
+        setCheckbox('settingsAllowVideos', this.event.allow_videos);
+        setCheckbox('settingsAllowVoice', this.event.allow_voice);
+        setCheckbox('settingsAllowWishes', this.event.allow_wishes);
+        setCheckbox('settingsAutoApprove', this.event.auto_approve_posts);
+
+        const setNumber = (id, value, fallback) => {
+            const el = document.getElementById(id);
+            if (el) {
+                const numericVal = typeof value === 'number' ? value : parseInt(value || fallback, 10);
+                el.value = Number.isFinite(numericVal) && numericVal > 0 ? numericVal : fallback;
+            }
+        };
+
+        setNumber('settingsMaxPostsPerGuest', this.event.max_posts_per_guest, 5);
+        setNumber('settingsMaxImagesPerPost', this.event.max_image_per_post, 3);
+        setNumber('settingsMaxVideosPerPost', this.event.max_video_per_post, 2);
+        setNumber('settingsMaxVoicePerPost', this.event.max_voice_per_post, 1);
+    }
+
+    async saveQuickSettings() {
+        if (!this.event) return;
+
+        const saveBtn = document.getElementById('quickSettingsSaveBtn');
+        const originalText = saveBtn ? saveBtn.innerHTML : null;
+
+        const getNumberValue = (id, min, max) => {
+            const el = document.getElementById(id);
+            const value = el ? parseInt(el.value, 10) : NaN;
+            if (Number.isNaN(value) || value < min || value > max) {
+                throw new Error(`Value for ${id.replace('settings', '').replace(/([A-Z])/g, ' $1').trim()} must be between ${min} and ${max}`);
+            }
+            return value;
+        };
+
+        let maxPosts, maxImages, maxVideos, maxVoice;
+        try {
+            maxPosts = getNumberValue('settingsMaxPostsPerGuest', 1, 100);
+            maxImages = getNumberValue('settingsMaxImagesPerPost', 1, 50);
+            maxVideos = getNumberValue('settingsMaxVideosPerPost', 1, 50);
+            maxVoice = getNumberValue('settingsMaxVoicePerPost', 1, 50);
+        } catch (error) {
+            this.showError(error.message);
+            return;
+        }
+
+        const formData = new FormData();
+        const appendBool = (id, key) => {
+            const el = document.getElementById(id);
+            if (el) {
+                formData.append(key, el.checked);
+            }
+        };
+
+        appendBool('settingsAllowPhotos', 'allow_photos');
+        appendBool('settingsAllowVideos', 'allow_videos');
+        appendBool('settingsAllowVoice', 'allow_voice');
+        appendBool('settingsAllowWishes', 'allow_wishes');
+        appendBool('settingsAutoApprove', 'auto_approve_posts');
+
+        formData.append('max_posts_per_guest', maxPosts);
+        formData.append('max_image_per_post', maxImages);
+        formData.append('max_video_per_post', maxVideos);
+        formData.append('max_voice_per_post', maxVoice);
+
+        if (saveBtn) {
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Saving...';
+        }
+
+        try {
+            const updatedEvent = await API_UTILS.request(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.EVENT_DETAIL.replace('{id}', this.eventId)}`, {
+                method: 'PATCH',
+                body: formData
+            });
+
+            this.event = updatedEvent;
+            this.renderEventDetail();
+            this.showSuccess('Event settings updated successfully!');
+        } catch (error) {
+            console.error('❌ Error updating quick settings:', error);
+            this.showError('Failed to update settings. Please try again.');
+        } finally {
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = originalText || '<i class="bi bi-save"></i> Save Settings';
+            }
+        }
     }
 
     applyFilters() {
@@ -1039,9 +1227,39 @@ class EventDetail {
         // Populate checkboxes
         document.getElementById('editAllowPhotos').checked = this.event.allow_photos || false;
         document.getElementById('editAllowVideos').checked = this.event.allow_videos || false;
+        if (document.getElementById('editAllowVoice')) {
+            document.getElementById('editAllowVoice').checked = this.event.allow_voice || false;
+        }
         document.getElementById('editAllowWishes').checked = this.event.allow_wishes || false;
         document.getElementById('editAutoApprove').checked = this.event.auto_approve_posts || false;
         document.getElementById('editIsPublic').checked = this.event.is_public || false;
+        const maxPostsInput = document.getElementById('editMaxPostsPerGuest');
+        if (maxPostsInput) {
+            const currentMaxPosts = typeof this.event.max_posts_per_guest === 'number'
+                ? this.event.max_posts_per_guest
+                : parseInt(this.event.max_posts_per_guest || '0', 10);
+            maxPostsInput.value = currentMaxPosts && currentMaxPosts > 0 ? currentMaxPosts : 5;
+        }
+        
+        const parseLimitValue = (value, fallback) => {
+            const numericVal = typeof value === 'number' ? value : parseInt(value || '0', 10);
+            return Number.isFinite(numericVal) && numericVal > 0 ? numericVal : fallback;
+        };
+        
+        const maxImagesInput = document.getElementById('editMaxImagesPerPost');
+        if (maxImagesInput) {
+            maxImagesInput.value = parseLimitValue(this.event.max_image_per_post, 3);
+        }
+        
+        const maxVideosInput = document.getElementById('editMaxVideosPerPost');
+        if (maxVideosInput) {
+            maxVideosInput.value = parseLimitValue(this.event.max_video_per_post, 2);
+        }
+        
+        const maxVoiceInput = document.getElementById('editMaxVoicePerPost');
+        if (maxVoiceInput) {
+            maxVoiceInput.value = parseLimitValue(this.event.max_voice_per_post, 1);
+        }
         
         // Populate privacy settings
         const contributorCodeInput = document.getElementById('editContributorCode');
@@ -1409,9 +1627,14 @@ async function handleEditFormSubmit(event) {
         event_type_id: document.getElementById('editEventType').value,
         allow_photos: document.getElementById('editAllowPhotos').checked,
         allow_videos: document.getElementById('editAllowVideos').checked,
+        allow_voice: document.getElementById('editAllowVoice') ? document.getElementById('editAllowVoice').checked : true,
         allow_wishes: document.getElementById('editAllowWishes').checked,
         auto_approve_posts: document.getElementById('editAutoApprove').checked,
-        is_public: document.getElementById('editIsPublic').checked
+        is_public: document.getElementById('editIsPublic').checked,
+        max_posts_per_guest: document.getElementById('editMaxPostsPerGuest').value || '5',
+        max_image_per_post: document.getElementById('editMaxImagesPerPost') ? document.getElementById('editMaxImagesPerPost').value : '3',
+        max_video_per_post: document.getElementById('editMaxVideosPerPost') ? document.getElementById('editMaxVideosPerPost').value : '2',
+        max_voice_per_post: document.getElementById('editMaxVoicePerPost') ? document.getElementById('editMaxVoicePerPost').value : '1'
     };
     
     // Handle privacy settings
@@ -1513,6 +1736,34 @@ async function handleEditFormSubmit(event) {
         window.eventDetail.showError('Event type is required');
         return;
     }
+    
+    const maxPostsValue = parseInt(formData.max_posts_per_guest, 10);
+    if (Number.isNaN(maxPostsValue) || maxPostsValue < 1 || maxPostsValue > 100) {
+        window.eventDetail.showError('Max Posts per Guest must be between 1 and 100');
+        return;
+    }
+    formData.max_posts_per_guest = maxPostsValue.toString();
+    
+    const maxImagesValue = parseInt(formData.max_image_per_post, 10);
+    if (Number.isNaN(maxImagesValue) || maxImagesValue < 1 || maxImagesValue > 50) {
+        window.eventDetail.showError('Max Images per Post must be between 1 and 50');
+        return;
+    }
+    formData.max_image_per_post = maxImagesValue.toString();
+    
+    const maxVideosValue = parseInt(formData.max_video_per_post, 10);
+    if (Number.isNaN(maxVideosValue) || maxVideosValue < 1 || maxVideosValue > 50) {
+        window.eventDetail.showError('Max Videos per Post must be between 1 and 50');
+        return;
+    }
+    formData.max_video_per_post = maxVideosValue.toString();
+    
+    const maxVoiceValue = parseInt(formData.max_voice_per_post, 10);
+    if (Number.isNaN(maxVoiceValue) || maxVoiceValue < 1 || maxVoiceValue > 50) {
+        window.eventDetail.showError('Max Voice per Post must be between 1 and 50');
+        return;
+    }
+    formData.max_voice_per_post = maxVoiceValue.toString();
     
     // Show loading state
     const submitBtn = event.target.querySelector('button[type="submit"]');

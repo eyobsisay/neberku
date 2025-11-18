@@ -773,6 +773,22 @@
                                                             <p id="eventPackage" class="mb-2">Loading...</p>
                                                         </div>
                                                         <div class="mb-3">
+                                                            <strong>Max Posts per Guest:</strong>
+                                                            <p id="maxPostsPerGuestDetail" class="mb-2">Loading...</p>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <strong>Max Images per Post:</strong>
+                                                            <p id="maxImagesPerPostDetail" class="mb-2">Loading...</p>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <strong>Max Videos per Post:</strong>
+                                                            <p id="maxVideosPerPostDetail" class="mb-2">Loading...</p>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <strong>Max Voice per Post:</strong>
+                                                            <p id="maxVoicePerPostDetail" class="mb-0">Loading...</p>
+                                                        </div>
+                                                        <div class="mb-3">
                                                             <strong>Created:</strong>
                                                             <p id="createdAt" class="mb-0">Loading...</p>
                                                         </div>
@@ -937,6 +953,14 @@
                                                             </div>
                                                             <div class="mb-3">
                                                                 <div class="form-check">
+                                                                    <input class="form-check-input" type="checkbox" id="editAllowVoice">
+                                                                    <label class="form-check-label" for="editAllowVoice">
+                                                                        Allow Voice
+                                                                    </label>
+                                                                </div>
+                                                            </div>
+                                                            <div class="mb-3">
+                                                                <div class="form-check">
                                                                     <input class="form-check-input" type="checkbox" id="editAllowWishes">
                                                                     <label class="form-check-label" for="editAllowWishes">
                                                                         Allow Wishes
@@ -957,6 +981,28 @@
                                                                     <label class="form-check-label" for="editIsPublic">
                                                                         Public Event
                                                                     </label>
+                                                                </div>
+                                                            </div>
+                                                            <div class="mb-3">
+                                                                <label for="editMaxPostsPerGuest" class="form-label">Max Posts per Guest</label>
+                                                                <input type="number" class="form-control" id="editMaxPostsPerGuest" min="1" max="100" value="5">
+                                                                <div class="form-text">Maximum number of posts a single guest can make</div>
+                                                            </div>
+                                                            <div class="row">
+                                                                <div class="col-md-4 mb-3">
+                                                                    <label for="editMaxImagesPerPost" class="form-label">Max Images per Post</label>
+                                                                    <input type="number" class="form-control" id="editMaxImagesPerPost" min="1" max="50" value="3">
+                                                                    <div class="form-text">Limit how many images a guest can add per post</div>
+                                                                </div>
+                                                                <div class="col-md-4 mb-3">
+                                                                    <label for="editMaxVideosPerPost" class="form-label">Max Videos per Post</label>
+                                                                    <input type="number" class="form-control" id="editMaxVideosPerPost" min="1" max="50" value="2">
+                                                                    <div class="form-text">Limit how many videos a guest can add per post</div>
+                                                                </div>
+                                                                <div class="col-md-4 mb-3">
+                                                                    <label for="editMaxVoicePerPost" class="form-label">Max Voice per Post</label>
+                                                                    <input type="number" class="form-control" id="editMaxVoicePerPost" min="1" max="50" value="1">
+                                                                    <div class="form-text">Limit how many voice notes a guest can add per post</div>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -1036,7 +1082,17 @@
                                                         <ul class="list-unstyled mt-2">
                                                             <li><i class="bi bi-check-circle text-success"></i> <span id="photosAllowed">Photos: Loading...</span></li>
                                                             <li><i class="bi bi-check-circle text-success"></i> <span id="videosAllowed">Videos: Loading...</span></li>
+                                                            <li><i class="bi bi-check-circle text-success"></i> <span id="voiceAllowed">Voice: Loading...</span></li>
                                                             <li><i class="bi bi-check-circle text-success"></i> <span id="wishesAllowed">Wishes: Loading...</span></li>
+                                                            <li><i class="bi bi-people text-success"></i> <span id="maxPostsSetting">Max Posts per Guest: Loading...</span></li>
+                                                        </ul>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <strong>Media Limits:</strong>
+                                                        <ul class="list-unstyled mt-2">
+                                                            <li><i class="bi bi-image text-info"></i> <span id="maxImagesSetting">Images per post: Loading...</span></li>
+                                                            <li><i class="bi bi-camera-video text-info"></i> <span id="maxVideosSetting">Videos per post: Loading...</span></li>
+                                                            <li><i class="bi bi-mic text-info"></i> <span id="maxVoiceSetting">Voice per post: Loading...</span></li>
                                                         </ul>
                                                     </div>
                                                     <div class="mb-3">
@@ -1045,6 +1101,64 @@
                                                             <li><i class="bi bi-check-circle text-success"></i> <span id="autoApprove">Auto-approve: Loading...</span></li>
                                                         </ul>
                                                     </div>
+                                                    <hr class="text-white-50">
+                                                    <h6 class="mb-3"><i class="bi bi-sliders"></i> Quick Edit</h6>
+                                                    <form id="quickSettingsForm" class="row g-3">
+                                                        <div class="col-md-6">
+                                                            <div class="form-check form-switch">
+                                                                <input class="form-check-input" type="checkbox" id="settingsAllowPhotos">
+                                                                <label class="form-check-label" for="settingsAllowPhotos">Allow Photos</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <div class="form-check form-switch">
+                                                                <input class="form-check-input" type="checkbox" id="settingsAllowVideos">
+                                                                <label class="form-check-label" for="settingsAllowVideos">Allow Videos</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <div class="form-check form-switch">
+                                                                <input class="form-check-input" type="checkbox" id="settingsAllowVoice">
+                                                                <label class="form-check-label" for="settingsAllowVoice">Allow Voice</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <div class="form-check form-switch">
+                                                                <input class="form-check-input" type="checkbox" id="settingsAllowWishes">
+                                                                <label class="form-check-label" for="settingsAllowWishes">Allow Wishes</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <div class="form-check form-switch">
+                                                                <input class="form-check-input" type="checkbox" id="settingsAutoApprove">
+                                                                <label class="form-check-label" for="settingsAutoApprove">Auto-approve Posts</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <label class="form-label" for="settingsMaxPostsPerGuest">Max Posts per Guest</label>
+                                                            <input type="number" class="form-control" id="settingsMaxPostsPerGuest" min="1" max="100">
+                                                        </div>
+                                                        <div class="col-md-4">
+                                                            <label class="form-label" for="settingsMaxImagesPerPost">Images per Post</label>
+                                                            <input type="number" class="form-control" id="settingsMaxImagesPerPost" min="1" max="50">
+                                                        </div>
+                                                        <div class="col-md-4">
+                                                            <label class="form-label" for="settingsMaxVideosPerPost">Videos per Post</label>
+                                                            <input type="number" class="form-control" id="settingsMaxVideosPerPost" min="1" max="50">
+                                                        </div>
+                                                        <div class="col-md-4">
+                                                            <label class="form-label" for="settingsMaxVoicePerPost">Voice per Post</label>
+                                                            <input type="number" class="form-control" id="settingsMaxVoicePerPost" min="1" max="50">
+                                                        </div>
+                                                        <div class="col-12 d-flex gap-2">
+                                                            <button type="submit" class="btn btn-primary" id="quickSettingsSaveBtn">
+                                                                <i class="bi bi-save"></i> Save Settings
+                                                            </button>
+                                                            <button type="button" class="btn btn-outline-light" id="quickSettingsResetBtn">
+                                                                <i class="bi bi-arrow-counterclockwise"></i> Reset
+                                                            </button>
+                                                        </div>
+                                                    </form>
                                                 </div>
                                             </div>
                                         </div>

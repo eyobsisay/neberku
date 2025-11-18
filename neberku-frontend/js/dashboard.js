@@ -548,6 +548,7 @@ class Dashboard {
         formData.append('allow_photos', true);
         formData.append('allow_videos', true);
         formData.append('allow_wishes', true);
+        formData.append('allow_voice', true);
         formData.append('auto_approve_posts', false);
         formData.append('is_public', false);
         

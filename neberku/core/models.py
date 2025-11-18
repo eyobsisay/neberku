@@ -191,6 +191,30 @@ class Event(models.Model):
             print(f"Error generating QR code for event {self.id}: {e}")
             pass
     
+    def _get_setting_value(self, attr_name, default_value):
+        try:
+            return getattr(self.settings, attr_name)
+        except EventSettings.DoesNotExist:
+            return default_value
+        except AttributeError:
+            return default_value
+    
+    @property
+    def max_posts_per_guest(self):
+        return self._get_setting_value('max_posts_per_guest', 5)
+    
+    @property
+    def max_image_per_post(self):
+        return self._get_setting_value('max_image_per_post', 3)
+    
+    @property
+    def max_video_per_post(self):
+        return self._get_setting_value('max_video_per_post', 2)
+    
+    @property
+    def max_voice_per_post(self):
+        return self._get_setting_value('max_voice_per_post', 1)
+    
     def generate_share_link(self):
         """Generate share link for the event"""
         try:

@@ -324,6 +324,10 @@ class EventSerializer(serializers.ModelSerializer):
     voice_count = serializers.SerializerMethodField()
     is_live = serializers.ReadOnlyField()
     qr_code = serializers.SerializerMethodField()
+    max_posts_per_guest = serializers.IntegerField(required=False, min_value=1, max_value=100)
+    max_image_per_post = serializers.IntegerField(required=False, min_value=1, max_value=50)
+    max_video_per_post = serializers.IntegerField(required=False, min_value=1, max_value=50)
+    max_voice_per_post = serializers.IntegerField(required=False, min_value=1, max_value=50)
     
     class Meta:
         model = Event
@@ -333,7 +337,8 @@ class EventSerializer(serializers.ModelSerializer):
             'allow_photos', 'allow_videos', 'allow_voice', 'allow_wishes', 'auto_approve_posts', 'status', 'payment_status',
             'qr_code', 'share_link', 'created_at', 'updated_at', 'published_at',
             'settings', 'total_guest_posts', 'total_media_files', 'photo_count', 'video_count', 'voice_count', 'is_live',
-            'is_public', 'contributor_code', 'non_approved_guest_posts'
+            'is_public', 'contributor_code', 'non_approved_guest_posts',
+            'max_posts_per_guest', 'max_image_per_post', 'max_video_per_post', 'max_voice_per_post'
         ]
         read_only_fields = ['id', 'host', 'status', 'payment_status', 'qr_code', 
                            'share_link', 'created_at', 'updated_at', 'published_at',
@@ -400,6 +405,29 @@ class EventSerializer(serializers.ModelSerializer):
         else:
             # For non-superusers, count voice recordings from approved posts only
             return obj.media_files.filter(media_type='voice', post__is_approved=True).count()
+
+    def update(self, instance, validated_data):
+        settings_fields = [
+            'max_posts_per_guest',
+            'max_image_per_post',
+            'max_video_per_post',
+            'max_voice_per_post',
+        ]
+        settings_data = {}
+        for field in settings_fields:
+            if field in validated_data:
+                settings_data[field] = validated_data.pop(field)
+
+        instance = super().update(instance, validated_data)
+
+        if settings_data:
+            settings, _ = EventSettings.objects.get_or_create(event=instance)
+            for field, value in settings_data.items():
+                if value is not None:
+                    setattr(settings, field, value)
+            settings.save()
+
+        return instance
 
 class EventCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating events"""

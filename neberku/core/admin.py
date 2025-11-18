@@ -162,7 +162,7 @@ class EventAdmin(admin.ModelAdmin):
             'fields': ('event_thumbnail', 'event_banner', 'qr_code_display', 'share_link_display', 'contributor_code_display')
         }),
         ('Settings', {
-            'fields': ('allow_photos', 'allow_videos', 'allow_wishes', 'auto_approve_posts', 'is_public')
+            'fields': ('allow_photos', 'allow_videos', 'allow_wishes', 'allow_voice', 'auto_approve_posts', 'is_public')
         }),
         ('Status & Payment', {
             'fields': ('status', 'payment_status')
