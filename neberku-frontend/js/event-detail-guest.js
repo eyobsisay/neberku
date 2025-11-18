@@ -7,6 +7,12 @@ class EventDetailGuestManager {
     constructor() {
         this.currentEvent = null;
         this.selectedFiles = []; // Array to store all selected files
+        this.mediaPermissions = {
+            photos: true,
+            videos: true,
+            voice: true,
+            wishes: true
+        };
         this.init();
     }
 
@@ -234,6 +240,9 @@ class EventDetailGuestManager {
         // Display event media (thumbnail and video)
         this.displayEventMedia(event);
 
+        // Apply media/wish permissions to the UI
+        this.setMediaPermissions(event);
+
         // Update page title
         document.title = `${event.title} - Neberku`;
         
@@ -241,6 +250,150 @@ class EventDetailGuestManager {
         const joinCount = document.getElementById('joinCount');
         if (joinCount) {
             joinCount.textContent = event.total_guest_posts || 0;
+        }
+    }
+
+    setMediaPermissions(event) {
+        this.mediaPermissions = {
+            photos: event?.allow_photos !== false,
+            videos: event?.allow_videos !== false,
+            voice: event?.allow_voice !== false,
+            wishes: event?.allow_wishes !== false
+        };
+        this.updatePermissionUI();
+    }
+
+    canUploadAnyMedia() {
+        return !!(
+            this.mediaPermissions?.photos ||
+            this.mediaPermissions?.videos ||
+            this.mediaPermissions?.voice
+        );
+    }
+
+    isMediaTypeAllowed(type) {
+        if (!this.mediaPermissions) return true;
+        switch (type) {
+            case 'photo':
+                return this.mediaPermissions.photos;
+            case 'video':
+                return this.mediaPermissions.videos;
+            case 'voice':
+                return this.mediaPermissions.voice;
+            default:
+                return true;
+        }
+    }
+
+    getMediaLabel(type) {
+        switch (type) {
+            case 'photo':
+                return 'Photos';
+            case 'video':
+                return 'Videos';
+            case 'voice':
+                return 'Voice';
+            case 'wishes':
+                return 'Wishes';
+            default:
+                return 'Media';
+        }
+    }
+
+    updatePermissionUI() {
+        const allowedMedia = [];
+        const disabledMedia = [];
+
+        const mediaKeys = [
+            { key: 'photos', label: this.getMediaLabel('photo') },
+            { key: 'videos', label: this.getMediaLabel('video') },
+            { key: 'voice', label: this.getMediaLabel('voice') }
+        ];
+        mediaKeys.forEach(item => {
+            if (this.mediaPermissions?.[item.key]) {
+                allowedMedia.push(item.label);
+            } else {
+                disabledMedia.push(item.label);
+            }
+        });
+
+        const maxImages = this.currentEvent?.guest_max_image_per_post ?? 3;
+        const maxVideos = this.currentEvent?.guest_max_video_per_post ?? 2;
+        const maxVoice = this.currentEvent?.guest_max_voice_per_post ?? 1;
+        const uploadLimitText = document.getElementById('uploadLimitText');
+        if (uploadLimitText) {
+            const allowedLimitParts = [];
+            if (this.mediaPermissions?.photos) {
+                allowedLimitParts.push(`<strong>${maxImages}</strong> image${maxImages === 1 ? '' : 's'}`);
+            }
+            if (this.mediaPermissions?.videos) {
+                allowedLimitParts.push(`<strong>${maxVideos}</strong> video${maxVideos === 1 ? '' : 's'}`);
+            }
+            if (this.mediaPermissions?.voice) {
+                allowedLimitParts.push(`<strong>${maxVoice}</strong> voice recording${maxVoice === 1 ? '' : 's'}`);
+            }
+
+            const limitLine = allowedLimitParts.length
+                ? `You can upload up to ${allowedLimitParts.join(', ')} per post.`
+                : 'Media uploads are currently disabled for this event.';
+
+            uploadLimitText.innerHTML = limitLine;
+        }
+
+        const uploadArea = document.getElementById('uploadArea');
+        if (uploadArea) {
+            uploadArea.classList.toggle('disabled-upload', !this.canUploadAnyMedia());
+        }
+
+        const mediaFilesInput = document.getElementById('mediaFiles');
+        if (mediaFilesInput) {
+            mediaFilesInput.disabled = !this.canUploadAnyMedia();
+        }
+
+        const voiceSection = document.querySelector('.voice-recording-section');
+        if (voiceSection) {
+            voiceSection.style.display = this.mediaPermissions.voice ? '' : 'none';
+        }
+
+        this.updateWishFieldState();
+        const shouldForceDisable = !this.canUploadAnyMedia() || !this.mediaPermissions.wishes;
+        this.updateSubmitButtonState(shouldForceDisable);
+    }
+
+    updateWishFieldState() {
+        const wishField = document.querySelector('.wish-field');
+        const wishText = document.getElementById('wishText');
+        const noticeId = 'wishPermissionNotice';
+        let noticeElement = document.getElementById(noticeId);
+
+        if (!this.mediaPermissions.wishes) {
+            if (wishField) {
+                wishField.classList.add('disabled-field');
+            }
+            if (wishText) {
+                wishText.value = '';
+                wishText.setAttribute('disabled', 'disabled');
+            }
+            if (!noticeElement && wishField && wishField.parentNode) {
+                noticeElement = document.createElement('div');
+                noticeElement.id = noticeId;
+                noticeElement.className = 'alert alert-warning mt-2';
+                noticeElement.innerHTML = `
+                    <i class="fas fa-info-circle me-2"></i>
+                    Wishes are disabled for this event. Contributions cannot be submitted until the host enables them.
+                `;
+                wishField.parentNode.insertBefore(noticeElement, wishField.nextSibling);
+            }
+        } else {
+            if (wishField) {
+                wishField.classList.remove('disabled-field');
+            }
+            if (wishText) {
+                wishText.removeAttribute('disabled');
+            }
+            if (noticeElement) {
+                noticeElement.remove();
+            }
         }
     }
 
@@ -458,9 +611,44 @@ class EventDetailGuestManager {
             return;
         }
         
-        // Add new files to our accumulated list
-        const filesToAdd = Array.from(newFiles);
+        if (!this.canUploadAnyMedia()) {
+            this.showError('Media uploads are disabled for this event.', 'warning');
+            return;
+        }
+
+        let filesToAdd = Array.from(newFiles);
         console.log('Adding files to selection:', filesToAdd.length);
+
+        const blockedTypeLabels = new Set();
+        filesToAdd = filesToAdd.filter(file => {
+            if (file.type.startsWith('image/')) {
+                if (!this.isMediaTypeAllowed('photo')) {
+                    blockedTypeLabels.add(this.getMediaLabel('photo'));
+                    return false;
+                }
+            } else if (file.type.startsWith('video/')) {
+                if (!this.isMediaTypeAllowed('video')) {
+                    blockedTypeLabels.add(this.getMediaLabel('video'));
+                    return false;
+                }
+            } else if (file.type.startsWith('audio/')) {
+                if (!this.isMediaTypeAllowed('voice')) {
+                    blockedTypeLabels.add(this.getMediaLabel('voice'));
+                    return false;
+                }
+            }
+            return true;
+        });
+
+        if (filesToAdd.length === 0) {
+            const reason = blockedTypeLabels.size
+                ? `${Array.from(blockedTypeLabels).join(', ')} uploads are disabled for this event.`
+                : 'This event is not accepting media uploads right now.';
+            this.showError(reason, 'warning');
+            return;
+        } else if (blockedTypeLabels.size > 0) {
+            this.showError(`Skipped files: ${Array.from(blockedTypeLabels).join(', ')} are disabled for this event.`, 'warning');
+        }
         
         // Check file sizes first (if size limits are available from API)
         const sizeErrors = [];
@@ -659,9 +847,20 @@ class EventDetailGuestManager {
         const guestName = document.getElementById('guestName').value.trim();
         const guestPhone = document.getElementById('guestPhone').value.trim();
         const wishText = document.getElementById('wishText').value.trim();
+        const wishesAllowed = this.mediaPermissions?.wishes !== false;
         
-        if (!guestName || !guestPhone || !wishText) {
+        if (!wishesAllowed) {
+            this.showError('This event is not accepting wishes right now. Please contact the event host for access.', 'warning');
+            return;
+        }
+        
+        if (!guestName || !guestPhone || (wishesAllowed && !wishText)) {
             this.showError('Please fill in all required fields', 'warning');
+            return;
+        }
+
+        if (!this.canUploadAnyMedia()) {
+            this.showError('Media uploads are disabled for this event.', 'warning');
             return;
         }
         
@@ -867,6 +1066,15 @@ class EventDetailGuestManager {
             size: audioFile.size,
             type: audioFile.type
         });
+
+        if (!this.isMediaTypeAllowed('voice')) {
+            this.showError('Voice recordings are disabled for this event.', 'warning');
+            return;
+        }
+        if (!this.canUploadAnyMedia()) {
+            this.showError('Media uploads are disabled for this event.', 'warning');
+            return;
+        }
         
         // Check file size first (if size limits are available from API)
         if (this.currentEvent && this.currentEvent.max_voice_size && audioFile.size > (this.currentEvent.max_voice_size * 1024 * 1024)) {
@@ -898,13 +1106,16 @@ class EventDetailGuestManager {
         this.renderFilePreviews();
     }
 
-    updateSubmitButtonState() {
+    updateSubmitButtonState(forceDisabled = false) {
         const submitBtn = document.querySelector('button[type="submit"]');
         if (!submitBtn) return;
         
         const hasMediaFiles = this.selectedFiles && this.selectedFiles.length > 0;
+        const canUploadMedia = this.canUploadAnyMedia();
+        const wishesAllowed = this.mediaPermissions?.wishes !== false;
+        const shouldEnable = !forceDisabled && canUploadMedia && wishesAllowed && hasMediaFiles;
         
-        if (hasMediaFiles) {
+        if (shouldEnable) {
             // Enable submit button
             submitBtn.disabled = false;
             submitBtn.classList.remove('disabled');
@@ -923,7 +1134,13 @@ class EventDetailGuestManager {
             // Disable submit button
             submitBtn.disabled = true;
             submitBtn.classList.add('disabled');
-            submitBtn.title = 'Please add at least one media file (photo, video, or voice recording)';
+            if (!canUploadMedia) {
+                submitBtn.title = 'Media uploads are disabled for this event';
+            } else if (!wishesAllowed) {
+                submitBtn.title = 'Wishes are disabled for this event';
+            } else {
+                submitBtn.title = 'Please add at least one media file (photo, video, or voice recording)';
+            }
             
             // Reset button text
             const btnText = submitBtn.querySelector('.btn-text');

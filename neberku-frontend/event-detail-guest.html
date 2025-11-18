@@ -797,6 +797,17 @@
         .media-upload-section {
             margin: 2rem 0;
         }
+        .upload-area.disabled-upload {
+            opacity: 0.4;
+            pointer-events: none;
+            border-color: rgba(148,163,184,.4);
+            box-shadow: none;
+        }
+        .form-field.disabled-field input,
+        .form-field.disabled-field textarea {
+            opacity: 0.6;
+            pointer-events: none;
+        }
         
         .upload-header {
             text-align: center;
@@ -2431,10 +2442,6 @@
                                                         <i class="fas fa-info-circle"></i>
                                                         <span id="uploadLimitText">Loading upload limits...</span>
                                                     </div>
-                                                    <div class="upload-required-info" style="margin-top: 8px; padding: 8px; background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.3); border-radius: 6px;">
-                                                        <i class="fas fa-exclamation-triangle" style="color: #ffc107; margin-right: 6px;"></i>
-                                                        <span style="color: #ffc107; font-weight: 500;">At least one media file is required</span>
-                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -2886,7 +2893,10 @@
                             maxGuests: null, // Not provided in API response
                             guestMaxImagePerPost: eventData.guest_max_image_per_post || null,
                             guestMaxVideoPerPost: eventData.guest_max_video_per_post || null,
-                            guestMaxVoicePerPost: eventData.guest_max_voice_per_post || null
+                            guestMaxVoicePerPost: eventData.guest_max_voice_per_post || null,
+                            allowPhotos: eventData.allow_photos,
+                            allowVideos: eventData.allow_videos,
+                            allowVoice: eventData.allow_voice
                         };
                         
                         // Load media size limits from API response
@@ -2933,7 +2943,10 @@
                         maxGuests: null,
                         guestMaxImagePerPost: 2,
                         guestMaxVideoPerPost: 2,
-                        guestMaxVoicePerPost: 2
+                        guestMaxVoicePerPost: 2,
+                        allowPhotos: true,
+                        allowVideos: true,
+                        allowVoice: true
                     };
                     // Fallback size limits
                     mediaSizeLimits = {
@@ -2956,7 +2969,10 @@
                     maxGuests: null,
                     guestMaxImagePerPost: 2,
                     guestMaxVideoPerPost: 2,
-                    guestMaxVoicePerPost: 2
+                    guestMaxVoicePerPost: 2,
+                    allowPhotos: true,
+                    allowVideos: true,
+                    allowVoice: true
                 };
                 // Fallback size limits
                 mediaSizeLimits = {
@@ -2999,19 +3015,22 @@
                 const imageLimit = packageLimits.guestMaxImagePerPost;
                 const videoLimit = packageLimits.guestMaxVideoPerPost;
                 const voiceLimit = packageLimits.guestMaxVoicePerPost;
+                const allowPhotos = packageLimits.allowPhotos !== false;
+                const allowVideos = packageLimits.allowVideos !== false;
+                const allowVoice = packageLimits.allowVoice !== false;
                 
                 console.log('🔍 Limits from packageLimits:', { imageLimit, videoLimit, voiceLimit });
                 
                 let limitText = 'You can upload ';
                 const limitParts = [];
                 
-                if (imageLimit && imageLimit > 0) {
+                if (allowPhotos && imageLimit && imageLimit > 0) {
                     limitParts.push(`<strong>${imageLimit}</strong> image${imageLimit !== 1 ? 's' : ''}`);
                 }
-                if (videoLimit && videoLimit > 0) {
+                if (allowVideos && videoLimit && videoLimit > 0) {
                     limitParts.push(`<strong>${videoLimit}</strong> video${videoLimit !== 1 ? 's' : ''}`);
                 }
-                if (voiceLimit && voiceLimit > 0) {
+                if (allowVoice && voiceLimit && voiceLimit > 0) {
                     limitParts.push(`<strong>${voiceLimit}</strong> voice recording${voiceLimit !== 1 ? 's' : ''}`);
                 }
                 

@@ -652,13 +652,18 @@ class EventGuestAccessSerializer(serializers.ModelSerializer):
         model = Event
         fields = [
             'id', 'title', 'description', 'event_date', 'location', 'event_type',
-            'event_thumbnail', 'event_banner', 'event_video', 'package_name', 'package_max_photos', 'package_max_videos', 'package_max_voice',
+            'event_thumbnail', 'event_banner', 'event_video',
+            'allow_photos', 'allow_videos', 'allow_voice', 'allow_wishes',
+            'package_name', 'package_max_photos', 'package_max_videos', 'package_max_voice',
             'guest_max_image_per_post', 'guest_max_video_per_post', 'guest_max_voice_per_post', 
             'max_image_size', 'max_video_size', 'max_voice_size',
             'total_guest_posts', 'total_media_files', 'photo_count', 'video_count', 'voice_count', 'is_public', 'is_accessible',
             'frontend_share_url'
         ]
-        read_only_fields = ['id', 'total_guest_posts', 'total_media_files', 'photo_count', 'video_count', 'voice_count', 'frontend_share_url']
+        read_only_fields = [
+            'id', 'total_guest_posts', 'total_media_files', 'photo_count', 'video_count', 'voice_count',
+            'frontend_share_url', 'allow_photos', 'allow_videos', 'allow_voice', 'allow_wishes'
+        ]
     
     def get_guest_max_image_per_post(self, obj):
         """Get the maximum images per guest post from EventSettings"""
