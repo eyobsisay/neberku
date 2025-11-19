@@ -67,6 +67,14 @@
             background: rgba(255, 255, 255, 0.2);
         }
         
+        .nav-link.btn {
+            cursor: pointer;
+        }
+        
+        .nav-link.btn:hover {
+            background: rgba(255, 255, 255, 0.2) !important;
+        }
+        
         /* Mobile App Event Header */
         .event-header {
             position: relative;
@@ -2273,6 +2281,11 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
+                    <li class="nav-item" id="logoutNavItem" style="display: none;">
+                        <button class="nav-link btn btn-link text-white p-0 border-0" id="logoutBtn" style="background: none; text-decoration: none;">
+                            <i class="fas fa-sign-out-alt me-1"></i>Sign Out
+                        </button>
+                    </li>
                     <li class="nav-item">
                         <a class="nav-link" href="guest-contribution.html">
                             <i class="fas fa-arrow-left me-1"></i>Back to Events
@@ -2618,6 +2631,14 @@
                                                 </button>
                                             </div>
                                         </form>
+                                        <div class="contact-switch-account" id="contactSwitchAccount" style="margin-top: 0.6rem; text-align: center; display: none;">
+                                            <p style="font-size: 0.85rem; color: var(--muted); margin-bottom: 0.3rem;">
+                                                Using a different phone?
+                                            </p>
+                                            <button type="button" class="btn btn-link" id="contactLogoutBtn" style="padding: 0; font-size: 0.85rem;">
+                                                <i class="fas fa-sign-out-alt me-1"></i>Sign out
+                                            </button>
+                                        </div>
                                     </div>
                                     
                                     <!-- Step 2: OTP Verification -->
@@ -2758,6 +2779,8 @@
             const otpBackBtn = document.getElementById('otpBackBtn');
             const contactInfoSubmitBtn = document.getElementById('contactInfoSubmitBtn');
             const otpVerifyBtn = document.getElementById('otpVerifyBtn');
+            const logoutBtn = document.getElementById('logoutBtn');
+            const logoutNavItem = document.getElementById('logoutNavItem');
             
             if (!contributionForm || !contactInfoModal || !contactInfoForm || !otpVerificationForm) {
                 return;
@@ -2772,6 +2795,96 @@
             
             // Get API base URL from config
             const API_BASE_URL = window.API_CONFIG?.BASE_URL || '';
+            
+            // Check if user is already logged in
+            const checkExistingAuth = () => {
+                const token = localStorage.getItem('neberku_access_token');
+                const userData = localStorage.getItem('neberku_user');
+                
+                if (!token || !userData) {
+                    if (logoutNavItem) logoutNavItem.style.display = 'none';
+                    return false;
+                }
+                
+                // Validate token structure and expiration
+                if (window.API_UTILS && !window.API_UTILS.validateToken()) {
+                    // Token is invalid, clear it
+                    localStorage.removeItem('neberku_access_token');
+                    localStorage.removeItem('neberku_refresh_token');
+                    localStorage.removeItem('neberku_user');
+                    if (logoutNavItem) logoutNavItem.style.display = 'none';
+                    return false;
+                }
+                
+                try {
+                    const user = JSON.parse(userData);
+                    // Check if user has phone_number (from OTP verification)
+                    if (user.phone_number) {
+                        // User is already verified, pre-fill contact info
+                        currentPhoneNumber = user.phone_number;
+                        currentName = user.first_name || '';
+                        
+                        // Pre-fill hidden fields
+                        guestNameHidden.value = currentName;
+                        guestPhoneHidden.value = currentPhoneNumber;
+                        
+                        // Mark as confirmed so form can submit without OTP
+                        contactInfoConfirmed = true;
+                        
+                        // Show logout button in navbar
+                        if (logoutNavItem) logoutNavItem.style.display = 'block';
+                        
+                        console.log('✅ User already authenticated via OTP:', user.phone_number);
+                        return true;
+                    }
+                } catch (e) {
+                    console.error('Error parsing user data:', e);
+                    if (logoutNavItem) logoutNavItem.style.display = 'none';
+                    return false;
+                }
+                
+                if (logoutNavItem) logoutNavItem.style.display = 'none';
+                return false;
+            };
+            
+            // Logout function
+            const logoutGuestUser = () => {
+                // Clear all authentication data
+                localStorage.removeItem('neberku_access_token');
+                localStorage.removeItem('neberku_refresh_token');
+                localStorage.removeItem('neberku_user');
+                
+                // Reset contact info
+                contactInfoConfirmed = false;
+                currentPhoneNumber = '';
+                currentName = '';
+                guestNameHidden.value = '';
+                guestPhoneHidden.value = '';
+                
+                // Hide logout button
+                if (logoutNavItem) logoutNavItem.style.display = 'none';
+                
+                // Close modal if open
+                closeContactModal();
+                
+                console.log('✅ User logged out successfully');
+                
+                // Show notification
+                if (window.showAlert) {
+                    window.showAlert('You have been signed out. You can sign in again with a different phone number.', 'info');
+                }
+            };
+            
+            // Add logout button event listener
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    logoutGuestUser();
+                });
+            }
+            
+            // Check authentication on page load
+            checkExistingAuth();
             
             const openContactModal = () => {
                 contactInfoModal.classList.add('show');
@@ -2925,6 +3038,10 @@
                         guestNameHidden.value = currentName;
                         guestPhoneHidden.value = currentPhoneNumber;
                         contactInfoConfirmed = true;
+                        
+                        // Show logout button in navbar
+                        if (logoutNavItem) logoutNavItem.style.display = 'block';
+                        
                         closeContactModal();
                         
                         // Trigger original form submission
@@ -2943,9 +3060,13 @@
             
             // Form submission handlers
             contributionForm.addEventListener('submit', function(event) {
+                // Re-check authentication in case token was refreshed
                 if (!contactInfoConfirmed) {
-                    event.preventDefault();
-                    openContactModal();
+                    const wasAuthenticated = checkExistingAuth();
+                    if (!wasAuthenticated) {
+                        event.preventDefault();
+                        openContactModal();
+                    }
                 }
             });
             
@@ -3031,6 +3152,7 @@
                 if (value.length > 6) value = value.slice(0, 6);
                 e.target.value = value;
             });
+
         });
         
         // Voice Recording Functionality
