@@ -30,10 +30,11 @@
             background-size: 160% 160%, 140% 140%, 100% 100%;
             animation: bgShift 18s ease-in-out infinite;
             color: var(--ink);
-            min-height: 100vh;
+            height: 100vh;
             position: relative;
-            overflow-x: hidden;
-            padding: 2rem 0;
+            overflow: hidden;
+            padding: 0;
+            margin: 0;
         }
         
         @keyframes bgShift{
@@ -45,13 +46,17 @@
         .media-container {
             max-width: 1000px;
             margin: 0 auto;
-            padding: 0 1rem;
+            padding: 0.5rem 1rem;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
         }
         
         .media-card {
             background: linear-gradient(135deg, rgba(255, 255, 255, .1), rgba(255, 255, 255, .05)) !important;
             border: 2px solid var(--line) !important;
-            border-radius: 30px;
+            border-radius: 20px;
             backdrop-filter: blur(20px) saturate(150%);
             box-shadow: 0 25px 70px rgba(2,6,23,.6), 
                         0 0 0 1px rgba(255,255,255,0.1) inset !important;
@@ -59,6 +64,9 @@
             transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             animation: cardEntrance 0.8s ease-out;
             position: relative;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
         }
         
         @keyframes cardEntrance {
@@ -86,11 +94,12 @@
         /* Media Header */
         .media-header {
             background: linear-gradient(135deg, var(--primary-start) 0%, var(--primary-end) 45%, var(--accent) 100%);
-            padding: 2.5rem 2rem;
+            padding: 1rem 1.5rem;
             color: white;
             text-align: center;
             position: relative;
             overflow: hidden;
+            flex-shrink: 0;
         }
         
         .media-header::before {
@@ -115,9 +124,9 @@
         }
         
         .media-header .guest-name {
-            font-size: 1.2rem;
+            font-size: 0.9rem;
             opacity: 0.95;
-            margin-bottom: 1rem;
+            margin-bottom: 0.5rem;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -137,7 +146,7 @@
         }
         
         .media-header h1 {
-            font-size: 2rem;
+            font-size: 1.5rem;
             font-weight: 800;
             margin-bottom: 0.5rem;
             text-shadow: 3px 3px 6px rgba(0,0,0,0.4);
@@ -158,7 +167,7 @@
         }
         
         .media-header .media-date {
-            font-size: 0.9rem;
+            font-size: 0.75rem;
             opacity: 0.9;
             display: flex;
             align-items: center;
@@ -169,24 +178,29 @@
         
         /* Media Content */
         .media-content {
-            padding: 2rem;
+            padding: 1rem 1.5rem;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
         }
         
         /* Wish Text */
         .wish-text {
-            font-size: 1.3rem;
-            line-height: 2;
+            font-size: 0.9rem;
+            line-height: 1.5;
             color: var(--ink);
-            margin-bottom: 2rem;
+            margin-bottom: 0.75rem;
             text-align: center;
             font-style: italic;
             font-weight: 400;
-            padding: 2rem;
+            padding: 0.75rem 1rem;
             background: linear-gradient(135deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
-            border-radius: 20px;
+            border-radius: 12px;
             border-left: 4px solid var(--primary-start);
             position: relative;
             animation: fadeIn 1s ease-out 0.3s both;
+            flex-shrink: 0;
         }
         
         .wish-text::before {
@@ -218,40 +232,45 @@
         
         /* Media Display */
         .media-display {
-            margin: 2rem 0;
+            margin: 0.5rem 0;
             border-radius: 20px;
             overflow: hidden;
             background: rgba(0,0,0,0.2);
             position: relative;
             animation: fadeIn 1s ease-out 0.5s both;
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
         .media-display img {
             width: 100%;
-            height: auto;
+            height: 100%;
             display: block;
-            max-height: 70vh;
             object-fit: contain;
+            max-height: 100%;
         }
         
         .media-display video {
             width: 100%;
-            height: auto;
+            height: 100%;
             display: block;
-            max-height: 70vh;
+            max-height: 100%;
         }
         
         .media-display.voice {
-            padding: 3rem;
+            padding: 1.5rem;
             background: linear-gradient(135deg, rgba(139,92,246,.2), rgba(139,92,246,.1));
             border: 2px solid rgba(139,92,246,.3);
             text-align: center;
         }
         
         .media-display.voice i {
-            font-size: 5rem;
+            font-size: 3rem;
             color: var(--accent);
-            margin-bottom: 2rem;
+            margin-bottom: 1rem;
             display: block;
             animation: pulse 2s ease-in-out infinite;
         }
@@ -284,15 +303,17 @@
         
         /* Event Info */
         .event-info {
-            margin-top: 2rem;
-            padding: 2rem;
+            margin-top: 0.5rem;
+            padding: 0.75rem 1rem;
             background: linear-gradient(135deg, rgba(255,255,255,.08), rgba(255,255,255,.03));
-            border-radius: 20px;
+            border-radius: 12px;
             border: 2px solid var(--line);
             text-align: center;
             position: relative;
             overflow: hidden;
             animation: fadeIn 1s ease-out 0.7s both;
+            flex-shrink: 0;
+            display: none; /* Hide event info to save space */
         }
         
         .event-info::before {
@@ -406,17 +427,30 @@
         
         /* Responsive */
         @media (max-width: 768px) {
+            .media-header {
+                padding: 0.75rem 1rem;
+            }
+            
             .media-header h1 {
-                font-size: 1.5rem;
+                font-size: 1.2rem;
             }
             
             .media-content {
-                padding: 1.5rem;
+                padding: 0.75rem 1rem;
             }
             
             .wish-text {
-                font-size: 1.1rem;
-                padding: 1.5rem;
+                font-size: 0.8rem;
+                padding: 0.5rem 0.75rem;
+            }
+            
+            .media-display.voice {
+                padding: 1rem;
+            }
+            
+            .media-display.voice i {
+                font-size: 2rem;
+                margin-bottom: 0.5rem;
             }
             
             .share-button {
@@ -470,9 +504,10 @@
             align-items: center;
             justify-content: flex-end;
             gap: 0.5rem;
-            padding: 1rem 0 0 0;
-            margin-top: 2rem;
+            padding: 0.5rem 0 0 0;
+            margin-top: 0.5rem;
             animation: fadeIn 1s ease-out 0.9s both;
+            flex-shrink: 0;
         }
         
         .neberku-watermark-link {
