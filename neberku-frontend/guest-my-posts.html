@@ -32,24 +32,27 @@
             background: rgba(255, 255, 255, 0.2) !important;
         }
         .my-posts-card {
-            background: rgba(18, 12, 27, 0.85);
+            background: rgba(18, 12, 27, 0.92);
             border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 24px;
-            padding: 1.8rem;
-            box-shadow: 0 25px 45px rgba(0,0,0,0.45);
+            border-radius: 28px;
+            padding: 1.75rem;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.55);
             position: relative;
             overflow: hidden;
         }
+        .my-posts-card::before,
         .my-posts-card::after {
             content: "";
             position: absolute;
-            inset: -60% auto auto -40%;
-            width: 260px;
-            height: 260px;
-            background: radial-gradient(circle, rgba(236,72,153,0.35), transparent 60%);
-            opacity: 0.6;
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(236,72,153,0.25), transparent 65%);
+            opacity: 0.7;
             pointer-events: none;
         }
+        .my-posts-card::before { inset: -65% auto auto -30%; }
+        .my-posts-card::after { inset: auto -30% -80% auto; }
         .my-posts-card > * { position: relative; z-index: 1; }
         .status-badge {
             border-radius: 999px;
@@ -71,6 +74,32 @@
             padding: 0.25rem 0.85rem;
             font-size: 0.8rem;
             margin-right: 0.4rem;
+        }
+        .story-header {
+            display: flex;
+            align-items: center;
+            gap: 0.9rem;
+            margin-bottom: 1rem;
+        }
+        .story-meta h5 {
+            margin: 0;
+            font-weight: 600;
+        }
+        .story-meta small {
+            color: rgba(255,255,255,0.7);
+        }
+        .story-quote {
+            background: rgba(255,255,255,0.05);
+            border-left: 4px solid rgba(236,72,153,0.6);
+            padding: 0.85rem 1rem;
+            border-radius: 16px;
+            font-style: italic;
+            color: rgba(255,255,255,0.85);
+            margin-bottom: 1rem;
+        }
+        .story-quote i {
+            color: rgba(236,72,153,0.8);
+            margin-right: 0.5rem;
         }
         .media-summary span {
             display: inline-flex;
@@ -102,12 +131,104 @@
             background: rgba(0,0,0,0.35);
             padding: 0.5rem;
         }
+        .media-carousel .carousel-control-prev,
+        .media-carousel .carousel-control-next {
+            width: 48px;
+        }
         .media-carousel .carousel-control-prev-icon,
         .media-carousel .carousel-control-next-icon {
-            filter: invert(1);
+            background-color: rgba(0,0,0,0.5);
+            padding: 1.2rem;
+            border-radius: 50%;
+            background-size: 40% 40%;
+        }
+        .media-carousel .carousel-indicators {
+            bottom: -18px;
         }
         .media-carousel .carousel-indicators [data-bs-target] {
-            background-color: #fff;
+            background-color: rgba(255,255,255,0.7);
+        }
+        .story-media-wrapper {
+            position: relative;
+            border-radius: 22px;
+            overflow: hidden;
+            margin-top: 1rem;
+        }
+        .story-progress {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            right: 12px;
+            display: flex;
+            gap: 4px;
+            z-index: 5;
+        }
+        .story-progress span {
+            flex: 1;
+            height: 4px;
+            background: rgba(255,255,255,0.25);
+            border-radius: 999px;
+        }
+        .story-progress span.active {
+            background: #fff;
+        }
+        .story-caption {
+            position: absolute;
+            bottom: 14px;
+            left: 14px;
+            right: 14px;
+            background: rgba(0,0,0,0.45);
+            border-radius: 14px;
+            padding: 0.85rem 1rem;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+        .story-caption p {
+            margin: 0;
+            font-size: 0.95rem;
+        }
+        .story-media-wrapper {
+            position: relative;
+            border-radius: 22px;
+            overflow: hidden;
+            margin-top: 1rem;
+        }
+        .story-progress {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            right: 12px;
+            display: flex;
+            gap: 4px;
+            z-index: 5;
+        }
+        .story-progress span {
+            flex: 1;
+            height: 4px;
+            background: rgba(255,255,255,0.25);
+            border-radius: 999px;
+        }
+        .story-progress span.active {
+            background: #fff;
+        }
+        .story-caption {
+            position: absolute;
+            bottom: 14px;
+            left: 14px;
+            right: 14px;
+            background: rgba(0,0,0,0.45);
+            border-radius: 14px;
+            padding: 0.85rem 1rem;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+        .story-caption p {
+            margin: 0;
+            font-size: 0.95rem;
         }
     </style>
 </head>
@@ -241,6 +362,17 @@
                 return `${API_BASE_URL}${normalized}`;
             };
 
+            const attachCarouselProgress = (carouselId) => {
+                const carouselElement = document.getElementById(carouselId);
+                if (!carouselElement) return;
+                const progressBars = carouselElement.parentElement.querySelectorAll('.story-progress span');
+                carouselElement.addEventListener('slide.bs.carousel', (event) => {
+                    progressBars.forEach((bar, index) => {
+                        bar.classList.toggle('active', index === event.to);
+                    });
+                });
+            };
+
             const renderMediaSlider = (post) => {
                 const media = post.media_files ? [...post.media_files] : [];
                 if (!media.length) {
@@ -264,6 +396,11 @@
                 });
 
                 const carouselId = `post-carousel-${post.id}`;
+                const progressBars = `
+                    <div class="story-progress">
+                        ${media.map((_, idx) => `<span class="${idx === 0 ? 'active' : ''}"></span>`).join('')}
+                    </div>
+                `;
                 const items = media.map((file, index) => {
                     const mediaUrl = buildMediaUrl(file.media_file);
                     const activeClass = index === 0 ? 'active' : '';
@@ -334,11 +471,8 @@
                 ` : '';
 
                 return `
-                    <div class="mt-4">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h6 class="mb-0"><i class="fas fa-photo-video me-2"></i>Media Carousel</h6>
-                            <small class="text-muted">${media.length} ${media.length === 1 ? 'item' : 'items'}</small>
-                        </div>
+                    <div class="story-media-wrapper">
+                        ${progressBars}
                         <div id="${carouselId}" class="carousel slide media-carousel" data-bs-interval="false">
                             ${indicators}
                             <div class="carousel-inner">
@@ -369,24 +503,24 @@
                         ${post.video_count ? `<span><i class="fas fa-video"></i>${post.video_count} Videos</span>` : ''}
                         ${post.voice_count ? `<span><i class="fas fa-microphone"></i>${post.voice_count} Voice</span>` : ''}
                     `;
+                    const eventThumb = post.event?.event_thumbnail ? buildMediaUrl(post.event.event_thumbnail) : '';
+                    const eventTitle = post.event?.title || 'Event';
+                    const carouselId = `post-carousel-${post.id}`;
                     card.innerHTML = `
                         <div class="my-posts-card h-100">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <div>
-                                    <h5 class="mb-0">${post.event?.title || 'Event'} </h5>
-                                    <small class="text-muted">${new Date(post.created_at).toLocaleString()}</small>
+                            <div class="story-header">
+                                <div class="story-meta">
+                                    <h5 class="mb-1">${eventTitle}</h5>
+                                    <small>${new Date(post.created_at).toLocaleString()}</small>
                                 </div>
-                                <span class="status-badge ${post.is_approved ? 'status-approved' : 'status-pending'}">
-                                    ${post.is_approved ? 'Approved' : 'Pending Review'}
-                                </span>
                             </div>
-                            <p class="mt-3 mb-3">${post.wish_text || ''}</p>
-                            ${summaryBadges.trim() ? `<div class="mb-2 media-summary">${summaryBadges}</div>` : ''}
-                            <small class="text-muted">Total media: ${post.total_media_files}</small>
+                            ${post.wish_text ? `<div class="story-quote"><i class="fas fa-quote-left"></i>${post.wish_text}</div>` : ''}
+                            ${summaryBadges.trim() ? `<div class="mb-3 media-summary">${summaryBadges}</div>` : ''}
                             ${mediaSlider}
                         </div>
                     `;
                     postsList.appendChild(card);
+                    attachCarouselProgress(carouselId);
                 });
             };
 
