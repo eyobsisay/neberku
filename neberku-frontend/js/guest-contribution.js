@@ -12,6 +12,8 @@ class GuestContributionManager {
 
     init() {
         this.bindEvents();
+        this.bindAuthControls();
+        this.updateAuthNav();
         this.loadPublicEvents();
         
         // Check if user accessed via share link or QR code
@@ -232,6 +234,44 @@ class GuestContributionManager {
             });
         }
 
+    }
+
+    bindAuthControls() {
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', (event) => {
+                event.preventDefault();
+                this.logoutGuestUser();
+            });
+        }
+    }
+
+    updateAuthNav() {
+        const myPostsNavItem = document.getElementById('myPostsNavItem');
+        const logoutNavItem = document.getElementById('logoutNavItem');
+        const token = localStorage.getItem('neberku_access_token');
+        const user = localStorage.getItem('neberku_user');
+        const isAuthenticated = Boolean(token && user);
+
+        const toggleItem = (item, show) => {
+            if (!item) return;
+            if (show) {
+                item.classList.remove('d-none');
+            } else {
+                item.classList.add('d-none');
+            }
+        };
+
+        toggleItem(myPostsNavItem, isAuthenticated);
+        toggleItem(logoutNavItem, isAuthenticated);
+    }
+
+    logoutGuestUser() {
+        localStorage.removeItem('neberku_access_token');
+        localStorage.removeItem('neberku_refresh_token');
+        localStorage.removeItem('neberku_user');
+        this.updateAuthNav();
+        this.showAlert('You have been signed out.', 'info');
     }
 
     async accessEvent() {
