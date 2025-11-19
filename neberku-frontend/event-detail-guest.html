@@ -2281,6 +2281,11 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
+                    <li class="nav-item" id="myPostsNavItem" style="display: none;">
+                        <a class="nav-link" href="guest-my-posts.html">
+                            <i class="fas fa-bookmark me-1"></i>My Posts
+                        </a>
+                    </li>
                     <li class="nav-item" id="logoutNavItem" style="display: none;">
                         <button class="nav-link btn btn-link text-white p-0 border-0" id="logoutBtn" style="background: none; text-decoration: none;">
                             <i class="fas fa-sign-out-alt me-1"></i>Sign Out
@@ -2631,14 +2636,6 @@
                                                 </button>
                                             </div>
                                         </form>
-                                        <div class="contact-switch-account" id="contactSwitchAccount" style="margin-top: 0.6rem; text-align: center; display: none;">
-                                            <p style="font-size: 0.85rem; color: var(--muted); margin-bottom: 0.3rem;">
-                                                Using a different phone?
-                                            </p>
-                                            <button type="button" class="btn btn-link" id="contactLogoutBtn" style="padding: 0; font-size: 0.85rem;">
-                                                <i class="fas fa-sign-out-alt me-1"></i>Sign out
-                                            </button>
-                                        </div>
                                     </div>
                                     
                                     <!-- Step 2: OTP Verification -->
@@ -2781,6 +2778,7 @@
             const otpVerifyBtn = document.getElementById('otpVerifyBtn');
             const logoutBtn = document.getElementById('logoutBtn');
             const logoutNavItem = document.getElementById('logoutNavItem');
+            const myPostsNavItem = document.getElementById('myPostsNavItem');
             
             if (!contributionForm || !contactInfoModal || !contactInfoForm || !otpVerificationForm) {
                 return;
@@ -2803,6 +2801,7 @@
                 
                 if (!token || !userData) {
                     if (logoutNavItem) logoutNavItem.style.display = 'none';
+                    if (myPostsNavItem) myPostsNavItem.style.display = 'none';
                     return false;
                 }
                 
@@ -2813,6 +2812,7 @@
                     localStorage.removeItem('neberku_refresh_token');
                     localStorage.removeItem('neberku_user');
                     if (logoutNavItem) logoutNavItem.style.display = 'none';
+                    if (myPostsNavItem) myPostsNavItem.style.display = 'none';
                     return false;
                 }
                 
@@ -2833,6 +2833,7 @@
                         
                         // Show logout button in navbar
                         if (logoutNavItem) logoutNavItem.style.display = 'block';
+                        if (myPostsNavItem) myPostsNavItem.style.display = 'block';
                         
                         console.log('✅ User already authenticated via OTP:', user.phone_number);
                         return true;
@@ -2840,10 +2841,12 @@
                 } catch (e) {
                     console.error('Error parsing user data:', e);
                     if (logoutNavItem) logoutNavItem.style.display = 'none';
+                    if (myPostsNavItem) myPostsNavItem.style.display = 'none';
                     return false;
                 }
                 
                 if (logoutNavItem) logoutNavItem.style.display = 'none';
+                if (myPostsNavItem) myPostsNavItem.style.display = 'none';
                 return false;
             };
             
@@ -2861,8 +2864,9 @@
                 guestNameHidden.value = '';
                 guestPhoneHidden.value = '';
                 
-                // Hide logout button
+                // Hide navbar items
                 if (logoutNavItem) logoutNavItem.style.display = 'none';
+                if (myPostsNavItem) myPostsNavItem.style.display = 'none';
                 
                 // Close modal if open
                 closeContactModal();
@@ -3041,6 +3045,7 @@
                         
                         // Show logout button in navbar
                         if (logoutNavItem) logoutNavItem.style.display = 'block';
+                        if (myPostsNavItem) myPostsNavItem.style.display = 'block';
                         
                         closeContactModal();
                         

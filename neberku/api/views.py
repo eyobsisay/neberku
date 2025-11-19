@@ -1962,3 +1962,42 @@ def verify_phone_otp(request):
             {'error': f'Error verifying OTP: {str(e)}'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def guest_my_posts(request):
+    """Return authenticated guest's posts based on their phone number"""
+    user = request.user
+    username = user.username or ''
+    phone_number = ''
+
+    if username.startswith('user_'):
+        phone_number = username.split('user_', 1)[1]
+
+    # Allow explicit override via query param (for potential future use)
+    if not phone_number:
+        phone_number = request.query_params.get('phone', '').strip()
+
+    if not phone_number:
+        return Response(
+            {'error': 'Authenticated guest not found or phone number missing.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    posts = GuestPost.objects.filter(
+        guest__phone=phone_number
+    ).select_related('event', 'guest').order_by('-created_at')
+
+    serializer = GuestPostSerializer(
+        posts,
+        many=True,
+        context={'request': request, 'guest_phone_for_media': phone_number}
+    )
+
+    return Response({
+        'success': True,
+        'phone_number': phone_number,
+        'count': len(serializer.data),
+        'posts': serializer.data
+    }, status=status.HTTP_200_OK)

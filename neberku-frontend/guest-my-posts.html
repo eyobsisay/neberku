@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Posts - Neberku Guest</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link href="css/custom.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(180deg, #120c1b 0%, #1a1327 100%);
+            color: #f8fafc;
+            min-height: 100vh;
+        }
+        .navbar {
+            background: linear-gradient(90deg, #f59e0b 0%, #ec4899 45%, #a855f7 100%) !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .nav-link {
+            color: rgba(255, 255, 255, 0.9) !important;
+            border-radius: 8px;
+        }
+        .nav-link:hover {
+            color: #ffffff !important;
+            background: rgba(255, 255, 255, 0.2);
+        }
+        .nav-link.btn {
+            cursor: pointer;
+        }
+        .nav-link.btn:hover {
+            background: rgba(255, 255, 255, 0.2) !important;
+        }
+        .my-posts-card {
+            background: rgba(18, 12, 27, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 24px;
+            padding: 1.8rem;
+            box-shadow: 0 25px 45px rgba(0,0,0,0.45);
+            position: relative;
+            overflow: hidden;
+        }
+        .my-posts-card::after {
+            content: "";
+            position: absolute;
+            inset: -60% auto auto -40%;
+            width: 260px;
+            height: 260px;
+            background: radial-gradient(circle, rgba(236,72,153,0.35), transparent 60%);
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        .my-posts-card > * { position: relative; z-index: 1; }
+        .status-badge {
+            border-radius: 999px;
+            padding: 0.2rem 0.75rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .status-approved {
+            background: rgba(34,197,94,0.15);
+            color: #34d399;
+        }
+        .status-pending {
+            background: rgba(249,115,22,0.15);
+            color: #fb923c;
+        }
+        .media-badge {
+            background: rgba(255,255,255,0.08);
+            border-radius: 999px;
+            padding: 0.25rem 0.85rem;
+            font-size: 0.8rem;
+            margin-right: 0.4rem;
+        }
+        .media-summary span {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.35rem 0.9rem;
+            border-radius: 999px;
+            font-size: 0.82rem;
+            background: rgba(255,255,255,0.08);
+            margin-right: 0.4rem;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            background: rgba(255,255,255,0.04);
+            border-radius: 18px;
+            border: 1px dashed rgba(255,255,255,0.2);
+        }
+        .media-carousel .carousel-item img,
+        .media-carousel .carousel-item video {
+            width: 100%;
+            height: 320px;
+            object-fit: cover;
+            border-radius: 16px;
+        }
+        .media-carousel .carousel-item audio {
+            width: 100%;
+            border-radius: 12px;
+            background: rgba(0,0,0,0.35);
+            padding: 0.5rem;
+        }
+        .media-carousel .carousel-control-prev-icon,
+        .media-carousel .carousel-control-next-icon {
+            filter: invert(1);
+        }
+        .media-carousel .carousel-indicators [data-bs-target] {
+            background-color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand brand-logo" href="event-detail-guest.html">
+                <i class="fas fa-camera-retro"></i>
+                Neberku
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="event-detail-guest.html">
+                            <i class="fas fa-arrow-left me-1"></i>Back to Event
+                        </a>
+                    </li>
+                    <li class="nav-item" id="logoutNavItem" style="display: none;">
+                        <button class="nav-link btn btn-link text-white p-0 border-0" id="logoutBtn" style="background: none; text-decoration: none;">
+                            <i class="fas fa-sign-out-alt me-1"></i>Sign Out
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container my-4">
+        <div id="alertContainer"></div>
+
+        <div id="authNotice" class="empty-state mb-4" style="display: none;">
+            <i class="fas fa-lock mb-3" style="font-size: 2rem;"></i>
+            <h4 class="mb-3">Sign in to view your posts</h4>
+            <p class="mb-3">Verify your phone number on the event page to create and view your contributions.</p>
+            <a href="event-detail-guest.html" class="btn btn-primary">
+                <i class="fas fa-arrow-left me-1"></i>Go to Event
+            </a>
+        </div>
+
+        <div id="postsSection" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="mb-0">My Posts</h2>
+                    <small class="text-muted">View and track your contributions</small>
+                </div>
+                <span id="postsCount" class="badge bg-light text-dark">0 posts</span>
+            </div>
+
+            <div id="postsLoading" class="text-center my-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-3 text-muted">Fetching your posts...</p>
+            </div>
+
+            <div id="postsEmpty" class="empty-state" style="display: none;">
+                <i class="fas fa-image mb-3" style="font-size: 2rem;"></i>
+                <h4 class="mb-2">No posts yet</h4>
+                <p class="mb-3">Share your wishes, photos, or videos with the host to see them listed here.</p>
+                <a href="event-detail-guest.html" class="btn btn-outline-light">
+                    <i class="fas fa-plus me-1"></i>Create a Post
+                </a>
+            </div>
+
+            <div id="postsList" class="row g-4"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/config.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const API_BASE_URL = window.API_CONFIG?.BASE_URL || '';
+            const alertContainer = document.getElementById('alertContainer');
+            const postsSection = document.getElementById('postsSection');
+            const postsList = document.getElementById('postsList');
+            const postsLoading = document.getElementById('postsLoading');
+            const postsEmpty = document.getElementById('postsEmpty');
+            const postsCount = document.getElementById('postsCount');
+            const authNotice = document.getElementById('authNotice');
+            const logoutNavItem = document.getElementById('logoutNavItem');
+            const logoutBtn = document.getElementById('logoutBtn');
+
+            const showAlert = (message, type = 'info') => {
+                const alert = document.createElement('div');
+                alert.className = `alert alert-${type} alert-dismissible fade show`;
+                alert.innerHTML = `
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                alertContainer.appendChild(alert);
+                setTimeout(() => alert.remove(), 5000);
+            };
+
+            const logoutGuest = () => {
+                localStorage.removeItem('neberku_access_token');
+                localStorage.removeItem('neberku_refresh_token');
+                localStorage.removeItem('neberku_user');
+                if (logoutNavItem) logoutNavItem.style.display = 'none';
+                postsSection.style.display = 'none';
+                postsList.innerHTML = '';
+                postsEmpty.style.display = 'none';
+                postsLoading.style.display = 'none';
+                authNotice.style.display = 'block';
+                showAlert('You have been signed out.', 'info');
+            };
+
+            logoutBtn?.addEventListener('click', (e) => {
+                e.preventDefault();
+                logoutGuest();
+            });
+
+            const isAuthenticated = () => {
+                const token = localStorage.getItem('neberku_access_token');
+                if (!token) return false;
+                if (window.API_UTILS && !window.API_UTILS.validateToken()) {
+                    return false;
+                }
+                return true;
+            };
+
+            const buildMediaUrl = (url = '') => {
+                if (!url) return '';
+                if (url.startsWith('http://') || url.startsWith('https://')) {
+                    return url;
+                }
+                const normalized = url.startsWith('/') ? url : `/${url}`;
+                return `${API_BASE_URL}${normalized}`;
+            };
+
+            const renderMediaSlider = (post) => {
+                const media = post.media_files ? [...post.media_files] : [];
+                if (!media.length) {
+                    return `<div class="text-muted small mt-2">No media attached to this post.</div>`;
+                }
+
+                const typeConfig = {
+                    'photo': { icon: 'fas fa-images', label: 'Photo' },
+                    'video': { icon: 'fas fa-video', label: 'Video' },
+                    'voice': { icon: 'fas fa-microphone', label: 'Voice' }
+                };
+
+                const typeOrder = { 'photo': 0, 'video': 1, 'voice': 2 };
+                media.sort((a, b) => {
+                    const orderA = typeOrder[a.media_type] ?? 99;
+                    const orderB = typeOrder[b.media_type] ?? 99;
+                    if (orderA === orderB) {
+                        return new Date(a.created_at || 0) - new Date(b.created_at || 0);
+                    }
+                    return orderA - orderB;
+                });
+
+                const carouselId = `post-carousel-${post.id}`;
+                const items = media.map((file, index) => {
+                    const mediaUrl = buildMediaUrl(file.media_file);
+                    const activeClass = index === 0 ? 'active' : '';
+                    const config = typeConfig[file.media_type] || typeConfig.photo;
+                    const caption = `
+                        <div class="carousel-caption d-none d-md-block">
+                            <span class="badge bg-dark bg-opacity-75">
+                                <i class="${config.icon} me-1"></i>${config.label} ${index + 1}/${media.length}
+                            </span>
+                        </div>
+                    `;
+
+                    if (file.media_type === 'video') {
+                        return `
+                            <div class="carousel-item ${activeClass}">
+                                <video controls>
+                                    <source src="${mediaUrl}" type="${file.mime_type || 'video/mp4'}">
+                                    Your browser does not support video playback.
+                                </video>
+                                ${caption}
+                            </div>
+                        `;
+                    }
+
+                    if (file.media_type === 'voice') {
+                        return `
+                            <div class="carousel-item ${activeClass}">
+                                <audio controls>
+                                    <source src="${mediaUrl}" type="${file.mime_type || 'audio/mpeg'}">
+                                    Your browser does not support audio playback.
+                                </audio>
+                                ${caption}
+                            </div>
+                        `;
+                    }
+
+                    return `
+                        <div class="carousel-item ${activeClass}">
+                            <img src="${mediaUrl}" alt="${file.file_name || 'media'}">
+                            ${caption}
+                        </div>
+                    `;
+                }).join('');
+
+                const indicators = media.length > 1 ? `
+                    <div class="carousel-indicators">
+                        ${media.map((_, idx) => `
+                            <button type="button"
+                                data-bs-target="#${carouselId}"
+                                data-bs-slide-to="${idx}"
+                                class="${idx === 0 ? 'active' : ''}"
+                                aria-current="${idx === 0 ? 'true' : 'false'}"
+                                aria-label="Slide ${idx + 1}">
+                            </button>
+                        `).join('')}
+                    </div>
+                ` : '';
+
+                const controls = media.length > 1 ? `
+                    <button class="carousel-control-prev" type="button" data-bs-target="#${carouselId}" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Previous</span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#${carouselId}" data-bs-slide="next">
+                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Next</span>
+                    </button>
+                ` : '';
+
+                return `
+                    <div class="mt-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="mb-0"><i class="fas fa-photo-video me-2"></i>Media Carousel</h6>
+                            <small class="text-muted">${media.length} ${media.length === 1 ? 'item' : 'items'}</small>
+                        </div>
+                        <div id="${carouselId}" class="carousel slide media-carousel" data-bs-interval="false">
+                            ${indicators}
+                            <div class="carousel-inner">
+                                ${items}
+                            </div>
+                            ${controls}
+                        </div>
+                    </div>
+                `;
+            };
+
+            const renderPosts = (posts = []) => {
+                postsList.innerHTML = '';
+                postsCount.textContent = `${posts.length} ${posts.length === 1 ? 'post' : 'posts'}`;
+
+                if (!posts.length) {
+                    postsEmpty.style.display = 'block';
+                    return;
+                }
+
+                postsEmpty.style.display = 'none';
+                posts.forEach(post => {
+                    const card = document.createElement('div');
+                    card.className = 'col-12';
+                    const mediaSlider = renderMediaSlider(post);
+                    const summaryBadges = `
+                        ${post.photo_count ? `<span><i class="fas fa-images"></i>${post.photo_count} Photos</span>` : ''}
+                        ${post.video_count ? `<span><i class="fas fa-video"></i>${post.video_count} Videos</span>` : ''}
+                        ${post.voice_count ? `<span><i class="fas fa-microphone"></i>${post.voice_count} Voice</span>` : ''}
+                    `;
+                    card.innerHTML = `
+                        <div class="my-posts-card h-100">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div>
+                                    <h5 class="mb-0">${post.event?.title || 'Event'} </h5>
+                                    <small class="text-muted">${new Date(post.created_at).toLocaleString()}</small>
+                                </div>
+                                <span class="status-badge ${post.is_approved ? 'status-approved' : 'status-pending'}">
+                                    ${post.is_approved ? 'Approved' : 'Pending Review'}
+                                </span>
+                            </div>
+                            <p class="mt-3 mb-3">${post.wish_text || ''}</p>
+                            ${summaryBadges.trim() ? `<div class="mb-2 media-summary">${summaryBadges}</div>` : ''}
+                            <small class="text-muted">Total media: ${post.total_media_files}</small>
+                            ${mediaSlider}
+                        </div>
+                    `;
+                    postsList.appendChild(card);
+                });
+            };
+
+            const fetchPosts = async () => {
+                try {
+                    const token = localStorage.getItem('neberku_access_token');
+                    const response = await fetch(`${API_BASE_URL}/api/guest/my-posts/`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    if (response.status === 401) {
+                        logoutGuest();
+                        return;
+                    }
+
+                    const data = await response.json();
+                    if (response.ok && data.success) {
+                        postsSection.style.display = 'block';
+                        postsLoading.style.display = 'none';
+                        renderPosts(data.posts || []);
+                    } else {
+                        postsLoading.style.display = 'none';
+                        showAlert(data.error || 'Unable to load posts.', 'danger');
+                    }
+                } catch (error) {
+                    postsLoading.style.display = 'none';
+                    showAlert('Unable to load posts. Please try again later.', 'danger');
+                }
+            };
+
+            if (!isAuthenticated()) {
+                authNotice.style.display = 'block';
+                postsLoading.style.display = 'none';
+                return;
+            }
+
+            if (logoutNavItem) logoutNavItem.style.display = 'block';
+            postsSection.style.display = 'block';
+            authNotice.style.display = 'none';
+            fetchPosts();
+        });
+    </script>
+</body>
+</html>
+

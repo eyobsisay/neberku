@@ -157,12 +157,13 @@ class GuestPostSerializer(serializers.ModelSerializer):
     def get_media_files(self, obj):
         """Filter media files based on user permissions"""
         request = self.context.get('request')
+        guest_phone = self.context.get('guest_phone_for_media')
         
-        # For superusers, show all media files
-        if request and request.user.is_authenticated and request.user.is_superuser:
+        if guest_phone and obj.guest and obj.guest.phone == guest_phone:
+            media_files = obj.media_files.all()
+        elif request and request.user.is_authenticated and request.user.is_superuser:
             media_files = obj.media_files.all()
         else:
-            # For non-superusers, show only approved media files
             media_files = obj.media_files.filter(is_approved=True)
         
         return MediaFileSerializer(media_files, many=True, context=self.context).data

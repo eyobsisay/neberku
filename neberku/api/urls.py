@@ -32,6 +32,7 @@ urlpatterns = [
     # Phone OTP Authentication endpoints
     path('auth/phone/send-otp/', views.send_phone_otp, name='send_phone_otp'),
     path('auth/phone/verify-otp/', views.verify_phone_otp, name='verify_phone_otp'),
+    path('guest/my-posts/', views.guest_my_posts, name='guest_my_posts'),
     
     # User profile endpoints
     path('user/profile/', views.api_user_profile, name='api_user_profile'),
