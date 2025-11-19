@@ -29,6 +29,10 @@ urlpatterns = [
     path('register/', views.api_register, name='api_register'),
     path('logout/', views.api_logout, name='api_logout'),
     
+    # Phone OTP Authentication endpoints
+    path('auth/phone/send-otp/', views.send_phone_otp, name='send_phone_otp'),
+    path('auth/phone/verify-otp/', views.verify_phone_otp, name='verify_phone_otp'),
+    
     # User profile endpoints
     path('user/profile/', views.api_user_profile, name='api_user_profile'),
     path('user/change-password/', views.api_change_password, name='api_change_password'),

@@ -11,20 +11,23 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import os
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / '.env')
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-rx7umt2qsa+snr9z*8zv8m8x#@r73k-_rq45h5k&d5al)4c0&y'
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-rx7umt2qsa+snr9z*8zv8m8x#@r73k-_rq45h5k&d5al)4c0&y')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-fake_production = False
+DEBUG = os.environ.get('DEBUG', 'True').lower() in ['true', '1', 'yes']
+fake_production = os.environ.get('FAKE_PRODUCTION', 'False').lower() in ['true', '1', 'yes']
 ALLOWED_HOSTS = ['neberku.et','api.koshkoshe.com', 'www.api.koshkoshe.com', 'www.koshkoshe.com', 'koshkoshe.com','localhost','127.0.0.1']
 
 # Site URL for generating QR codes and share links
@@ -181,6 +184,14 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB in bytes
 ALLOWED_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp']
 ALLOWED_VIDEO_EXTENSIONS = ['mp4', 'avi', 'mov', 'wmv', 'webm']
 ALLOWED_DOCUMENT_EXTENSIONS = ['pdf', 'doc', 'docx', 'txt']
+# SMS / OTP configuration
+AFROMESSAGE_BASE_URL = os.environ.get('AFROMESSAGE_BASE_URL', 'https://api.afromessage.com/api/send')
+AFROMESSAGE_TOKEN = os.environ.get('AFROMESSAGE_TOKEN', '')
+AFROMESSAGE_CALLBACK = os.environ.get('AFROMESSAGE_CALLBACK', '')
+AFROMESSAGE_FROM_ID = os.environ.get('AFROMESSAGE_FROM_ID', '')
+AFROMESSAGE_SENDER = os.environ.get('AFROMESSAGE_SENDER', 'NEBERKU')
+AFROMESSAGE_COUNTRY_CODE = os.environ.get('AFROMESSAGE_COUNTRY_CODE', '+251')
+
 
 # Django REST Framework settings
 REST_FRAMEWORK = {

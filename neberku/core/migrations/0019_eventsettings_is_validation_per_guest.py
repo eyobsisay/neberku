@@ -12,7 +12,10 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AddField(
             model_name='eventsettings',
-            name='make_validation_per_media',
-            field=models.BooleanField(default=False, help_text="If enabled, users' media is validated per media type (images, videos, voice). If disabled, they can apply any media with the value set in max_posts_per_guest"),
+            name='is_validation_per_guest',
+            field=models.BooleanField(
+                default=False,
+                help_text="If enabled, validation is enforced per guest submission; if disabled, media limits apply globally."
+            ),
         ),
     ]

@@ -11,13 +11,15 @@ from drf_yasg import openapi
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
+from django.utils.crypto import get_random_string
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
-from core.models import EventType, Package, Event, Payment, Guest, GuestPost, MediaFile, EventSettings, PaymentMethod
+from django.conf import settings
+from core.models import EventType, Package, Event, Payment, Guest, GuestPost, MediaFile, EventSettings, PaymentMethod, PhoneOTP
 from core.utils import (
     send_telegram_message, 
     format_event_creation_message, 
@@ -31,6 +33,9 @@ from .serializers import (
 )
 from rest_framework import serializers
 import math
+import random
+from datetime import timedelta
+from .sms import send_afromessage_sms
 
 def format_file_size(bytes_size):
     """Convert bytes to human readable format"""
@@ -41,6 +46,7 @@ def format_file_size(bytes_size):
     p = math.pow(1024, i)
     s = round(bytes_size / p, 2)
     return f"{s} {size_names[i]}"
+
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     """
@@ -1784,3 +1790,175 @@ def list_public_events(request):
     
     serializer = EventGuestAccessSerializer(public_events, many=True, context={'request': request})
     return Response(serializer.data)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def send_phone_otp(request):
+    """Send OTP to phone number for authentication"""
+    phone_number = request.data.get('phone_number', '').strip()
+    name = request.data.get('name', '').strip()
+    
+    if not phone_number:
+        return Response(
+            {'error': 'Phone number is required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    # Validate phone number format: 09xxxxxxxx (10 digits starting with 09)
+    if not phone_number.startswith('09') or len(phone_number) != 10 or not phone_number.isdigit():
+        return Response(
+            {'error': 'Phone number must be in format: 09xxxxxxxx (10 digits starting with 09)'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    # Generate 6-digit OTP
+    otp_code = str(random.randint(100000, 999999))
+    
+    # Set expiration time (5 minutes from now)
+    expires_at = timezone.now() + timedelta(minutes=5)
+    
+    # Invalidate previous OTPs for this phone number
+    PhoneOTP.objects.filter(phone_number=phone_number, is_verified=False).update(is_verified=True)
+    
+    # Create new OTP record
+    otp_record = PhoneOTP.objects.create(
+        phone_number=phone_number,
+        otp_code=otp_code,
+        expires_at=expires_at
+    )
+    
+    sms_message = f"Your Neberku verification code is {otp_code}. It expires in 5 minutes."
+    sms_success, sms_error = send_afromessage_sms(phone_number, sms_message)
+
+    if not sms_success:
+        if settings.DEBUG:
+            print(f"SMS send failed for {phone_number}: {sms_error}")
+        else:
+            return Response(
+                {'error': f'Failed to send OTP. Please try again later.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    response_payload = {
+        'success': True,
+        'message': 'OTP sent successfully',
+        'expires_in': 300  # 5 minutes in seconds
+    }
+
+    # Only expose OTP code in debug environments for easier testing
+    if settings.DEBUG:
+        response_payload['otp_code'] = otp_code
+    
+    return Response(response_payload, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def verify_phone_otp(request):
+    """Verify OTP and create/login user, return JWT tokens"""
+    phone_number = request.data.get('phone_number', '').strip()
+    otp_code = request.data.get('otp_code', '').strip()
+    name = request.data.get('name', '').strip()
+    
+    if not phone_number or not otp_code:
+        return Response(
+            {'error': 'Phone number and OTP code are required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    # Validate phone number format
+    if not phone_number.startswith('09') or len(phone_number) != 10 or not phone_number.isdigit():
+        return Response(
+            {'error': 'Phone number must be in format: 09xxxxxxxx (10 digits starting with 09)'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    # Find valid OTP record
+    try:
+        otp_record = PhoneOTP.objects.filter(
+            phone_number=phone_number,
+            is_verified=False
+        ).order_by('-created_at').first()
+        
+        if not otp_record:
+            return Response(
+                {'error': 'No OTP found for this phone number. Please request a new OTP.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Check if OTP is expired
+        if otp_record.is_expired():
+            return Response(
+                {'error': 'OTP has expired. Please request a new OTP.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Check attempts
+        if otp_record.attempts >= 5:
+            return Response(
+                {'error': 'Too many failed attempts. Please request a new OTP.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Verify OTP code
+        if otp_record.otp_code != otp_code:
+            otp_record.attempts += 1
+            otp_record.save()
+            return Response(
+                {'error': f'Invalid OTP code. {5 - otp_record.attempts} attempts remaining.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Mark OTP as verified
+        otp_record.is_verified = True
+        otp_record.save()
+        
+        # Find or create user by phone number
+        # Since User model doesn't have phone_number field, we'll use username based on phone
+        username = f"user_{phone_number}"
+        user = None
+        
+        # Try to find existing user by username (phone-based)
+        try:
+            user = User.objects.get(username=username)
+        except User.DoesNotExist:
+            # Create new user
+            # Generate a random password (user won't need it for phone auth)
+            user = User(
+                username=username,
+                email=f"{phone_number}@neberku.local",
+                first_name=name if name else phone_number
+            )
+            user.set_password(get_random_string(32))
+            user.save()
+        
+        # Update user name if provided
+        if name and user.first_name != name:
+            user.first_name = name
+            user.save()
+        
+        # Generate JWT tokens
+        refresh = RefreshToken.for_user(user)
+        access_token = refresh.access_token
+        
+        return Response({
+            'success': True,
+            'access': str(access_token),
+            'refresh': str(refresh),
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'phone_number': phone_number
+            },
+            'message': 'OTP verified successfully'
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response(
+            {'error': f'Error verifying OTP: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

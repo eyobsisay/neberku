@@ -548,3 +548,28 @@ class EventSettings(models.Model):
     
     class Meta:
         verbose_name_plural = "Event Settings"
+
+
+class PhoneOTP(models.Model):
+    """OTP model for phone number authentication"""
+    phone_number = models.CharField(max_length=20, db_index=True)
+    otp_code = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_verified = models.BooleanField(default=False)
+    attempts = models.PositiveIntegerField(default=0)
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['phone_number', 'is_verified']),
+        ]
+    
+    def __str__(self):
+        return f"OTP for {self.phone_number} - {self.otp_code}"
+    
+    def is_expired(self):
+        return timezone.now() > self.expires_at
+    
+    def is_valid(self):
+        return not self.is_expired() and not self.is_verified and self.attempts < 5

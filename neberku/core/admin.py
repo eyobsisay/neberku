@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.forms.models import BaseInlineFormSet
 from django import forms
-from .models import EventType, Package, Event, Payment, Guest, GuestPost, MediaFile, EventSettings, PaymentMethod
+from .models import EventType, Package, Event, Payment, Guest, GuestPost, MediaFile, EventSettings, PaymentMethod, PhoneOTP
 
 class EventSettingsFormSet(BaseInlineFormSet):
     """Custom formset for EventSettings inline to prevent duplicates"""
@@ -457,3 +457,38 @@ class EventSettingsAdmin(admin.ModelAdmin):
     
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('event', 'event__host')
+
+
+@admin.register(PhoneOTP)
+class PhoneOTPAdmin(admin.ModelAdmin):
+    list_display = ['phone_number', 'otp_code', 'is_verified_display', 'attempts', 'created_at', 'expires_at']
+    list_filter = ['is_verified', 'created_at']
+    search_fields = ['phone_number', 'otp_code']
+    readonly_fields = ['otp_code', 'created_at']
+    ordering = ['-created_at']
+    actions = ['mark_verified', 'reset_attempts']
+
+    fieldsets = (
+        ('OTP Details', {
+            'fields': ('phone_number', 'otp_code', 'is_verified', 'attempts')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'expires_at')
+        }),
+    )
+
+    def is_verified_display(self, obj):
+        color = 'green' if obj.is_verified else 'red'
+        label = 'Yes' if obj.is_verified else 'No'
+        return format_html('<span style="color: {};">{}</span>', color, label)
+    is_verified_display.short_description = 'Verified'
+
+    @admin.action(description="Mark selected OTPs as verified")
+    def mark_verified(self, request, queryset):
+        updated = queryset.update(is_verified=True)
+        self.message_user(request, f"Marked {updated} OTP(s) as verified.")
+
+    @admin.action(description="Reset attempts for selected OTPs")
+    def reset_attempts(self, request, queryset):
+        updated = queryset.update(attempts=0)
+        self.message_user(request, f"Reset attempts for {updated} OTP(s).")

@@ -2584,31 +2584,71 @@
                                     </button>
                                     <div class="contact-modal-icon" style="text-align:center; margin-bottom: 1rem;">
                                         <span style="display:inline-flex; width:64px; height:64px; border-radius:50%; align-items:center; justify-content:center; background:linear-gradient(135deg, var(--primary-start), var(--primary-end)); color:white; font-size:1.5rem; box-shadow:0 10px 25px rgba(0,0,0,.4);">
-                                            <i class="fas fa-user-check"></i>
+                                            <i class="fas fa-user-check" id="contactModalIcon"></i>
                                         </span>
                                     </div>
-                                    <h4>Almost there!</h4>
-                                    <p>Please add your contact info so the host can reach you if needed.</p>
-                                    <form id="contactInfoForm">
-                                        <div class="form-field">
-                                            <div class="field-icon">
-                                                <i class="fas fa-user"></i>
+                                    <h4 id="contactModalTitle">Almost there!</h4>
+                                    <p id="contactModalDescription">Please add your contact info so the host can reach you if needed.</p>
+                                    
+                                    <!-- Step 1: Name and Phone -->
+                                    <div id="contactInfoStep1">
+                                        <form id="contactInfoForm">
+                                            <div class="form-field">
+                                                <div class="field-icon">
+                                                    <i class="fas fa-user"></i>
+                                                </div>
+                                                <input type="text" id="contactNameInput" autocomplete="name" required>
+                                                <label for="contactNameInput">Your Name *</label>
                                             </div>
-                                            <input type="text" id="contactNameInput" autocomplete="name" required>
-                                            <label for="contactNameInput">Your Name *</label>
-                                        </div>
-                                        <div class="form-field">
-                                            <div class="field-icon">
-                                                <i class="fas fa-phone"></i>
+                                            <div class="form-field">
+                                                <div class="field-icon">
+                                                    <i class="fas fa-phone"></i>
+                                                </div>
+                                                <input type="tel" id="contactPhoneInput" autocomplete="tel" pattern="09[0-9]{8}" maxlength="10" required>
+                                                <label for="contactPhoneInput">Phone Number (09xxxxxxxx) *</label>
                                             </div>
-                                            <input type="tel" id="contactPhoneInput" autocomplete="tel" required>
-                                            <label for="contactPhoneInput">Phone Number *</label>
-                                        </div>
-                                        <div class="contact-modal-actions">
-                                            <button type="button" class="btn btn-outline-secondary" id="contactModalCancel">Back</button>
-                                            <button type="submit" class="btn btn-primary">Continue</button>
-                                        </div>
-                                    </form>
+                                            <div id="contactInfoError" class="text-danger" style="display:none; margin-bottom:1rem; font-size:0.9rem;"></div>
+                                            <div class="contact-modal-actions">
+                                                <button type="button" class="btn btn-outline-secondary" id="contactModalCancel">Back</button>
+                                                <button type="submit" class="btn btn-primary" id="contactInfoSubmitBtn">
+                                                    <span class="btn-text">Send OTP</span>
+                                                    <span class="btn-loading" style="display:none;">
+                                                        <span class="spinner-border spinner-border-sm me-2"></span>Sending...
+                                                    </span>
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                    
+                                    <!-- Step 2: OTP Verification -->
+                                    <div id="contactInfoStep2" style="display:none;">
+                                        <form id="otpVerificationForm">
+                                            <div class="form-field">
+                                                <div class="field-icon">
+                                                    <i class="fas fa-key"></i>
+                                                </div>
+                                                <input type="text" id="otpCodeInput" pattern="[0-9]{6}" maxlength="6" required autocomplete="off">
+                                                <label for="otpCodeInput">Enter 6-digit OTP *</label>
+                                            </div>
+                                            <div id="otpError" class="text-danger" style="display:none; margin-bottom:1rem; font-size:0.9rem;"></div>
+                                            <div id="otpSuccess" class="text-success" style="display:none; margin-bottom:1rem; font-size:0.9rem;">
+                                                <i class="fas fa-check-circle"></i> OTP sent! Check your phone.
+                                            </div>
+                                            <div style="margin-bottom:1rem; font-size:0.85rem; color:var(--muted);">
+                                                <span id="otpTimer">OTP expires in <span id="otpTimerValue">5:00</span></span>
+                                                <button type="button" id="resendOtpBtn" class="btn btn-link" style="display:none; padding:0; font-size:0.85rem; color:var(--primary-start);">Resend OTP</button>
+                                            </div>
+                                            <div class="contact-modal-actions">
+                                                <button type="button" class="btn btn-outline-secondary" id="otpBackBtn">Back</button>
+                                                <button type="submit" class="btn btn-primary" id="otpVerifyBtn">
+                                                    <span class="btn-text">Verify OTP</span>
+                                                    <span class="btn-loading" style="display:none;">
+                                                        <span class="spinner-border spinner-border-sm me-2"></span>Verifying...
+                                                    </span>
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -2700,31 +2740,208 @@
             const contributionForm = document.getElementById('contributionForm');
             const contactInfoModal = document.getElementById('contactInfoModal');
             const contactInfoForm = document.getElementById('contactInfoForm');
+            const otpVerificationForm = document.getElementById('otpVerificationForm');
             const contactModalClose = document.getElementById('contactModalClose');
             const contactModalCancel = document.getElementById('contactModalCancel');
             const contactNameInput = document.getElementById('contactNameInput');
             const contactPhoneInput = document.getElementById('contactPhoneInput');
+            const otpCodeInput = document.getElementById('otpCodeInput');
             const guestNameHidden = document.getElementById('guestName');
             const guestPhoneHidden = document.getElementById('guestPhone');
+            const contactInfoStep1 = document.getElementById('contactInfoStep1');
+            const contactInfoStep2 = document.getElementById('contactInfoStep2');
+            const contactInfoError = document.getElementById('contactInfoError');
+            const otpError = document.getElementById('otpError');
+            const otpSuccess = document.getElementById('otpSuccess');
+            const otpTimerValue = document.getElementById('otpTimerValue');
+            const resendOtpBtn = document.getElementById('resendOtpBtn');
+            const otpBackBtn = document.getElementById('otpBackBtn');
+            const contactInfoSubmitBtn = document.getElementById('contactInfoSubmitBtn');
+            const otpVerifyBtn = document.getElementById('otpVerifyBtn');
             
-            if (!contributionForm || !contactInfoModal || !contactInfoForm) {
+            if (!contributionForm || !contactInfoModal || !contactInfoForm || !otpVerificationForm) {
                 return;
             }
             
             let contactInfoConfirmed = false;
             let isModalOpen = false;
+            let currentPhoneNumber = '';
+            let currentName = '';
+            let otpTimer = null;
+            let otpExpiresAt = null;
+            
+            // Get API base URL from config
+            const API_BASE_URL = window.API_CONFIG?.BASE_URL || '';
             
             const openContactModal = () => {
                 contactInfoModal.classList.add('show');
                 isModalOpen = true;
+                resetModalToStep1();
                 setTimeout(() => contactNameInput?.focus(), 50);
             };
             
             const closeContactModal = () => {
                 contactInfoModal.classList.remove('show');
                 isModalOpen = false;
+                resetModalToStep1();
+                clearOtpTimer();
             };
             
+            const resetModalToStep1 = () => {
+                contactInfoStep1.style.display = 'block';
+                contactInfoStep2.style.display = 'none';
+                contactInfoError.style.display = 'none';
+                otpError.style.display = 'none';
+                otpSuccess.style.display = 'none';
+                document.getElementById('contactModalTitle').textContent = 'Almost there!';
+                document.getElementById('contactModalDescription').textContent = 'Please add your contact info so the host can reach you if needed.';
+                document.getElementById('contactModalIcon').className = 'fas fa-user-check';
+                contactInfoForm.reset();
+                otpVerificationForm.reset();
+                clearOtpTimer();
+            };
+            
+            const showStep2 = () => {
+                contactInfoStep1.style.display = 'none';
+                contactInfoStep2.style.display = 'block';
+                document.getElementById('contactModalTitle').textContent = 'Verify Your Phone';
+                document.getElementById('contactModalDescription').textContent = `We sent a 6-digit code to ${currentPhoneNumber}. Please enter it below.`;
+                document.getElementById('contactModalIcon').className = 'fas fa-mobile-alt';
+                otpSuccess.style.display = 'block';
+                otpError.style.display = 'none';
+                setTimeout(() => otpCodeInput?.focus(), 50);
+                startOtpTimer(300); // 5 minutes
+            };
+            
+            const startOtpTimer = (seconds) => {
+                clearOtpTimer();
+                otpExpiresAt = Date.now() + (seconds * 1000);
+                otpTimer = setInterval(() => {
+                    const remaining = Math.max(0, Math.floor((otpExpiresAt - Date.now()) / 1000));
+                    if (remaining === 0) {
+                        clearOtpTimer();
+                        otpTimerValue.textContent = '0:00';
+                        resendOtpBtn.style.display = 'inline';
+                    } else {
+                        const mins = Math.floor(remaining / 60);
+                        const secs = remaining % 60;
+                        otpTimerValue.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+                    }
+                }, 1000);
+            };
+            
+            const clearOtpTimer = () => {
+                if (otpTimer) {
+                    clearInterval(otpTimer);
+                    otpTimer = null;
+                }
+            };
+            
+            const showError = (element, message) => {
+                element.textContent = message;
+                element.style.display = 'block';
+            };
+            
+            const hideError = (element) => {
+                element.style.display = 'none';
+            };
+            
+            // Send OTP
+            const sendOTP = async (name, phone) => {
+                try {
+                    contactInfoSubmitBtn.disabled = true;
+                    contactInfoSubmitBtn.querySelector('.btn-text').style.display = 'none';
+                    contactInfoSubmitBtn.querySelector('.btn-loading').style.display = 'flex';
+                    hideError(contactInfoError);
+                    
+                    const response = await fetch(`${API_BASE_URL}/api/auth/phone/send-otp/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            phone_number: phone,
+                            name: name
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok && data.success) {
+                        currentPhoneNumber = phone;
+                        currentName = name;
+                        showStep2();
+                        // In development, show OTP in console/alert
+                        if (data.otp_code) {
+                            console.log(`OTP for ${phone}: ${data.otp_code}`);
+                            // Uncomment for development testing:
+                            // alert(`Development OTP: ${data.otp_code}`);
+                        }
+                    } else {
+                        showError(contactInfoError, data.error || 'Failed to send OTP. Please try again.');
+                    }
+                } catch (error) {
+                    showError(contactInfoError, 'Network error. Please check your connection and try again.');
+                } finally {
+                    contactInfoSubmitBtn.disabled = false;
+                    contactInfoSubmitBtn.querySelector('.btn-text').style.display = 'inline';
+                    contactInfoSubmitBtn.querySelector('.btn-loading').style.display = 'none';
+                }
+            };
+            
+            // Verify OTP
+            const verifyOTP = async (otpCode) => {
+                try {
+                    otpVerifyBtn.disabled = true;
+                    otpVerifyBtn.querySelector('.btn-text').style.display = 'none';
+                    otpVerifyBtn.querySelector('.btn-loading').style.display = 'flex';
+                    hideError(otpError);
+                    
+                    const response = await fetch(`${API_BASE_URL}/api/auth/phone/verify-otp/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            phone_number: currentPhoneNumber,
+                            otp_code: otpCode,
+                            name: currentName
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok && data.success) {
+                        // Store JWT tokens
+                        if (data.access && data.refresh) {
+                            localStorage.setItem('neberku_access_token', data.access);
+                            localStorage.setItem('neberku_refresh_token', data.refresh);
+                            if (data.user) {
+                                localStorage.setItem('neberku_user', JSON.stringify(data.user));
+                            }
+                        }
+                        
+                        // Store contact info in hidden fields
+                        guestNameHidden.value = currentName;
+                        guestPhoneHidden.value = currentPhoneNumber;
+                        contactInfoConfirmed = true;
+                        closeContactModal();
+                        
+                        // Trigger original form submission
+                        contributionForm.requestSubmit();
+                    } else {
+                        showError(otpError, data.error || 'Invalid OTP code. Please try again.');
+                    }
+                } catch (error) {
+                    showError(otpError, 'Network error. Please check your connection and try again.');
+                } finally {
+                    otpVerifyBtn.disabled = false;
+                    otpVerifyBtn.querySelector('.btn-text').style.display = 'inline';
+                    otpVerifyBtn.querySelector('.btn-loading').style.display = 'none';
+                }
+            };
+            
+            // Form submission handlers
             contributionForm.addEventListener('submit', function(event) {
                 if (!contactInfoConfirmed) {
                     event.preventDefault();
@@ -2732,27 +2949,44 @@
                 }
             });
             
-            const handleContactSubmit = () => {
+            contactInfoForm.addEventListener('submit', function(event) {
+                event.preventDefault();
                 if (!contactInfoForm.reportValidity()) {
-                    return false;
+                    return;
                 }
-                
                 const name = contactNameInput.value.trim();
                 const phone = contactPhoneInput.value.trim();
                 
-                guestNameHidden.value = name;
-                guestPhoneHidden.value = phone;
-                contactInfoConfirmed = true;
-                closeContactModal();
+                // Validate phone format
+                if (!phone.match(/^09\d{8}$/)) {
+                    showError(contactInfoError, 'Phone number must be in format: 09xxxxxxxx (10 digits starting with 09)');
+                    return;
+                }
                 
-                // Trigger original form submission now that contact info is set
-                contributionForm.requestSubmit();
-                return true;
-            };
+                sendOTP(name, phone);
+            });
             
-            contactInfoForm.addEventListener('submit', function(event) {
+            otpVerificationForm.addEventListener('submit', function(event) {
                 event.preventDefault();
-                handleContactSubmit();
+                if (!otpVerificationForm.reportValidity()) {
+                    return;
+                }
+                const otpCode = otpCodeInput.value.trim();
+                if (otpCode.length !== 6) {
+                    showError(otpError, 'Please enter a 6-digit OTP code.');
+                    return;
+                }
+                verifyOTP(otpCode);
+            });
+            
+            // Resend OTP
+            resendOtpBtn.addEventListener('click', () => {
+                sendOTP(currentName, currentPhoneNumber);
+            });
+            
+            // Back button handlers
+            otpBackBtn.addEventListener('click', () => {
+                resetModalToStep1();
             });
             
             const cancelModal = () => {
@@ -2781,6 +3015,21 @@
                 guestPhoneHidden.value = '';
                 contactNameInput.value = '';
                 contactPhoneInput.value = '';
+                resetModalToStep1();
+            });
+            
+            // Auto-format phone input
+            contactPhoneInput.addEventListener('input', (e) => {
+                let value = e.target.value.replace(/\D/g, '');
+                if (value.length > 10) value = value.slice(0, 10);
+                e.target.value = value;
+            });
+            
+            // Auto-format OTP input
+            otpCodeInput.addEventListener('input', (e) => {
+                let value = e.target.value.replace(/\D/g, '');
+                if (value.length > 6) value = value.slice(0, 6);
+                e.target.value = value;
             });
         });
         
