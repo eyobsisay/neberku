@@ -221,102 +221,115 @@
             to { opacity: 1; }
         }
         
-        /* Media Gallery */
+        /* Media Carousel */
         .media-gallery {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
             margin-top: 2rem;
         }
         
-        .media-item {
-            position: relative;
+        .media-carousel {
             border-radius: 20px;
             overflow: hidden;
             background: rgba(0,0,0,0.2);
-            aspect-ratio: 1;
-            cursor: pointer;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            border: 2px solid transparent;
-            animation: slideIn 0.6s ease-out both;
+            position: relative;
         }
         
-        .media-item:nth-child(1) { animation-delay: 0.1s; }
-        .media-item:nth-child(2) { animation-delay: 0.2s; }
-        .media-item:nth-child(3) { animation-delay: 0.3s; }
-        .media-item:nth-child(4) { animation-delay: 0.4s; }
-        .media-item:nth-child(5) { animation-delay: 0.5s; }
-        .media-item:nth-child(6) { animation-delay: 0.6s; }
-        
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(30px) scale(0.9);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
-        }
-        
-        .media-item:hover {
-            transform: scale(1.08) translateY(-5px);
-            box-shadow: 0 15px 40px rgba(0,0,0,0.6);
-            border-color: var(--primary-start);
-        }
-        
-        .media-item img {
+        .media-carousel .carousel-inner {
+            position: relative;
             width: 100%;
-            height: 100%;
-            object-fit: cover;
+            overflow: hidden;
         }
         
-        .media-item video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
+        .media-carousel .carousel-item {
+            min-height: 400px;
+            background: rgba(0,0,0,0.3);
+            position: relative;
         }
         
-        .media-item.voice {
-            display: flex;
+        .media-carousel .carousel-item.audio-wrapper {
             align-items: center;
             justify-content: center;
+        }
+        
+        .media-carousel .carousel-item.audio-wrapper.active {
+            display: flex;
+        }
+        
+        .media-carousel .carousel-item img {
+            width: 100%;
+            height: 400px;
+            object-fit: cover;
+            display: block;
+        }
+        
+        .media-carousel .carousel-item video {
+            width: 100%;
+            height: 400px;
+            object-fit: cover;
+            display: block;
+        }
+        
+        .media-carousel .carousel-item audio {
+            width: 90%;
+            max-width: 500px;
+            padding: 1rem;
             background: linear-gradient(135deg, rgba(139,92,246,.2), rgba(139,92,246,.1));
+            border-radius: 12px;
             border: 2px solid rgba(139,92,246,.3);
         }
         
-        .media-item.voice i {
-            font-size: 3rem;
-            color: var(--accent);
+        .media-carousel .carousel-control-prev,
+        .media-carousel .carousel-control-next {
+            width: 50px;
+            height: 50px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0,0,0,0.5);
+            border-radius: 50%;
+            opacity: 0.8;
+            transition: opacity 0.3s ease;
         }
         
-        .media-item.voice audio {
-            width: 100%;
-            padding: 1rem;
+        .media-carousel .carousel-control-prev:hover,
+        .media-carousel .carousel-control-next:hover {
+            opacity: 1;
         }
         
-        .media-badge {
-            position: absolute;
-            top: 12px;
-            right: 12px;
-            background: linear-gradient(135deg, rgba(0,0,0,0.8), rgba(0,0,0,0.6));
-            color: white;
-            padding: 0.4rem 0.9rem;
-            border-radius: 25px;
-            font-size: 0.8rem;
-            backdrop-filter: blur(15px);
+        .media-carousel .carousel-control-prev-icon,
+        .media-carousel .carousel-control-next-icon {
+            background-size: 50% 50%;
+            width: 30px;
+            height: 30px;
+        }
+        
+        .media-carousel .carousel-indicators {
+            bottom: 15px;
+        }
+        
+        .media-carousel .carousel-indicators [data-bs-target] {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: rgba(255,255,255,0.7);
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+        
+        .media-carousel .carousel-indicators [data-bs-target].active {
+            background-color: var(--primary-start);
+            border-color: var(--primary-end);
+        }
+        
+        .media-carousel .carousel-caption {
+            bottom: 50px;
+            background: linear-gradient(135deg, rgba(0,0,0,0.7), rgba(0,0,0,0.5));
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 0.5rem 1rem;
             border: 1px solid rgba(255,255,255,0.2);
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 0.3rem;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            animation: badgePulse 2s ease-in-out infinite;
         }
         
-        @keyframes badgePulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
+        .media-carousel .carousel-caption .badge {
+            font-size: 0.9rem;
+            padding: 0.4rem 0.8rem;
         }
         
         /* Event Info - Enhanced */
@@ -459,9 +472,13 @@
                 font-size: 1.1rem;
             }
             
-            .media-gallery {
-                grid-template-columns: 1fr;
-                gap: 1rem;
+            .media-carousel .carousel-item {
+                min-height: 300px;
+            }
+            
+            .media-carousel .carousel-item img,
+            .media-carousel .carousel-item video {
+                height: 300px;
             }
             
             .share-button {

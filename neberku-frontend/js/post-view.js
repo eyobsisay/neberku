@@ -137,49 +137,195 @@ class PostView {
             return;
         }
 
-        mediaGallery.innerHTML = approvedMedia.map((media, index) => {
-            const fullUrl = this.getFullUrl(media.media_file);
-            const thumbnailUrl = media.media_thumbnail ? this.getFullUrl(media.media_thumbnail) : null;
-
-            if (media.media_type === 'photo') {
-                return `
-                    <div class="media-item" onclick="postView.openMediaModal(${index}, 'photo')">
-                        <img src="${fullUrl}" alt="${media.file_name || 'Photo'}" loading="lazy">
-                        <span class="media-badge"><i class="bi bi-image"></i> Photo</span>
-                    </div>
-                `;
-            } else if (media.media_type === 'video') {
-                return `
-                    <div class="media-item" onclick="postView.openMediaModal(${index}, 'video')">
-                        ${thumbnailUrl ? 
-                            `<img src="${thumbnailUrl}" alt="Video thumbnail">` :
-                            `<video src="${fullUrl}" style="width: 100%; height: 100%; object-fit: cover;"></video>`
-                        }
-                        <span class="media-badge"><i class="bi bi-camera-video"></i> Video</span>
-                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
-                            <i class="bi bi-play-circle-fill text-white" style="font-size: 3rem; text-shadow: 2px 2px 8px rgba(0,0,0,0.8);"></i>
-                        </div>
-                    </div>
-                `;
-            } else if (media.media_type === 'voice') {
-                return `
-                    <div class="media-item voice">
-                        <div style="text-align: center; width: 100%;">
-                            <i class="bi bi-mic" style="font-size: 3rem; color: var(--accent); margin-bottom: 1rem;"></i>
-                            <p style="color: var(--ink); margin-bottom: 1rem;"><strong>Voice Recording</strong></p>
-                            <audio controls style="width: 100%; max-width: 300px;">
-                                <source src="${fullUrl}" type="${media.mime_type || 'audio/mp3'}">
-                                Your browser does not support the audio tag.
-                            </audio>
-                        </div>
-                    </div>
-                `;
+        // Sort media: photos first, then videos, then voice
+        // STRICT ORDERING: photos -> videos -> voice (voice NEVER first)
+        const photos = [];
+        const videos = [];
+        const voices = [];
+        
+        approvedMedia.forEach(media => {
+            const mediaType = String(media.media_type || '').toLowerCase().trim();
+            if (mediaType === 'photo') {
+                photos.push(media);
+            } else if (mediaType === 'video') {
+                videos.push(media);
+            } else if (mediaType === 'voice') {
+                voices.push(media);
+            } else {
+                console.warn('Unknown media type:', mediaType, media);
+                // Default to photos for unknown types
+                photos.push(media);
             }
-            return '';
-        }).join('');
+        });
+        
+        // FORCE CORRECT ORDER: photos first, videos second, voices LAST
+        // Create new array to ensure proper order
+        const sortedMedia = [];
+        
+        // Add all photos first
+        sortedMedia.push(...photos);
+        
+        // Add all videos second
+        sortedMedia.push(...videos);
+        
+        // Add all voices LAST
+        sortedMedia.push(...voices);
+        
+        // Final verification: ensure voice is NEVER first
+        if (sortedMedia.length > 0) {
+            const firstItem = sortedMedia[0];
+            const firstType = String(firstItem.media_type || '').toLowerCase().trim();
+            
+            if (firstType === 'voice') {
+                console.error('CRITICAL ERROR: Voice detected as first item!', {
+                    firstItem,
+                    allMedia: sortedMedia.map(m => ({ type: m.media_type, name: m.file_name }))
+                });
+                
+                // Force reorder: remove all voices, add them at the end
+                const allVoices = sortedMedia.filter(m => {
+                    const type = String(m.media_type || '').toLowerCase().trim();
+                    return type === 'voice';
+                });
+                const nonVoices = sortedMedia.filter(m => {
+                    const type = String(m.media_type || '').toLowerCase().trim();
+                    return type !== 'voice';
+                });
+                
+                // Clear and rebuild
+                sortedMedia.length = 0;
+                sortedMedia.push(...nonVoices, ...allVoices);
+                
+                console.log('FORCED REORDER COMPLETE:', sortedMedia.map(m => ({ 
+                    type: m.media_type, 
+                    name: m.file_name 
+                })));
+            }
+        }
+        
+        console.log('Final media order:', {
+            photos: photos.length,
+            videos: videos.length,
+            voices: voices.length,
+            total: sortedMedia.length,
+            firstItem: sortedMedia[0] ? { type: sortedMedia[0].media_type, name: sortedMedia[0].file_name } : 'none',
+            order: sortedMedia.map((m, idx) => `${idx + 1}. ${m.media_type} - ${m.file_name}`)
+        });
 
         // Store media files for modal
-        this.mediaFiles = approvedMedia;
+        this.mediaFiles = sortedMedia;
+
+        // Verify first item is a photo before building carousel
+        if (sortedMedia.length > 0) {
+            const firstType = String(sortedMedia[0].media_type || '').toLowerCase().trim();
+            if (firstType === 'voice') {
+                console.error('CRITICAL: First item is voice! Reordering immediately...');
+                // Last resort: filter and reorder
+                const photosOnly = sortedMedia.filter(m => String(m.media_type || '').toLowerCase().trim() === 'photo');
+                const videosOnly = sortedMedia.filter(m => String(m.media_type || '').toLowerCase().trim() === 'video');
+                const voicesOnly = sortedMedia.filter(m => String(m.media_type || '').toLowerCase().trim() === 'voice');
+                sortedMedia.length = 0;
+                sortedMedia.push(...photosOnly, ...videosOnly, ...voicesOnly);
+                console.log('Emergency reorder complete:', sortedMedia.map(m => m.media_type));
+            }
+        }
+        
+        // Build carousel HTML
+        const carouselId = 'post-media-carousel';
+        const carouselItems = sortedMedia.map((media, index) => {
+            const fullUrl = this.getFullUrl(media.media_file);
+            // Only first item (should be photo) gets active class
+            const activeClass = index === 0 ? 'active' : '';
+            
+            // Use case-insensitive comparison
+            const mediaType = String(media.media_type || '').toLowerCase().trim();
+            
+            // Log if voice is being rendered as first item
+            if (index === 0 && mediaType === 'voice') {
+                console.error('ERROR: Voice item is being rendered as first carousel item!', media);
+            }
+            
+            let mediaContent = '';
+            let mediaLabel = '';
+            let mediaIcon = '';
+
+            if (mediaType === 'photo') {
+                mediaContent = `<img src="${fullUrl}" alt="${media.file_name || 'Photo'}" loading="lazy">`;
+                mediaLabel = 'Photo';
+                mediaIcon = 'bi-image';
+            } else if (mediaType === 'video') {
+                mediaContent = `
+                    <video controls>
+                        <source src="${fullUrl}" type="${media.mime_type || 'video/mp4'}">
+                        Your browser does not support the video tag.
+                    </video>
+                `;
+                mediaLabel = 'Video';
+                mediaIcon = 'bi-camera-video';
+            } else if (mediaType === 'voice') {
+                mediaContent = `
+                    <audio controls>
+                        <source src="${fullUrl}" type="${media.mime_type || 'audio/mpeg'}">
+                        Your browser does not support the audio tag.
+                    </audio>
+                `;
+                mediaLabel = 'Voice';
+                mediaIcon = 'bi-mic';
+            }
+
+            const audioWrapperClass = mediaType === 'voice' ? 'audio-wrapper' : '';
+
+            return `
+                <div class="carousel-item ${activeClass} ${audioWrapperClass}">
+                    ${mediaContent}
+                </div>
+            `;
+        }).join('');
+
+        const indicators = sortedMedia.length > 1 ? sortedMedia.map((_, idx) => `
+            <button type="button"
+                data-bs-target="#${carouselId}"
+                data-bs-slide-to="${idx}"
+                class="${idx === 0 ? 'active' : ''}"
+                aria-current="${idx === 0 ? 'true' : 'false'}"
+                aria-label="Slide ${idx + 1}">
+            </button>
+        `).join('') : '';
+
+        const controls = sortedMedia.length > 1 ? `
+            <button class="carousel-control-prev" type="button" data-bs-target="#${carouselId}" data-bs-slide="prev">
+                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Previous</span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#${carouselId}" data-bs-slide="next">
+                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Next</span>
+            </button>
+        ` : '';
+
+        mediaGallery.innerHTML = `
+            <div id="${carouselId}" class="carousel slide media-carousel" data-bs-interval="false" data-bs-touch="true" data-bs-wrap="true">
+                ${indicators ? `<div class="carousel-indicators">${indicators}</div>` : ''}
+                <div class="carousel-inner">
+                    ${carouselItems}
+                </div>
+                ${controls}
+            </div>
+        `;
+
+        // Initialize Bootstrap carousel after DOM insertion (manual control only, no auto-slide)
+        setTimeout(() => {
+            const carouselElement = document.getElementById(carouselId);
+            if (carouselElement && sortedMedia.length > 1) {
+                const carousel = new bootstrap.Carousel(carouselElement, {
+                    interval: false,
+                    ride: false,
+                    touch: true,
+                    wrap: true
+                });
+                carousel.to(0);
+            }
+        }, 100);
     }
 
     openMediaModal(index, type) {
