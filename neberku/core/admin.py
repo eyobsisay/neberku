@@ -98,7 +98,7 @@ class EventSettingsInline(admin.StackedInline):
             'classes': ('collapse',)
         }),
         ('Guest Settings', {
-            'fields': ('require_approval', 'allow_anonymous', 'max_posts_per_guest', 'max_image_per_post', 'max_video_per_post', 'max_voice_per_post')
+            'fields': ('require_approval', 'allow_anonymous', 'max_posts_per_guest', 'max_image_per_post', 'max_video_per_post', 'max_voice_per_post','make_validation_per_media')
         }),
         ('Privacy Settings', {
             'fields': ('public_gallery', 'show_guest_names'),
@@ -433,8 +433,8 @@ class PaymentMethodAdmin(admin.ModelAdmin):
 
 @admin.register(EventSettings)
 class EventSettingsAdmin(admin.ModelAdmin):
-    list_display = ['event', 'require_approval', 'public_gallery', 'max_posts_per_guest', 'max_image_per_post', 'max_video_per_post', 'max_voice_per_post', 'allow_anonymous', 'show_guest_names']
-    list_filter = ['require_approval', 'public_gallery', 'allow_anonymous', 'show_guest_names']
+    list_display = ['event', 'require_approval', 'public_gallery', 'max_posts_per_guest', 'make_validation_per_media', 'max_image_per_post', 'max_video_per_post', 'max_voice_per_post', 'allow_anonymous', 'show_guest_names']
+    list_filter = ['require_approval', 'public_gallery', 'make_validation_per_media', 'allow_anonymous', 'show_guest_names']
     search_fields = ['event__title', 'event__host__username']
     readonly_fields = ['id']
     ordering = ['-event__created_at']
@@ -448,7 +448,7 @@ class EventSettingsAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
         ('Guest Settings', {
-            'fields': ('require_approval', 'allow_anonymous', 'max_posts_per_guest', 'max_image_per_post', 'max_video_per_post', 'max_voice_per_post')
+            'fields': ('require_approval', 'allow_anonymous', 'max_posts_per_guest', 'make_validation_per_media', 'max_image_per_post', 'max_video_per_post', 'max_voice_per_post')
         }),
         ('Privacy Settings', {
             'fields': ('public_gallery', 'show_guest_names')

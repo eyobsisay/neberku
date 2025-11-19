@@ -637,6 +637,8 @@ class EventGuestAccessSerializer(serializers.ModelSerializer):
     guest_max_image_per_post = serializers.SerializerMethodField()
     guest_max_video_per_post = serializers.SerializerMethodField()
     guest_max_voice_per_post = serializers.SerializerMethodField()
+    max_posts_per_guest = serializers.SerializerMethodField()
+    make_validation_per_media = serializers.SerializerMethodField()
     max_image_size = serializers.SerializerMethodField()
     max_video_size = serializers.SerializerMethodField()
     max_voice_size = serializers.SerializerMethodField()
@@ -656,6 +658,7 @@ class EventGuestAccessSerializer(serializers.ModelSerializer):
             'allow_photos', 'allow_videos', 'allow_voice', 'allow_wishes',
             'package_name', 'package_max_photos', 'package_max_videos', 'package_max_voice',
             'guest_max_image_per_post', 'guest_max_video_per_post', 'guest_max_voice_per_post', 
+            'max_posts_per_guest', 'make_validation_per_media',
             'max_image_size', 'max_video_size', 'max_voice_size',
             'total_guest_posts', 'total_media_files', 'photo_count', 'video_count', 'voice_count', 'is_public', 'is_accessible',
             'frontend_share_url'
@@ -685,6 +688,20 @@ class EventGuestAccessSerializer(serializers.ModelSerializer):
             return obj.settings.max_voice_per_post
         except EventSettings.DoesNotExist:
             return 1  # Default value
+    
+    def get_max_posts_per_guest(self, obj):
+        """Get the maximum posts per guest from EventSettings"""
+        try:
+            return obj.settings.max_posts_per_guest
+        except EventSettings.DoesNotExist:
+            return 1  # Default value
+    
+    def get_make_validation_per_media(self, obj):
+        """Get the make_validation_per_media flag from EventSettings"""
+        try:
+            return obj.settings.make_validation_per_media
+        except EventSettings.DoesNotExist:
+            return False  # Default value
     
     def get_max_image_size(self, obj):
         """Get the maximum image size in MB from EventSettings"""

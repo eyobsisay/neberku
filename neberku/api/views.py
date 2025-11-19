@@ -583,30 +583,103 @@ class GuestPostCreateViewSet(viewsets.GenericViewSet):
                 event = post.event
                 guest = post.guest
                 
-                # Check media limits from EventSettings (per-guest limits)
+                # Get EventSettings
                 try:
                     settings = event.settings
+                    make_validation_per_media = getattr(settings, 'make_validation_per_media', False)
+                    max_posts_per_guest = getattr(settings, 'max_posts_per_guest', 1)
                     max_image_per_post = settings.max_image_per_post
                     max_video_per_post = settings.max_video_per_post
                     max_voice_per_post = settings.max_voice_per_post
                 except EventSettings.DoesNotExist:
                     # Use default limits if no settings exist
+                    make_validation_per_media = False
+                    max_posts_per_guest = 1
                     max_image_per_post = 3
                     max_video_per_post = 2
                     max_voice_per_post = 1
                 
-                # Check individual media type limits
-                if len(photos) > max_image_per_post:
-                    post.delete()
-                    raise serializers.ValidationError(f"Maximum images per post ({max_image_per_post}) exceeded. You uploaded {len(photos)} images.")
+                # Count existing posts by this guest for this event (excluding the current post)
+                existing_posts_count = GuestPost.objects.filter(event=event, guest=guest).exclude(id=post.id).count()
                 
-                if len(videos) > max_video_per_post:
-                    post.delete()
-                    raise serializers.ValidationError(f"Maximum videos per post ({max_video_per_post}) exceeded. You uploaded {len(videos)} videos.")
+                # Calculate total media files being uploaded in this post
+                total_media_files_in_post = len(photos) + len(videos) + len(voice_recordings)
                 
-                if len(voice_recordings) > max_voice_per_post:
-                    post.delete()
-                    raise serializers.ValidationError(f"Maximum voice recordings per post ({max_voice_per_post}) exceeded. You uploaded {len(voice_recordings)} voice recordings.")
+                if not make_validation_per_media:
+                    # Validation per guest: allow any media type, total media files limited by max_posts_per_guest
+                    # Count total media files this guest has already uploaded (excluding media from current post)
+                    existing_media_count = MediaFile.objects.filter(event=event, guest=guest).exclude(post=post).count()
+                    total_media_after_upload = existing_media_count + total_media_files_in_post
+                    
+                    if total_media_after_upload > max_posts_per_guest:
+                        post.delete()
+                        raise serializers.ValidationError(
+                            f"Maximum media files per guest ({max_posts_per_guest}) exceeded. "
+                            f"You have already uploaded {existing_media_count} media file(s), "
+                            f"and you're trying to upload {total_media_files_in_post} more. "
+                            f"Total would be {total_media_after_upload}, but maximum allowed is {max_posts_per_guest}."
+                        )
+                else:
+                    # Validation per media type: validate each media type separately using max_image_per_post, etc.
+                    # Also validate max_posts_per_guest limit
+                    print("Validation per media type: validate each media type separately using max_image_per_post, etc.")
+                    print(f"Existing posts count: {existing_posts_count}")
+                    print(f"Max posts per guest: {max_posts_per_guest}")
+                    existing_media_count = MediaFile.objects.filter(event=event, guest=guest).exclude(post=post).count()
+                    total_media_after_upload = existing_media_count + total_media_files_in_post
+                    if total_media_after_upload > max_posts_per_guest:
+                        post.delete()
+                        raise serializers.ValidationError(
+                            f"Maximum posts per guest ({max_posts_per_guest}) exceeded. "
+                            f"You have already created {existing_media_count} post(s) for this event remaining media files {max_posts_per_guest - existing_media_count}."
+                        )
+                    
+                    # Validate per media type limits by counting existing media for this guest
+                    existing_photo_count = MediaFile.objects.filter(
+                        event=event,
+                        guest=guest,
+                        media_type='photo'
+                    ).exclude(post=post).count()
+                    existing_video_count = MediaFile.objects.filter(
+                        event=event,
+                        guest=guest,
+                        media_type='video'
+                    ).exclude(post=post).count()
+                    existing_voice_count = MediaFile.objects.filter(
+                        event=event,
+                        guest=guest,
+                        media_type='voice'
+                    ).exclude(post=post).count()
+                    
+                    # Validate photos
+                    if existing_photo_count + len(photos) > max_image_per_post:
+                        post.delete()
+                        raise serializers.ValidationError(
+                            f"Maximum images per post ({max_image_per_post}) exceeded. "
+                            f"You have already uploaded {existing_photo_count} image(s), "
+                            f"and you're trying to upload {len(photos)} more. "
+                            f"Total would be {existing_photo_count + len(photos)}, but maximum allowed is {max_image_per_post}."
+                        )
+                    
+                    # Validate videos
+                    if existing_video_count + len(videos) > max_video_per_post:
+                        post.delete()
+                        raise serializers.ValidationError(
+                            f"Maximum videos per post ({max_video_per_post}) exceeded. "
+                            f"You have already uploaded {existing_video_count} video(s), "
+                            f"and you're trying to upload {len(videos)} more. "
+                            f"Total would be {existing_video_count + len(videos)}, but maximum allowed is {max_video_per_post}."
+                        )
+                    
+                    # Validate voice recordings
+                    if existing_voice_count + len(voice_recordings) > max_voice_per_post:
+                        post.delete()
+                        raise serializers.ValidationError(
+                            f"Maximum voice recordings per post ({max_voice_per_post}) exceeded. "
+                            f"You have already uploaded {existing_voice_count} voice recording(s), "
+                            f"and you're trying to upload {len(voice_recordings)} more. "
+                            f"Total would be {existing_voice_count + len(voice_recordings)}, but maximum allowed is {max_voice_per_post}."
+                        )
                 
                 # Check file size limits from EventSettings
                 try:

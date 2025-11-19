@@ -528,6 +528,10 @@ class EventSettings(models.Model):
     require_approval = models.BooleanField(default=False)
     allow_anonymous = models.BooleanField(default=False)
     max_posts_per_guest = models.PositiveIntegerField(default=1)
+    make_validation_per_media = models.BooleanField(
+        default=False,
+        help_text="If enabled, users' media is validated per media type (images, videos, voice). If disabled, they can apply any media with the value set in max_posts_per_guest"
+    )
     max_image_per_post = models.PositiveIntegerField(default=3, help_text="Maximum number of images per guest post")
     max_video_per_post = models.PositiveIntegerField(default=2, help_text="Maximum number of videos per guest post")
     max_voice_per_post = models.PositiveIntegerField(default=1, help_text="Maximum number of voice recordings per guest post")

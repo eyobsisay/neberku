@@ -2894,6 +2894,8 @@
                             guestMaxImagePerPost: eventData.guest_max_image_per_post || null,
                             guestMaxVideoPerPost: eventData.guest_max_video_per_post || null,
                             guestMaxVoicePerPost: eventData.guest_max_voice_per_post || null,
+                            maxPostsPerGuest: eventData.max_posts_per_guest || null,
+                            makeValidationPerMedia: eventData.make_validation_per_media ?? false,
                             allowPhotos: eventData.allow_photos,
                             allowVideos: eventData.allow_videos,
                             allowVoice: eventData.allow_voice
@@ -2944,6 +2946,8 @@
                         guestMaxImagePerPost: 2,
                         guestMaxVideoPerPost: 2,
                         guestMaxVoicePerPost: 2,
+                        maxPostsPerGuest: 1,
+                        makeValidationPerMedia: false,
                         allowPhotos: true,
                         allowVideos: true,
                         allowVoice: true
@@ -3012,6 +3016,8 @@
             console.log('🔍 uploadLimitText element found:', uploadLimitText);
             
             if (uploadLimitText) {
+                const makeValidationPerMedia = packageLimits.makeValidationPerMedia ?? false;
+                const maxPostsPerGuest = packageLimits.maxPostsPerGuest ?? 1;
                 const imageLimit = packageLimits.guestMaxImagePerPost;
                 const videoLimit = packageLimits.guestMaxVideoPerPost;
                 const voiceLimit = packageLimits.guestMaxVoicePerPost;
@@ -3019,32 +3025,45 @@
                 const allowVideos = packageLimits.allowVideos !== false;
                 const allowVoice = packageLimits.allowVoice !== false;
                 
-                console.log('🔍 Limits from packageLimits:', { imageLimit, videoLimit, voiceLimit });
+                console.log('🔍 Limits from packageLimits:', { imageLimit, videoLimit, voiceLimit, makeValidationPerMedia, maxPostsPerGuest });
                 
-                let limitText = 'You can upload ';
-                const limitParts = [];
+                let limitText = '';
                 
-                if (allowPhotos && imageLimit && imageLimit > 0) {
-                    limitParts.push(`<strong>${imageLimit}</strong> image${imageLimit !== 1 ? 's' : ''}`);
-                }
-                if (allowVideos && videoLimit && videoLimit > 0) {
-                    limitParts.push(`<strong>${videoLimit}</strong> video${videoLimit !== 1 ? 's' : ''}`);
-                }
-                if (allowVoice && voiceLimit && voiceLimit > 0) {
-                    limitParts.push(`<strong>${voiceLimit}</strong> voice recording${voiceLimit !== 1 ? 's' : ''}`);
-                }
+                // Check if any media is allowed
+                const canUploadAnyMedia = allowPhotos || allowVideos || allowVoice;
                 
-                if (limitParts.length > 0) {
-                    if (limitParts.length === 1) {
-                        limitText += limitParts[0];
-                    } else if (limitParts.length === 2) {
-                        limitText += limitParts.join(' and ');
-                    } else {
-                        limitText += limitParts.slice(0, -1).join(', ') + ', and ' + limitParts[limitParts.length - 1];
-                    }
-                    limitText += ' per post';
+                if (!canUploadAnyMedia) {
+                    limitText = 'Media uploads are currently disabled for this event.';
+                } else if (!makeValidationPerMedia) {
+                    // Show max_posts_per_guest when validation is per guest
+                    limitText = `You can upload up to <strong>${maxPostsPerGuest}</strong> post${maxPostsPerGuest !== 1 ? 's' : ''} (any combination of photos, videos, or voice recordings).`;
                 } else {
-                    limitText = 'Loading upload limits from event settings...';
+                    // Show per-media-type limits only when make_validation_per_media is true
+                    let limitTextStart = 'You can upload ';
+                    const limitParts = [];
+                    
+                    if (allowPhotos && imageLimit && imageLimit > 0) {
+                        limitParts.push(`<strong>${imageLimit}</strong> image${imageLimit !== 1 ? 's' : ''}`);
+                    }
+                    if (allowVideos && videoLimit && videoLimit > 0) {
+                        limitParts.push(`<strong>${videoLimit}</strong> video${videoLimit !== 1 ? 's' : ''}`);
+                    }
+                    if (allowVoice && voiceLimit && voiceLimit > 0) {
+                        limitParts.push(`<strong>${voiceLimit}</strong> voice recording${voiceLimit !== 1 ? 's' : ''}`);
+                    }
+                    
+                    if (limitParts.length > 0) {
+                        if (limitParts.length === 1) {
+                            limitText = limitTextStart + limitParts[0];
+                        } else if (limitParts.length === 2) {
+                            limitText = limitTextStart + limitParts.join(' and ');
+                        } else {
+                            limitText = limitTextStart + limitParts.slice(0, -1).join(', ') + ', and ' + limitParts[limitParts.length - 1];
+                        }
+                        limitText += ' per post.';
+                    } else {
+                        limitText = 'Loading upload limits from event settings...';
+                    }
                 }
                 
                 uploadLimitText.innerHTML = limitText;

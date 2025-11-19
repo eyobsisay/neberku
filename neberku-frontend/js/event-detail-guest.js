@@ -42,16 +42,31 @@ class EventDetailGuestManager {
                 const newFiles = e.target.files;
                 if (newFiles.length === 0) return;
                 
-                // Use the new separate limits
-                const maxImages = this.currentEvent?.guest_max_image_per_post || 3;
-                const maxVideos = this.currentEvent?.guest_max_video_per_post || 3;
-                const maxVoice = this.currentEvent?.guest_max_voice_per_post || 3;
-                const maxCount = maxImages + maxVideos + maxVoice; // Total limit
+                // The detailed validation will be done in handleFileSelection
+                // This is just a quick check to prevent obviously too many files
+                const makeValidationPerMedia = this.currentEvent?.make_validation_per_media ?? false;
+                const maxPostsPerGuest = this.currentEvent?.max_posts_per_guest ?? 1;
                 
-                if (newFiles.length > maxCount) {
-                    this.showError(`Cannot select ${newFiles.length} files. Maximum ${maxCount} files allowed (${maxImages} images, ${maxVideos} videos, ${maxVoice} voice).`, 'warning');
-                    e.target.value = '';
-                    return;
+                if (!makeValidationPerMedia) {
+                    // Quick check: if total files exceed max_posts_per_guest, reject immediately
+                    const currentTotal = this.selectedFiles.length;
+                    if (currentTotal + newFiles.length > maxPostsPerGuest) {
+                        this.showError(`Cannot select ${newFiles.length} files. Maximum ${maxPostsPerGuest} media file${maxPostsPerGuest !== 1 ? 's' : ''} allowed total.`, 'warning');
+                        e.target.value = '';
+                        return;
+                    }
+                } else {
+                    // Quick check: if files exceed sum of all media type limits, reject immediately
+                    const maxImages = this.currentEvent?.guest_max_image_per_post || 3;
+                    const maxVideos = this.currentEvent?.guest_max_video_per_post || 3;
+                    const maxVoice = this.currentEvent?.guest_max_voice_per_post || 3;
+                    const maxCount = maxImages + maxVideos + maxVoice;
+                    
+                    if (this.selectedFiles.length + newFiles.length > maxCount) {
+                        this.showError(`Cannot select ${newFiles.length} files. Maximum ${maxCount} files allowed (${maxImages} images, ${maxVideos} videos, ${maxVoice} voice).`, 'warning');
+                        e.target.value = '';
+                        return;
+                    }
                 }
                 
                 this.handleFileSelection(newFiles);
@@ -322,20 +337,33 @@ class EventDetailGuestManager {
         const maxVoice = this.currentEvent?.guest_max_voice_per_post ?? 1;
         const uploadLimitText = document.getElementById('uploadLimitText');
         if (uploadLimitText) {
-            const allowedLimitParts = [];
-            if (this.mediaPermissions?.photos) {
-                allowedLimitParts.push(`<strong>${maxImages}</strong> image${maxImages === 1 ? '' : 's'}`);
-            }
-            if (this.mediaPermissions?.videos) {
-                allowedLimitParts.push(`<strong>${maxVideos}</strong> video${maxVideos === 1 ? '' : 's'}`);
-            }
-            if (this.mediaPermissions?.voice) {
-                allowedLimitParts.push(`<strong>${maxVoice}</strong> voice recording${maxVoice === 1 ? '' : 's'}`);
-            }
+            const makeValidationPerMedia = this.currentEvent?.make_validation_per_media ?? false;
+            const maxPostsPerGuest = this.currentEvent?.max_posts_per_guest ?? 1;
+            
+            let limitLine = '';
+            
+            if (!this.canUploadAnyMedia()) {
+                limitLine = 'Media uploads are currently disabled for this event.';
+            } else if (!makeValidationPerMedia) {
+                // Show max_posts_per_guest as allowed post when validation is per guest
+                limitLine = `You can upload up to <strong>${maxPostsPerGuest}</strong> post${maxPostsPerGuest !== 1 ? 's' : ''} (any combination of photos, videos, or voice recordings).`;
+            } else {
+                // Show per-media-type limits when validation is per media type
+                const allowedLimitParts = [];
+                if (this.mediaPermissions?.photos) {
+                    allowedLimitParts.push(`<strong>${maxImages}</strong> image${maxImages === 1 ? '' : 's'}`);
+                }
+                if (this.mediaPermissions?.videos) {
+                    allowedLimitParts.push(`<strong>${maxVideos}</strong> video${maxVideos === 1 ? '' : 's'}`);
+                }
+                if (this.mediaPermissions?.voice) {
+                    allowedLimitParts.push(`<strong>${maxVoice}</strong> voice recording${maxVoice === 1 ? '' : 's'}`);
+                }
 
-            const limitLine = allowedLimitParts.length
-                ? `You can upload up to ${allowedLimitParts.join(', ')} per post.`
-                : 'Media uploads are currently disabled for this event.';
+                limitLine = allowedLimitParts.length
+                    ? `You can upload up to ${allowedLimitParts.join(', ')} per post.`
+                    : 'Media uploads are currently disabled for this event.';
+            }
 
             uploadLimitText.innerHTML = limitLine;
         }
@@ -680,42 +708,66 @@ class EventDetailGuestManager {
             }
         }
         
-        // Check limits before adding - use new separate limits
-        const maxImages = this.currentEvent?.guest_max_image_per_post || 3;
-        const maxVideos = this.currentEvent?.guest_max_video_per_post || 3;
-        const maxVoice = this.currentEvent?.guest_max_voice_per_post || 3;
-        const maxFiles = maxImages + maxVideos + maxVoice;
-        const currentCount = this.selectedFiles.length;
-        const remainingSlots = maxFiles - currentCount;
+        // Get validation settings from event
+        const makeValidationPerMedia = this.currentEvent?.make_validation_per_media ?? false;
+        const maxPostsPerGuest = this.currentEvent?.max_posts_per_guest ?? 1;
         
-        if (filesToAdd.length > remainingSlots) {
-            this.showError(`You can only upload ${maxFiles} files total (${maxImages} images, ${maxVideos} videos, ${maxVoice} voice). You have ${remainingSlots} slots remaining.`, 'warning');
-            return;
-        }
-        
-        // Check individual media type limits
+        // Count current and new files by type
         const currentImages = this.selectedFiles.filter(f => f.type.startsWith('image/')).length;
         const currentVideos = this.selectedFiles.filter(f => f.type.startsWith('video/')).length;
         const currentVoice = this.selectedFiles.filter(f => f.type.startsWith('audio/')).length;
+        const currentTotal = this.selectedFiles.length;
         
         const newImages = filesToAdd.filter(f => f.type.startsWith('image/')).length;
         const newVideos = filesToAdd.filter(f => f.type.startsWith('video/')).length;
         const newVoice = filesToAdd.filter(f => f.type.startsWith('audio/')).length;
+        const newTotal = filesToAdd.length;
         
-        // Validate each media type
-        if (currentImages + newImages > maxImages) {
-            this.showError(`You can only upload ${maxImages} images. You're trying to add ${newImages} images but already have ${currentImages}.`, 'warning');
-            return;
-        }
-        
-        if (currentVideos + newVideos > maxVideos) {
-            this.showError(`You can only upload ${maxVideos} videos. You're trying to add ${newVideos} videos but already have ${currentVideos}.`, 'warning');
-            return;
-        }
-        
-        if (currentVoice + newVoice > maxVoice) {
-            this.showError(`You can only upload ${maxVoice} voice recordings. You're trying to add ${newVoice} voice recordings but already have ${currentVoice}.`, 'warning');
-            return;
+        if (!makeValidationPerMedia) {
+            // Validation per guest: allow any media type, total media files limited by max_posts_per_guest
+            const totalAfterAdd = currentTotal + newTotal;
+            
+            if (totalAfterAdd > maxPostsPerGuest) {
+                const remaining = maxPostsPerGuest - currentTotal;
+                const message = remaining > 0 
+                    ? `You can only upload ${maxPostsPerGuest} media file${maxPostsPerGuest !== 1 ? 's' : ''} total. You have already selected ${currentTotal} file${currentTotal !== 1 ? 's' : ''}, and you're trying to add ${newTotal} more. You can only add ${remaining} more file${remaining !== 1 ? 's' : ''}.`
+                    : `You've already reached the maximum of ${maxPostsPerGuest} media file${maxPostsPerGuest !== 1 ? 's' : ''}.`;
+                this.showError(message, 'warning');
+                return;
+            }
+        } else {
+            // Validation per media type: validate each media type separately
+            const maxImages = this.currentEvent?.guest_max_image_per_post || 3;
+            const maxVideos = this.currentEvent?.guest_max_video_per_post || 3;
+            const maxVoice = this.currentEvent?.guest_max_voice_per_post || 3;
+            
+            // Validate each media type
+            if (currentImages + newImages > maxImages) {
+                const remaining = maxImages - currentImages;
+                const message = remaining > 0 
+                    ? `You can only upload ${maxImages} image${maxImages !== 1 ? 's' : ''} per post. You have already selected ${currentImages} image${currentImages !== 1 ? 's' : ''}, and you're trying to add ${newImages} more. You can only add ${remaining} more image${remaining !== 1 ? 's' : ''}.`
+                    : `You've already reached the maximum of ${maxImages} image${maxImages !== 1 ? 's' : ''} per post.`;
+                this.showError(message, 'warning');
+                return;
+            }
+            
+            if (currentVideos + newVideos > maxVideos) {
+                const remaining = maxVideos - currentVideos;
+                const message = remaining > 0 
+                    ? `You can only upload ${maxVideos} video${maxVideos !== 1 ? 's' : ''} per post. You have already selected ${currentVideos} video${currentVideos !== 1 ? 's' : ''}, and you're trying to add ${newVideos} more. You can only add ${remaining} more video${remaining !== 1 ? 's' : ''}.`
+                    : `You've already reached the maximum of ${maxVideos} video${maxVideos !== 1 ? 's' : ''} per post.`;
+                this.showError(message, 'warning');
+                return;
+            }
+            
+            if (currentVoice + newVoice > maxVoice) {
+                const remaining = maxVoice - currentVoice;
+                const message = remaining > 0 
+                    ? `You can only upload ${maxVoice} voice recording${maxVoice !== 1 ? 's' : ''} per post. You have already selected ${currentVoice} voice recording${currentVoice !== 1 ? 's' : ''}, and you're trying to add ${newVoice} more. You can only add ${remaining} more voice recording${remaining !== 1 ? 's' : ''}.`
+                    : `You've already reached the maximum of ${maxVoice} voice recording${maxVoice !== 1 ? 's' : ''} per post.`;
+                this.showError(message, 'warning');
+                return;
+            }
         }
         
         // Add files to our accumulated list
@@ -814,28 +866,89 @@ class EventDetailGuestManager {
             `;
             fileList.appendChild(summaryDiv);
             
-            // Show remaining file count - use new separate limits
+            // Show remaining file count - respect make_validation_per_media setting
+            const makeValidationPerMedia = this.currentEvent?.make_validation_per_media ?? false;
+            const maxPostsPerGuest = this.currentEvent?.max_posts_per_guest ?? 1;
             const maxImages = this.currentEvent?.guest_max_image_per_post || 3;
             const maxVideos = this.currentEvent?.guest_max_video_per_post || 3;
             const maxVoice = this.currentEvent?.guest_max_voice_per_post || 3;
-            const maxCount = maxImages + maxVideos + maxVoice;
-            const remainingCount = maxCount - this.selectedFiles.length;
-            if (remainingCount > 0) {
-                const remainingDiv = document.createElement('div');
-                remainingDiv.className = 'alert alert-success mt-2';
-                remainingDiv.innerHTML = `
-                    <i class="fas fa-plus-circle me-2"></i>
-                    <strong>You can add ${remainingCount} more file${remainingCount !== 1 ? 's' : ''}</strong>
-                `;
-                fileList.appendChild(remainingDiv);
+            
+            let remainingCount = 0;
+            let limitMessage = '';
+            let isLimitReached = false;
+            
+            if (!makeValidationPerMedia) {
+                // When validation is per guest, use max_posts_per_guest
+                remainingCount = maxPostsPerGuest - this.selectedFiles.length;
+                isLimitReached = remainingCount <= 0;
+                // Always show remaining count format
+                limitMessage = `You can add ${remainingCount} more file${remainingCount !== 1 ? 's' : ''} (${this.selectedFiles.length}/${maxPostsPerGuest} selected)`;
             } else {
-                const limitReachedDiv = document.createElement('div');
-                limitReachedDiv.className = 'alert alert-warning mt-2';
-                limitReachedDiv.innerHTML = `
-                    <i class="fas fa-exclamation-triangle me-2"></i>
-                    <strong>Maximum file limit reached (${maxImages} images, ${maxVideos} videos, ${maxVoice} voice)</strong>
+                // When validation is per media type, calculate remaining per type
+                const remainingImages = maxImages - photoCount;
+                const remainingVideos = maxVideos - videoCount;
+                const remainingVoice = maxVoice - voiceCount;
+                
+                // Check if all limits are reached
+                isLimitReached = remainingImages <= 0 && remainingVideos <= 0 && remainingVoice <= 0;
+                
+                if (isLimitReached) {
+                    limitMessage = `Maximum file limit reached (${maxImages} images, ${maxVideos} videos, ${maxVoice} voice)`;
+                } else {
+                    // Show remaining per type (only show types that still have capacity)
+                    const remainingParts = [];
+                    const limitReachedParts = [];
+                    
+                    if (remainingImages <= 0) {
+                        limitReachedParts.push(`images (${maxImages} max)`);
+                    } else {
+                        remainingParts.push(`${remainingImages} image${remainingImages !== 1 ? 's' : ''}`);
+                    }
+                    
+                    if (remainingVideos <= 0) {
+                        limitReachedParts.push(`videos (${maxVideos} max)`);
+                    } else {
+                        remainingParts.push(`${remainingVideos} video${remainingVideos !== 1 ? 's' : ''}`);
+                    }
+                    
+                    if (remainingVoice <= 0) {
+                        limitReachedParts.push(`voice recordings (${maxVoice} max)`);
+                    } else {
+                        remainingParts.push(`${remainingVoice} voice recording${remainingVoice !== 1 ? 's' : ''}`);
+                    }
+                    
+                    // Build message showing both reached limits and remaining capacity
+                    const messageParts = [];
+                    if (limitReachedParts.length > 0) {
+                        messageParts.push(`Limit reached: ${limitReachedParts.join(', ')}`);
+                    }
+                    if (remainingParts.length > 0) {
+                        messageParts.push(`You can add: ${remainingParts.join(', ')}`);
+                    }
+                    
+                    if (messageParts.length > 0) {
+                        limitMessage = messageParts.join('. ');
+                        remainingCount = 1; // Set to 1 to show the message
+                    } else {
+                        limitMessage = `Maximum file limit reached`;
+                        remainingCount = 0;
+                    }
+                }
+            }
+            
+            // Show appropriate message based on limit status
+            if (limitMessage) {
+                // Determine alert style and icon based on limit status
+                const alertClass = (isLimitReached || remainingCount === 0 || limitMessage.includes('Limit reached')) ? 'alert-warning' : 'alert-success';
+                const icon = (isLimitReached || remainingCount === 0 || limitMessage.includes('Limit reached')) ? 'fa-exclamation-triangle' : 'fa-plus-circle';
+                
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `alert ${alertClass} mt-2`;
+                messageDiv.innerHTML = `
+                    <i class="fas ${icon} me-2"></i>
+                    <strong>${limitMessage}</strong>
                 `;
-                fileList.appendChild(limitReachedDiv);
+                fileList.appendChild(messageDiv);
             }
         }
     }
@@ -947,28 +1060,52 @@ class EventDetailGuestManager {
                 }
                 
             } else {
-                // Show API errors
-                if (data.error) {
-                    this.showError(data.error, 'danger');
+                // Hide the "Uploading..." notification
+                this.hideTopRightNotification();
+                
+                // Extract error message from API response
+                let errorMessage = 'Failed to submit contribution. Please try again.';
+                
+                // Check if data is an array (some APIs return errors as arrays)
+                if (Array.isArray(data) && data.length > 0) {
+                    // If it's an array, use the first element or join all elements
+                    errorMessage = typeof data[0] === 'string' ? data[0] : data.map(err => typeof err === 'string' ? err : JSON.stringify(err)).join('. ');
+                } else if (data.error) {
+                    errorMessage = data.error;
+                } else if (data.detail) {
+                    errorMessage = data.detail;
+                } else if (data.message) {
+                    errorMessage = data.message;
                 } else if (data.errors) {
-                    // Handle field-specific errors
+                    // Handle field-specific errors - combine them into one message
+                    const errorMessages = [];
                     Object.keys(data.errors).forEach(field => {
                         const fieldErrors = data.errors[field];
                         if (Array.isArray(fieldErrors)) {
                             fieldErrors.forEach(error => {
-                                this.showError(`${field}: ${error}`, 'danger');
+                                errorMessages.push(`${field}: ${error}`);
                             });
                         } else {
-                            this.showError(`${field}: ${fieldErrors}`, 'danger');
+                            errorMessages.push(`${field}: ${fieldErrors}`);
                         }
                     });
-                } else {
-                    this.showError('Failed to submit contribution. Please try again.', 'danger');
+                    errorMessage = errorMessages.join('. ');
                 }
+                
+                // Show error in top-right notification (stays for 10 seconds)
+                this.showTopRightError(errorMessage);
+                // Also show error in the error container
+                this.showError(errorMessage, 'danger');
             }
         } catch (error) {
             console.error('Error submitting contribution:', error);
-            this.showError('Error submitting contribution. Please try again.', 'danger');
+            // Hide the "Uploading..." notification
+            this.hideTopRightNotification();
+            // Show error in top-right notification
+            const errorMsg = error.message || 'Error submitting contribution. Please try again.';
+            this.showTopRightError(errorMsg);
+            // Also show error in the error container
+            this.showError(errorMsg, 'danger');
         } finally {
             this.showLoading(false);
         }
@@ -1038,7 +1175,7 @@ class EventDetailGuestManager {
 
         errorContainer.appendChild(errorDiv);
 
-        // Auto-remove after 8 seconds
+        // Auto-remove after 10 seconds (longer so user can read the error message)
         setTimeout(() => {
             if (errorDiv.parentNode) {
                 errorDiv.remove();
@@ -1047,7 +1184,7 @@ class EventDetailGuestManager {
                     errorContainer.style.display = 'none';
                 }
             }
-        }, 8000);
+        }, 10000);
     }
 
     formatFileSize(bytes) {
@@ -1163,7 +1300,12 @@ class EventDetailGuestManager {
         const messageElement = document.getElementById('notificationMessage');
         
         if (notification && messageElement) {
-            messageElement.textContent = message;
+            // Ensure success styling (green)
+            notification.style.background = 'linear-gradient(135deg, rgba(34,197,94,.95), rgba(22,163,74,.95))';
+            notification.style.borderColor = 'rgba(34,197,94,.3)';
+            notification.style.boxShadow = '0 10px 30px rgba(34,197,94,.3)';
+            
+            messageElement.innerHTML = `<i class="fas fa-check-circle me-2"></i>${message}`;
             notification.style.display = 'block';
             
             // Animate in
@@ -1206,6 +1348,49 @@ class EventDetailGuestManager {
                     }
                 }, 300);
             }, 3000);
+        }
+    }
+
+    hideTopRightNotification() {
+        const notification = document.getElementById('topRightNotification');
+        if (notification) {
+            notification.classList.remove('show');
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 300);
+        }
+    }
+
+    showTopRightError(message) {
+        // Use the existing notification element in the HTML
+        const notification = document.getElementById('topRightNotification');
+        const messageElement = document.getElementById('notificationMessage');
+        
+        if (notification && messageElement) {
+            // Change to error styling
+            notification.style.background = 'linear-gradient(135deg, rgba(239,68,68,.95), rgba(220,38,38,.95))';
+            notification.style.borderColor = 'rgba(239,68,68,.3)';
+            notification.style.boxShadow = '0 10px 30px rgba(239,68,68,.3)';
+            
+            messageElement.innerHTML = `<i class="fas fa-exclamation-circle me-2"></i>${message}`;
+            notification.style.display = 'block';
+            
+            // Animate in
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 100);
+            
+            // Auto-remove after 10 seconds (longer for errors so user can read)
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    notification.style.display = 'none';
+                    // Reset to success styling
+                    notification.style.background = 'linear-gradient(135deg, rgba(34,197,94,.95), rgba(22,163,74,.95))';
+                    notification.style.borderColor = 'rgba(34,197,94,.3)';
+                    notification.style.boxShadow = '0 10px 30px rgba(34,197,94,.3)';
+                }, 300);
+            }, 10000);
         }
     }
 
