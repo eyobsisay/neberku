@@ -42,6 +42,7 @@ urlpatterns = [
     path('guest/event/', views.guest_event_access, name='guest_event_access'),
     path('guest/event-by-id/<uuid:event_id>/', views.guest_event_by_id, name='guest_event_by_id'),
     path('guest/public-events/', views.list_public_events, name='list_public_events'),
+    path('guest/public-posts/<uuid:event_id>/', views.guest_public_posts, name='guest_public_posts'),
     
     # Public media endpoint (secure - only returns approved media from approved posts)
     path('public/posts/<uuid:post_id>/media/<uuid:media_id>/', views.public_media_item, name='public_media_item'),

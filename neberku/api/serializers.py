@@ -706,6 +706,7 @@ class EventGuestAccessSerializer(serializers.ModelSerializer):
     voice_count = serializers.ReadOnlyField()
     is_accessible = serializers.SerializerMethodField()
     frontend_share_url = serializers.ReadOnlyField()
+    public_gallery = serializers.BooleanField(read_only=True)
     
     class Meta:
         model = Event
@@ -717,7 +718,7 @@ class EventGuestAccessSerializer(serializers.ModelSerializer):
             'guest_max_image_per_post', 'guest_max_video_per_post', 'guest_max_voice_per_post', 
             'max_posts_per_guest', 'make_validation_per_media',
             'max_image_size', 'max_video_size', 'max_voice_size',
-            'total_guest_posts', 'total_media_files', 'photo_count', 'video_count', 'voice_count', 'is_public', 'is_accessible',
+            'total_guest_posts', 'total_media_files', 'photo_count', 'video_count', 'voice_count', 'is_public', 'public_gallery', 'is_accessible',
             'frontend_share_url'
         ]
         read_only_fields = [

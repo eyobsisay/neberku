@@ -360,6 +360,13 @@ class GuestContributionManager {
                             </small>
                             <span class="badge bg-primary">${event.event_type.name}</span>
                         </div>
+                        ${event.public_gallery ? `
+                            <div class="mt-3 text-end">
+                                <button class="btn btn-outline-primary btn-sm" onclick="event.stopPropagation(); guestManager.viewGuestPosts('${event.id}')">
+                                    <i class="fas fa-images me-1"></i> Guest Posts
+                                </button>
+                            </div>
+                        ` : ''}
                     </div>
                     <div class="card-footer bg-transparent">
                         <small class="text-muted">
@@ -387,6 +394,10 @@ class GuestContributionManager {
         }
     }
 
+    viewGuestPosts(eventId) {
+        window.location.href = `guest-my-posts.html?event=${eventId}&public=1`;
+    }
+
     showEventDetails(event) {
         this.currentEvent = event;
         
@@ -405,8 +416,31 @@ class GuestContributionManager {
         // Always redirect to the event detail page with the contributor code
         const redirectUrl = `event-detail-guest.html?event=${event.id}${contributorCode ? `&code=${contributorCode}` : ''}`;
         
-        console.log('🔗 Redirecting to event detail with code:', redirectUrl);
-        window.location.href = redirectUrl;
+        if (event.public_gallery) {
+            this.showPublicGalleryActions(event, redirectUrl);
+        } else {
+            console.log('🔗 Redirecting to event detail with code:', redirectUrl);
+            window.location.href = redirectUrl;
+        }
+    }
+
+    showPublicGalleryActions(event, redirectUrl) {
+        const alertBox = document.getElementById('publicGalleryActions');
+        const postsBtn = document.getElementById('publicGalleryViewPostsBtn');
+        const continueBtn = document.getElementById('publicGalleryContinueBtn');
+
+        if (!alertBox || !postsBtn || !continueBtn) {
+            window.location.href = redirectUrl;
+            return;
+        }
+
+        const postsUrl = `guest-my-posts.html?event=${event.id}&public=1`;
+        postsBtn.href = postsUrl;
+        continueBtn.onclick = () => window.location.href = redirectUrl;
+
+        alertBox.classList.remove('d-none');
+        alertBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        this.showAlert('Public gallery is enabled. You can browse guest posts or continue to the event.', 'info');
     }
 
 

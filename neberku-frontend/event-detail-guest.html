@@ -2272,20 +2272,27 @@
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container">
-            <a class="navbar-brand brand-logo" href="guest-contribution.html">
-                <i class="fas fa-camera-retro"></i>
-                Neberku
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
+            <div class="d-flex align-items-center w-100">
+                <a class="navbar-brand brand-logo" href="guest-contribution.html">
+                    <i class="fas fa-camera-retro"></i>
+                    Neberku
+                </a>
+                <div class="ms-auto d-flex align-items-center gap-2">
+                    <a class="btn btn-outline-light btn-sm d-none" id="publicGalleryNavButton" target="_blank" rel="noopener">
+                        <i class="fas fa-images me-1"></i>
+                        Guest Posts
+                    </a>
+                    <a class="btn btn-outline-light btn-sm d-none" id="myPostsNavButton" target="_blank" rel="noopener">
+                        <i class="fas fa-bookmark me-1"></i>
+                        My Posts
+                    </a>
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                </div>
+            </div>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
-                    <li class="nav-item" id="myPostsNavItem" style="display: none;">
-                        <a class="nav-link" href="guest-my-posts.html">
-                            <i class="fas fa-bookmark me-1"></i>My Posts
-                        </a>
-                    </li>
                     <li class="nav-item" id="logoutNavItem" style="display: none;">
                         <button class="nav-link btn btn-link text-white p-0 border-0" id="logoutBtn" style="background: none; text-decoration: none;">
                             <i class="fas fa-sign-out-alt me-1"></i>Sign Out
@@ -2305,7 +2312,6 @@
     <div class="container mt-4">
         <!-- Alert Container -->
         <div id="alertContainer"></div>
-
         <!-- Loading Spinner -->
         <div id="loadingSpinner" class="text-center d-none">
             <div class="spinner-border text-primary" role="status">
@@ -2778,7 +2784,7 @@
             const otpVerifyBtn = document.getElementById('otpVerifyBtn');
             const logoutBtn = document.getElementById('logoutBtn');
             const logoutNavItem = document.getElementById('logoutNavItem');
-            const myPostsNavItem = document.getElementById('myPostsNavItem');
+            const myPostsNavButton = document.getElementById('myPostsNavButton');
             
             if (!contributionForm || !contactInfoModal || !contactInfoForm || !otpVerificationForm) {
                 return;
@@ -2801,7 +2807,7 @@
                 
                 if (!token || !userData) {
                     if (logoutNavItem) logoutNavItem.style.display = 'none';
-                    if (myPostsNavItem) myPostsNavItem.style.display = 'none';
+                    if (myPostsNavButton) myPostsNavButton.classList.add('d-none');
                     return false;
                 }
                 
@@ -2812,7 +2818,7 @@
                     localStorage.removeItem('neberku_refresh_token');
                     localStorage.removeItem('neberku_user');
                     if (logoutNavItem) logoutNavItem.style.display = 'none';
-                    if (myPostsNavItem) myPostsNavItem.style.display = 'none';
+                    if (myPostsNavButton) myPostsNavButton.classList.add('d-none');
                     return false;
                 }
                 
@@ -2833,7 +2839,10 @@
                         
                         // Show logout button in navbar
                         if (logoutNavItem) logoutNavItem.style.display = 'block';
-                        if (myPostsNavItem) myPostsNavItem.style.display = 'block';
+                        if (myPostsNavButton) {
+                            myPostsNavButton.classList.remove('d-none');
+                            myPostsNavButton.href = 'guest-my-posts.html';
+                        }
                         
                         console.log('✅ User already authenticated via OTP:', user.phone_number);
                         return true;
@@ -2841,12 +2850,12 @@
                 } catch (e) {
                     console.error('Error parsing user data:', e);
                     if (logoutNavItem) logoutNavItem.style.display = 'none';
-                    if (myPostsNavItem) myPostsNavItem.style.display = 'none';
+                    if (myPostsNavButton) myPostsNavButton.classList.add('d-none');
                     return false;
                 }
                 
                 if (logoutNavItem) logoutNavItem.style.display = 'none';
-                if (myPostsNavItem) myPostsNavItem.style.display = 'none';
+                if (myPostsNavButton) myPostsNavButton.classList.add('d-none');
                 return false;
             };
             
@@ -2866,7 +2875,7 @@
                 
                 // Hide navbar items
                 if (logoutNavItem) logoutNavItem.style.display = 'none';
-                if (myPostsNavItem) myPostsNavItem.style.display = 'none';
+                if (myPostsNavButton) myPostsNavButton.classList.add('d-none');
                 
                 // Close modal if open
                 closeContactModal();
@@ -3045,7 +3054,10 @@
                         
                         // Show logout button in navbar
                         if (logoutNavItem) logoutNavItem.style.display = 'block';
-                        if (myPostsNavItem) myPostsNavItem.style.display = 'block';
+                        if (myPostsNavButton) {
+                            myPostsNavButton.classList.remove('d-none');
+                            myPostsNavButton.href = 'guest-my-posts.html';
+                        }
                         
                         closeContactModal();
                         

@@ -1615,6 +1615,32 @@ def guest_event_by_id(request, event_id):
     return Response(serializer.data)
 
 
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def guest_public_posts(request, event_id):
+    """Return approved guest posts when public gallery is enabled."""
+    try:
+        event = Event.objects.get(pk=event_id)
+    except Event.DoesNotExist:
+        return Response({'error': 'Event not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    if not event.is_live:
+        return Response({'error': 'Event is not live or accessible'}, status=status.HTTP_404_NOT_FOUND)
+
+    settings_obj = getattr(event, 'settings', None)
+    if not settings_obj or not settings_obj.public_gallery:
+        return Response({'error': 'Public gallery is not enabled for this event'}, status=status.HTTP_403_FORBIDDEN)
+
+    posts_qs = GuestPost.objects.filter(event=event, is_approved=True).order_by('-created_at')
+    posts_serializer = GuestPostSerializer(posts_qs, many=True, context={'request': request})
+    event_serializer = EventGuestAccessSerializer(event, context={'request': request})
+
+    return Response({
+        'event': event_serializer.data,
+        'posts': posts_serializer.data
+    }, status=status.HTTP_200_OK)
+
+
 @csrf_exempt
 @api_view(['POST'])
 @permission_classes([AllowAny])

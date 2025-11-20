@@ -314,17 +314,29 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container">
-            <a class="navbar-brand brand-logo" href="event-detail-guest.html">
-                <i class="fas fa-camera-retro"></i>
-                Neberku
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
+            <div class="d-flex align-items-center w-100">
+                <a class="navbar-brand brand-logo" href="guest-contribution.html">
+                    <i class="fas fa-camera-retro"></i>
+                    Neberku
+                </a>
+                <div class="ms-auto d-flex align-items-center gap-2">
+                    <a class="btn btn-outline-light btn-sm d-none" id="guestPostsNavButton" target="_blank" rel="noopener">
+                        <i class="fas fa-images me-1"></i>
+                        Guest Posts
+                    </a>
+                    <a class="btn btn-outline-light btn-sm d-none" id="myPostsNavButton" target="_blank" rel="noopener">
+                        <i class="fas fa-bookmark me-1"></i>
+                        My Posts
+                    </a>
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                </div>
+            </div>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="event-detail-guest.html">
+                        <a class="nav-link" id="backToEventLink" href="event-detail-guest.html">
                             <i class="fas fa-arrow-left me-1"></i>Back to Event
                         </a>
                     </li>
@@ -345,17 +357,13 @@
             <i class="fas fa-lock mb-3" style="font-size: 2rem;"></i>
             <h4 class="mb-3">Sign in to view your posts</h4>
             <p class="mb-3">Verify your phone number on the event page to create and view your contributions.</p>
-            <a href="event-detail-guest.html" class="btn btn-primary">
+            <a href="event-detail-guest.html" class="btn btn-primary" id="authBackButton">
                 <i class="fas fa-arrow-left me-1"></i>Go to Event
             </a>
         </div>
-
         <div id="postsSection" style="display: none;">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h2 class="mb-0">My Posts</h2>
-                    <small class="text-muted">View and track your contributions</small>
-                </div>
+                <h2 class="mb-0" id="postsHeading">My Posts</h2>
                 <span id="postsCount" class="badge bg-light text-dark">0 posts</span>
             </div>
 
@@ -419,6 +427,14 @@
             const authNotice = document.getElementById('authNotice');
             const logoutNavItem = document.getElementById('logoutNavItem');
             const logoutBtn = document.getElementById('logoutBtn');
+            const guestPostsNavButton = document.getElementById('guestPostsNavButton');
+            const myPostsNavButton = document.getElementById('myPostsNavButton');
+            const postsHeading = document.getElementById('postsHeading');
+            const backToEventLink = document.getElementById('backToEventLink');
+            const authBackButton = document.getElementById('authBackButton');
+            const urlParams = new URLSearchParams(window.location.search);
+            const publicMode = (urlParams.get('public') || '').toLowerCase() === '1' || (urlParams.get('public') || '').toLowerCase() === 'true';
+            const publicEventId = urlParams.get('event');
 
             let guestPostsCache = [];
 
@@ -440,6 +456,8 @@
                 if (logoutNavItem) logoutNavItem.style.display = 'none';
                 postsSection.style.display = 'none';
                 postsList.innerHTML = '';
+                if (guestPostsNavButton) guestPostsNavButton.classList.add('d-none');
+                if (myPostsNavButton) myPostsNavButton.classList.add('d-none');
                 postsEmpty.style.display = 'none';
                 postsLoading.style.display = 'none';
                 authNotice.style.display = 'block';
@@ -755,7 +773,71 @@
                 }
             };
 
+            const fetchPublicPosts = async (eventId) => {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/guest/public-posts/${eventId}/`);
+                    const data = await response.json();
+                    if (response.ok) {
+                        postsSection.style.display = 'block';
+                        postsLoading.style.display = 'none';
+                        renderPosts(data.posts || []);
+                    } else {
+                        postsLoading.style.display = 'none';
+                        showAlert(data.error || 'Unable to load public posts.', 'danger');
+                    }
+                } catch (error) {
+                    postsLoading.style.display = 'none';
+                    showAlert('Unable to load public posts. Please try again later.', 'danger');
+                }
+            };
+
+            const updateBackLinks = (eventId) => {
+                const targetHref = eventId ? `event-detail-guest.html?event=${eventId}` : 'event-detail-guest.html';
+                if (backToEventLink) backToEventLink.href = targetHref;
+                if (authBackButton) authBackButton.href = targetHref;
+            };
+            updateBackLinks(publicEventId);
+
+            if (publicMode && publicEventId) {
+                if (guestPostsNavButton) {
+                    guestPostsNavButton.classList.add('d-none');
+                }
+                if (myPostsNavButton) {
+                    myPostsNavButton.classList.remove('d-none');
+                    myPostsNavButton.href = `guest-my-posts.html?event=${publicEventId}`;
+                    myPostsNavButton.target = '_self';
+                }
+                if (postsHeading) {
+                    postsHeading.textContent = 'Guest Posts';
+                }
+                const authedForPublic = isAuthenticated();
+                if (logoutNavItem) logoutNavItem.style.display = authedForPublic ? 'block' : 'none';
+                authNotice.style.display = 'none';
+                postsSection.style.display = 'block';
+                postsLoading.style.display = 'block';
+                fetchPublicPosts(publicEventId);
+                return;
+            }
+
+            if (guestPostsNavButton) {
+                if (publicEventId) {
+                    guestPostsNavButton.classList.remove('d-none');
+                    guestPostsNavButton.href = `guest-my-posts.html?event=${publicEventId}&public=1`;
+                    guestPostsNavButton.target = '_self';
+                } else {
+                    guestPostsNavButton.classList.add('d-none');
+                }
+            }
+            if (myPostsNavButton) {
+                myPostsNavButton.classList.add('d-none');
+            }
+            if (postsHeading) {
+                postsHeading.textContent = 'Your Posts';
+            }
             if (!isAuthenticated()) {
+                if (guestPostsNavButton) guestPostsNavButton.classList.add('d-none');
+                if (myPostsNavButton) myPostsNavButton.classList.add('d-none');
+                if (postsHeading) postsHeading.textContent = 'Your Posts';
                 authNotice.style.display = 'block';
                 postsLoading.style.display = 'none';
                 return;

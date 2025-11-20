@@ -203,6 +203,7 @@ class EventDetailGuestManager {
     }
 
     displayEventDetails(event) {
+        this.currentEvent = event;
         // Update event title
         const eventTitle = document.getElementById('eventTitle');
         if (eventTitle) {
@@ -266,6 +267,9 @@ class EventDetailGuestManager {
         if (joinCount) {
             joinCount.textContent = event.total_guest_posts || 0;
         }
+
+        this.updateMyPostsNavLink();
+        this.updatePublicGalleryUI(event);
     }
 
     setMediaPermissions(event) {
@@ -386,6 +390,43 @@ class EventDetailGuestManager {
         this.updateWishFieldState();
         const shouldForceDisable = !this.canUploadAnyMedia() || !this.mediaPermissions.wishes;
         this.updateSubmitButtonState(shouldForceDisable);
+    }
+
+    updatePublicGalleryUI(event) {
+        const alertBox = document.getElementById('publicGalleryAlert');
+        const alertBtn = document.getElementById('publicGalleryAlertBtn');
+        const navButton = document.getElementById('publicGalleryNavButton');
+
+        if (event.public_gallery) {
+            const galleryUrl = `guest-my-posts.html?event=${event.id}&public=1`;
+            if (alertBox) {
+                alertBox.classList.remove('d-none');
+            }
+            if (alertBtn) {
+                alertBtn.href = galleryUrl;
+            }
+            if (navButton) {
+                navButton.href = galleryUrl;
+                navButton.classList.remove('d-none');
+            }
+        } else {
+            if (alertBox) {
+                alertBox.classList.add('d-none');
+            }
+            if (navButton) {
+                navButton.classList.add('d-none');
+            }
+        }
+    }
+
+    updateMyPostsNavLink() {
+        const myPostsNavButton = document.getElementById('myPostsNavButton');
+        if (!myPostsNavButton) return;
+        if (this.currentEvent?.id) {
+            myPostsNavButton.href = `guest-my-posts.html?event=${this.currentEvent.id}`;
+        } else {
+            myPostsNavButton.href = 'guest-my-posts.html';
+        }
     }
 
     updateWishFieldState() {
