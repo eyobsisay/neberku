@@ -17,19 +17,26 @@ function checkAuthStatus() {
         try {
             const userData = JSON.parse(user);
             console.log('✅ User already logged in:', userData.username);
-            
-            // Only redirect if we're on the login page
+
+            // Only redirect event owners to dashboard
+            // Contributors can stay on login page to log in as event owner if they want
             const currentPage = window.location.pathname.split('/').pop();
             if (currentPage === 'login.html') {
-                console.log('🔄 Already logged in, redirecting to dashboard...');
-                // Small delay to prevent immediate redirect during login process
-                setTimeout(() => {
-                    window.location.replace('dashboard.html');
-                }, 100);
+                if (userData.role === 'event_owner') {
+                    console.log('🔄 Event owner already logged in, redirecting to dashboard...');
+                    setTimeout(() => {
+                        window.location.replace('dashboard.html');
+                    }, 100);
+                } else {
+                    // Contributor is logged in but on login page - let them stay
+                    // They might want to log in as event owner, which will clear their contributor session
+                    console.log('👤 Contributor already logged in, but allowing login page access');
+                    console.log('💡 Contributor can log in as event owner, which will replace their session');
+                }
             }
         } catch (e) {
             console.error('❌ Error parsing stored user data:', e);
-            localStorage.removeItem('neberku_user');
+            // Don't clear session on parse error - might be temporary
         }
     } else {
         console.log('⚠️ No user data found, staying on login page');
@@ -63,10 +70,28 @@ function handleLogin(event) {
     loginBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Signing In...';
     loginBtn.disabled = true;
     
+    // Check if there's an existing session with different role - clear it before login
+    const existingUserStr = localStorage.getItem('neberku_user');
+    if (existingUserStr) {
+        try {
+            const existingUser = JSON.parse(existingUserStr);
+            if (existingUser.role !== 'event_owner') {
+                console.log('🔄 Clearing existing contributor session before event owner login');
+                clearStoredAuth();
+            }
+        } catch (e) {
+            console.error('Error parsing existing user:', e);
+        }
+    }
+    
     // Attempt login
     loginUser(username, password, rememberMe)
         .then(response => {
             console.log('✅ Login successful, response:', response);
+
+            if (!response.user || response.user.role !== 'event_owner') {
+                throw new Error('Only event owners can access the dashboard.');
+            }
             
             // Store user data (no token needed for session-based auth)
             if (response.user) {
@@ -139,6 +164,15 @@ function clearFormErrors() {
         field.classList.remove('is-invalid');
         errorDiv.textContent = '';
     });
+}
+
+function clearStoredAuth() {
+    // Only clear session - this function should only be called during explicit login actions
+    // or when user explicitly logs out. Never called on redirects or access denials.
+    console.log('🧹 Clearing stored authentication data');
+    localStorage.removeItem('neberku_user');
+    localStorage.removeItem('neberku_access_token');
+    localStorage.removeItem('neberku_refresh_token');
 }
 
 // Login user with API
@@ -236,9 +270,7 @@ async function logoutUser() {
         }
         
         // Clear all local storage
-        localStorage.removeItem('neberku_user');
-        localStorage.removeItem('neberku_access_token');
-        localStorage.removeItem('neberku_refresh_token');
+        clearStoredAuth();
         
         // Show logout message
         showAlert('You have been logged out successfully.', 'success');
@@ -250,9 +282,7 @@ async function logoutUser() {
     } catch (error) {
         console.error('Logout error:', error);
         // Even if API call fails, clear local data
-        localStorage.removeItem('neberku_user');
-        localStorage.removeItem('neberku_access_token');
-        localStorage.removeItem('neberku_refresh_token');
+        clearStoredAuth();
         showAlert('Logged out locally. Redirecting...', 'info');
         setTimeout(() => {
             window.location.href = 'index.html';
@@ -267,6 +297,19 @@ function isAuthenticated() {
     const accessToken = localStorage.getItem('neberku_access_token');
     
     if (!user || !accessToken) {
+        return false;
+    }
+
+    try {
+        const parsedUser = JSON.parse(user);
+        if (parsedUser.role !== 'event_owner') {
+            console.warn('⚠️ Non-event owner detected in storage. Clearing auth.');
+            clearStoredAuth();
+            return false;
+        }
+    } catch (error) {
+        console.error('❌ Failed to parse stored user data:', error);
+        clearStoredAuth();
         return false;
     }
     
@@ -405,6 +448,23 @@ function initAuth() {
     
     if (protectedPages.includes(currentPage)) {
         console.log('🔒 Protected page detected:', currentPage);
+        
+        // Special handling for dashboard - check role first
+        if (currentPage === 'dashboard.html') {
+            const user = getCurrentUser();
+            if (user && user.role === 'contributor') {
+                console.log('👤 Contributor detected on dashboard - redirecting without logout');
+                console.log('✅ Preserving session data:', {
+                    hasUser: !!localStorage.getItem('neberku_user'),
+                    hasToken: !!localStorage.getItem('neberku_access_token'),
+                    hasRefresh: !!localStorage.getItem('neberku_refresh_token')
+                });
+                // Redirect contributor to guest contribution page immediately, preserving session
+                // Use immediate redirect to prevent any other code from running
+                window.location.replace('guest-contribution.html');
+                return; // Don't proceed with auth checks
+            }
+        }
         
         // Validate token before requiring auth
         if (!validateJWTToken(getAuthToken())) {

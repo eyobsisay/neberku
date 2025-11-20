@@ -149,6 +149,27 @@ const API_UTILS = {
             
             if (response.status === 403) {
                 console.log('🚫 Forbidden (403) - Access denied');
+                // Check if user is a contributor - don't logout them, just redirect
+                const userStr = localStorage.getItem('neberku_user');
+                if (userStr) {
+                    try {
+                        const user = JSON.parse(userStr);
+                        if (user.role === 'contributor') {
+                            console.log('👤 Contributor detected - redirecting without logout');
+                            // Don't call handleAuthError (which logs out), just redirect
+                            // Preserve their session by NOT clearing localStorage
+                            if (window.location.pathname.includes('dashboard.html')) {
+                                console.log('🔄 Redirecting contributor to guest-contribution.html');
+                                window.location.replace('guest-contribution.html');
+                                return; // Exit early, don't throw error
+                            }
+                            throw new Error('Only event owners can access this resource.');
+                        }
+                    } catch (e) {
+                        console.error('Error parsing user data:', e);
+                    }
+                }
+                // For non-contributors or if user data not found, use normal error handling
                 API_UTILS.handleAuthError('Access denied');
                 return;
             }
@@ -179,6 +200,93 @@ const API_UTILS = {
     // Handle authentication errors and redirect to login
     handleAuthError: (message) => {
         console.log('🔒 Authentication error detected:', message);
+        
+        // Check if user is a contributor on dashboard - preserve their session
+        const userStr = localStorage.getItem('neberku_user');
+        const isContributor = userStr ? (() => {
+            try {
+                const user = JSON.parse(userStr);
+                return user.role === 'contributor';
+            } catch (e) {
+                return false;
+            }
+        })() : false;
+        
+        const isOnDashboard = window.location.pathname.includes('dashboard.html');
+        
+        if (isContributor && isOnDashboard) {
+            console.log('👤 Contributor on dashboard - preserving session and redirecting');
+            console.log('✅ Session data preserved (no logout):', {
+                hasUser: !!localStorage.getItem('neberku_user'),
+                hasToken: !!localStorage.getItem('neberku_access_token'),
+                hasRefresh: !!localStorage.getItem('neberku_refresh_token')
+            });
+            
+            // Show message and redirect to guest contribution WITHOUT clearing session
+            const alertMessage = `
+                <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                    <strong>Access Restricted!</strong><br>
+                    Only event owners can access the dashboard. Redirecting to guest contribution...
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            
+            const alertContainer = document.getElementById('alertContainer') || document.body;
+            if (alertContainer) {
+                const alertDiv = document.createElement('div');
+                alertDiv.innerHTML = alertMessage;
+                alertDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+                alertContainer.appendChild(alertDiv);
+                
+                setTimeout(() => {
+                    if (alertDiv.parentNode) {
+                        alertDiv.remove();
+                    }
+                }, 2000);
+            }
+            
+            // Redirect to guest contribution WITHOUT clearing session
+            setTimeout(() => {
+                console.log('🔄 Redirecting contributor to guest-contribution.html (session preserved)');
+                window.location.replace('guest-contribution.html');
+            }, 1500);
+            return; // Exit early, don't clear session
+        }
+        
+        // For token expiration or invalid tokens, only clear if NOT a contributor
+        // Contributors should keep their session even on token errors (they can re-authenticate via OTP)
+        if (isContributor) {
+            console.log('👤 Contributor session preserved despite auth error');
+            console.log('✅ Session data preserved:', {
+                hasUser: !!localStorage.getItem('neberku_user'),
+                hasToken: !!localStorage.getItem('neberku_access_token'),
+                hasRefresh: !!localStorage.getItem('neberku_refresh_token')
+            });
+            // Don't clear session, just show message
+            const alertMessage = `
+                <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                    <strong>Authentication Issue!</strong><br>
+                    ${message || 'Please try again or re-authenticate.'}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            const alertContainer = document.getElementById('alertContainer') || document.body;
+            if (alertContainer) {
+                const alertDiv = document.createElement('div');
+                alertDiv.innerHTML = alertMessage;
+                alertDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+                alertContainer.appendChild(alertDiv);
+                setTimeout(() => {
+                    if (alertDiv.parentNode) {
+                        alertDiv.remove();
+                    }
+                }, 3000);
+            }
+            return; // Don't clear session or redirect
+        }
+        
+        // For event owners or unauthenticated users, proceed with normal logout
+        console.log('🚪 Clearing session for event owner or unauthenticated user');
         
         // Clear stored authentication data
         localStorage.removeItem('neberku_user');

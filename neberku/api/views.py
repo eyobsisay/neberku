@@ -20,7 +20,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from core.models import EventType, Package, Event, Payment, Guest, GuestPost, MediaFile, EventSettings, PaymentMethod, PhoneOTP
+from core.models import EventType, Package, Event, Payment, Guest, GuestPost, MediaFile, EventSettings, PaymentMethod, PhoneOTP, UserProfile
 from core.utils import (
     send_telegram_message, 
     format_event_creation_message, 
@@ -37,6 +37,7 @@ import math
 import random
 from datetime import timedelta
 from .sms import send_afromessage_sms
+from .permissions import IsEventOwner
 
 def format_file_size(bytes_size):
     """Convert bytes to human readable format"""
@@ -47,6 +48,59 @@ def format_file_size(bytes_size):
     p = math.pow(1024, i)
     s = round(bytes_size / p, 2)
     return f"{s} {size_names[i]}"
+
+
+def ensure_user_profile(user):
+    profile, _ = UserProfile.objects.get_or_create(user=user)
+    return profile
+
+
+def ensure_user_role(user, role=None, phone_number=None):
+    """
+    Ensure the user has a profile with the requested role/phone number.
+    Event owners should never be downgraded to contributors.
+    """
+    profile = ensure_user_profile(user)
+    updated_fields = []
+
+    if role:
+        if not (role == UserProfile.ROLE_CONTRIBUTOR and profile.role == UserProfile.ROLE_EVENT_OWNER):
+            if profile.role != role:
+                profile.role = role
+                updated_fields.append('role')
+
+    if phone_number and profile.phone_number != phone_number:
+        profile.phone_number = phone_number
+        updated_fields.append('phone_number')
+
+    if updated_fields:
+        profile.save(update_fields=updated_fields)
+
+    return profile
+
+
+def get_user_role(user):
+    profile = getattr(user, 'profile', None)
+    if profile:
+        return profile.role
+    return ensure_user_profile(user).role
+
+
+def serialize_user_payload(user, include_admin_flags=True):
+    payload = {
+        'id': user.id,
+        'username': user.username,
+        'email': user.email,
+        'first_name': user.first_name,
+        'last_name': user.last_name,
+        'role': get_user_role(user)
+    }
+    if include_admin_flags:
+        payload.update({
+            'is_superuser': user.is_superuser,
+            'is_staff': user.is_staff
+        })
+    return payload
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):
@@ -72,7 +126,8 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                             'first_name': user.first_name,
                             'last_name': user.last_name,
                             'is_superuser': user.is_superuser,
-                            'is_staff': user.is_staff
+                            'is_staff': user.is_staff,
+                            'role': get_user_role(user)
                         }
                     })
         return response
@@ -188,7 +243,7 @@ class EventViewSet(viewsets.ModelViewSet):
     """
     queryset = Event.objects.all().order_by('-created_at')
     serializer_class = EventSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsEventOwner]
     parser_classes = [MultiPartParser, FormParser]
     
     def get_queryset(self):
@@ -467,7 +522,7 @@ class EventViewSet(viewsets.ModelViewSet):
 class PaymentViewSet(viewsets.ModelViewSet):
     """ViewSet for managing payments"""
     queryset = Payment.objects.all()
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsEventOwner]
     
     def get_serializer_class(self):
         """Use different serializers for different actions"""
@@ -569,7 +624,7 @@ class GuestViewSet(viewsets.ReadOnlyModelViewSet):
     """
     queryset = Guest.objects.all()
     serializer_class = GuestSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsEventOwner]
     
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
@@ -1015,7 +1070,7 @@ class MediaFileViewSet(viewsets.ModelViewSet):
     """
     queryset = MediaFile.objects.all()
     serializer_class = MediaFileSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsEventOwner]
     parser_classes = [MultiPartParser, FormParser]
     
     
@@ -1289,20 +1344,11 @@ def api_login(request):
         refresh = RefreshToken.for_user(user)
         access_token = refresh.access_token
         
-        
         return Response({
             'success': True,
             'access': str(access_token),
             'refresh': str(refresh),
-            'user': {
-                'id': user.id,
-                'username': user.username,
-                'email': user.email,
-                'first_name': user.first_name,
-                'last_name': user.last_name,
-                'is_superuser': user.is_superuser,
-                'is_staff': user.is_staff
-            },
+            'user': serialize_user_payload(user),
             'message': 'Login successful'
         })
     else:
@@ -1365,25 +1411,15 @@ def api_register(request):
             last_name=last_name
         )
         
-        # Store phone number in user profile if available, or in a custom field
-        # For now, we'll store it in a UserProfile if it exists, otherwise skip
-        # You can extend this later to create a UserProfile model
-        if phone_number:
-            # If you have a UserProfile model, uncomment this:
-            # from core.models import UserProfile
-            # UserProfile.objects.create(user=user, phone_number=phone_number)
-            # For now, we'll just store it in a note or skip it
-            pass
+        ensure_user_role(
+            user,
+            role=UserProfile.ROLE_EVENT_OWNER,
+            phone_number=phone_number or None
+        )
         
         return Response({
             'success': True,
-            'user': {
-                'id': user.id,
-                'username': user.username,
-                'email': user.email,
-                'first_name': user.first_name,
-                'last_name': user.last_name
-            },
+            'user': serialize_user_payload(user, include_admin_flags=False),
             'message': 'User created successfully'
         }, status=status.HTTP_201_CREATED)
         
@@ -1399,6 +1435,7 @@ def api_register(request):
 def api_user_profile(request):
     """API endpoint to get and update user profile"""
     user = request.user
+    profile = ensure_user_profile(user)
     
     if request.method == 'GET':
         # Return user profile data
@@ -1408,9 +1445,11 @@ def api_user_profile(request):
             'email': user.email,
             'first_name': user.first_name,
             'last_name': user.last_name,
+            'phone_number': profile.phone_number,
             'is_superuser': user.is_superuser,
             'is_staff': user.is_staff,
-            'date_joined': user.date_joined
+            'date_joined': user.date_joined,
+            'role': profile.role
         }, status=status.HTTP_200_OK)
     
     elif request.method in ['PUT', 'PATCH']:
@@ -1436,9 +1475,10 @@ def api_user_profile(request):
                     {'error': 'Phone number must be in format: 09xxxxxxxx (10 digits starting with 09)'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-            # Store phone number - for now we'll skip it since there's no UserProfile model
-            # You can extend this later to create a UserProfile model
+            profile.phone_number = phone_number
         
+        # Update role is not exposed through this endpoint
+
         # Update user fields
         if first_name:
             user.first_name = first_name
@@ -1447,6 +1487,8 @@ def api_user_profile(request):
         
         try:
             user.save()
+            if phone_number:
+                profile.save(update_fields=['phone_number'])
             return Response({
                 'success': True,
                 'user': {
@@ -1454,7 +1496,9 @@ def api_user_profile(request):
                     'username': user.username,
                     'email': user.email,
                     'first_name': user.first_name,
-                    'last_name': user.last_name
+                    'last_name': user.last_name,
+                    'phone_number': profile.phone_number,
+                    'role': profile.role
                 },
                 'message': 'Profile updated successfully'
             }, status=status.HTTP_200_OK)
@@ -1987,11 +2031,13 @@ def verify_phone_otp(request):
             )
             user.set_password(get_random_string(32))
             user.save()
-        
-        # Update user name if provided
-        if name and user.first_name != name:
-            user.first_name = name
-            user.save()
+        else:
+            # Update user name if provided
+            if name and user.first_name != name:
+                user.first_name = name
+                user.save(update_fields=['first_name'])
+
+        ensure_user_role(user, role=UserProfile.ROLE_CONTRIBUTOR, phone_number=phone_number)
         
         # Generate JWT tokens
         refresh = RefreshToken.for_user(user)
@@ -2007,7 +2053,8 @@ def verify_phone_otp(request):
                 'email': user.email,
                 'first_name': user.first_name,
                 'last_name': user.last_name,
-                'phone_number': phone_number
+                'phone_number': phone_number,
+                'role': get_user_role(user)
             },
             'message': 'OTP verified successfully'
         }, status=status.HTTP_200_OK)
@@ -2033,6 +2080,11 @@ def guest_my_posts(request):
     # Allow explicit override via query param (for potential future use)
     if not phone_number:
         phone_number = request.query_params.get('phone', '').strip()
+
+    if not phone_number:
+        profile = getattr(user, 'profile', None)
+        if profile and profile.phone_number:
+            phone_number = profile.phone_number
 
     if not phone_number:
         return Response(

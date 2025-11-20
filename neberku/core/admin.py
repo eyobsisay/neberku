@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.forms.models import BaseInlineFormSet
 from django import forms
-from .models import EventType, Package, Event, Payment, Guest, GuestPost, MediaFile, EventSettings, PaymentMethod, PhoneOTP
+from .models import EventType, Package, Event, Payment, Guest, GuestPost, MediaFile, EventSettings, PaymentMethod, PhoneOTP, UserProfile
 
 class EventSettingsFormSet(BaseInlineFormSet):
     """Custom formset for EventSettings inline to prevent duplicates"""
@@ -492,3 +492,19 @@ class PhoneOTPAdmin(admin.ModelAdmin):
     def reset_attempts(self, request, queryset):
         updated = queryset.update(attempts=0)
         self.message_user(request, f"Reset attempts for {updated} OTP(s).")
+
+
+@admin.register(UserProfile)
+class UserProfileAdmin(admin.ModelAdmin):
+    list_display = ['user', 'role', 'phone_number', 'created_at', 'updated_at']
+    list_filter = ['role', 'created_at']
+    search_fields = ['user__username', 'user__email', 'phone_number']
+    readonly_fields = ['created_at', 'updated_at']
+    ordering = ['user__username']
+
+    fieldsets = (
+        ('User', {'fields': ('user',)}),
+        ('Role Information', {'fields': ('role',)}),
+        ('Contact', {'fields': ('phone_number',)}),
+        ('Timestamps', {'fields': ('created_at', 'updated_at')}),
+    )

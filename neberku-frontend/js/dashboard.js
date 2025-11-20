@@ -88,7 +88,10 @@ class Dashboard {
     }
 
     init() {
-        this.checkAuth();
+        // Check auth first - if user is not event owner, don't initialize dashboard
+        if (!this.checkAuth()) {
+            return; // Stop initialization if user is not authorized
+        }
         this.bindEvents();
         this.loadPackagesAndEventTypes();
         this.loadPaymentMethods();
@@ -151,29 +154,53 @@ class Dashboard {
             setTimeout(() => {
                 window.location.replace('login.html');
             }, 3000); // 3 second delay to see the error
-            return;
+            return false; // Return false to stop initialization
         }
         
         // Update user display name
         const user = getCurrentUser();
         if (user) {
+            // Check if user is an event owner
+            if (user.role !== 'event_owner') {
+                console.warn('⚠️ User is not an event owner. Role:', user.role);
+                console.log('🔄 Redirecting contributor to guest contribution page (keeping session)...');
+                console.log('✅ Preserving authentication data:', {
+                    hasUser: !!localStorage.getItem('neberku_user'),
+                    hasToken: !!localStorage.getItem('neberku_access_token'),
+                    hasRefresh: !!localStorage.getItem('neberku_refresh_token')
+                });
+                
+                // Show message briefly, then redirect immediately
+                this.showAlert('Only event owners can access the dashboard. Redirecting to guest contribution...', 'warning');
+                
+                // Redirect immediately to guest contribution page WITHOUT logging out
+                // This preserves their authenticated session for guest features
+                setTimeout(() => {
+                    console.log('🔄 Performing redirect to guest-contribution.html (session preserved)');
+                    window.location.replace('guest-contribution.html');
+                }, 1500); // Shorter delay for faster redirect
+                return false; // Return false to stop initialization
+            }
+            
             document.getElementById('userDisplayName').textContent = user.username;
             // Check if user is superuser
             this.isSuperuser = user.is_superuser === true || user.is_superuser === 'true';
             console.log('✅ User authenticated:', user.username);
             console.log('👤 Is Superuser:', this.isSuperuser);
+            console.log('👤 User Role:', user.role);
             console.log('🔑 Session cookies should be available for API calls');
             console.log('🎯 Ready to load dashboard data');
             
             // Hide cart if not superuser
             this.updateCartVisibility();
+            return true; // Return true to continue initialization
         } else {
             console.log('❌ User data not found, redirecting to login');
             this.showAlert('User data not found. Redirecting to login...', 'warning');
             setTimeout(() => {
                 window.location.replace('login.html');
             }, 3000); // 3 second delay to see the error
-            return;
+            return false; // Return false to stop initialization
         }
     }
 

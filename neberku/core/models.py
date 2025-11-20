@@ -2,6 +2,8 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.core.exceptions import ValidationError
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 import uuid
 import qrcode
 from io import BytesIO
@@ -612,3 +614,47 @@ class PhoneOTP(models.Model):
     
     def is_valid(self):
         return not self.is_expired() and not self.is_verified and self.attempts < 5
+
+
+class UserProfile(models.Model):
+    """Profile model to track user roles and metadata"""
+    ROLE_EVENT_OWNER = 'event_owner'
+    ROLE_CONTRIBUTOR = 'contributor'
+    ROLE_CHOICES = [
+        (ROLE_EVENT_OWNER, 'Event Owner'),
+        (ROLE_CONTRIBUTOR, 'Contributor'),
+    ]
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default=ROLE_CONTRIBUTOR)
+    phone_number = models.CharField(max_length=20, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "User Profile"
+        verbose_name_plural = "User Profiles"
+
+    def __str__(self):
+        return f"{self.user.username} ({self.get_role_display()})"
+
+    @property
+    def is_event_owner(self):
+        return self.role == self.ROLE_EVENT_OWNER
+
+    @property
+    def is_contributor(self):
+        return self.role == self.ROLE_CONTRIBUTOR
+
+
+@receiver(post_save, sender=User)
+def ensure_user_profile(sender, instance, created, **kwargs):
+    """
+    Automatically create a profile for every user.
+    Default to contributor unless the user is staff/superuser.
+    """
+    profile, profile_created = UserProfile.objects.get_or_create(user=instance)
+
+    if profile_created and (instance.is_staff or instance.is_superuser):
+        profile.role = UserProfile.ROLE_EVENT_OWNER
+        profile.save(update_fields=['role'])
