@@ -220,6 +220,10 @@ class Event(models.Model):
     def make_validation_per_media(self):
         return self._get_setting_value('make_validation_per_media', False)
     
+    @property
+    def public_gallery(self):
+        return self._get_setting_value('public_gallery', False)
+    
     def generate_share_link(self):
         """Generate share link for the event"""
         try:

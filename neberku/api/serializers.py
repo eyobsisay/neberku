@@ -331,6 +331,7 @@ class EventSerializer(serializers.ModelSerializer):
     max_video_per_post = serializers.IntegerField(required=False, min_value=1, max_value=50)
     max_voice_per_post = serializers.IntegerField(required=False, min_value=1, max_value=50)
     make_validation_per_media = serializers.BooleanField(required=False)
+    public_gallery = serializers.BooleanField(required=False)
     
     class Meta:
         model = Event
@@ -342,7 +343,7 @@ class EventSerializer(serializers.ModelSerializer):
             'settings', 'total_guest_posts', 'total_media_files', 'photo_count', 'video_count', 'voice_count', 'is_live',
             'is_public', 'contributor_code', 'non_approved_guest_posts',
             'max_posts_per_guest', 'max_image_per_post', 'max_video_per_post', 'max_voice_per_post',
-            'make_validation_per_media'
+            'make_validation_per_media', 'public_gallery'
         ]
         read_only_fields = ['id', 'host', 'status', 'payment_status', 'qr_code', 
                            'share_link', 'created_at', 'updated_at', 'published_at',
@@ -422,13 +423,16 @@ class EventSerializer(serializers.ModelSerializer):
             if field in validated_data:
                 numeric_updates[field] = validated_data.pop(field)
 
-        bool_update = None
-        if 'make_validation_per_media' in validated_data:
-            bool_update = validated_data.pop('make_validation_per_media')
+        boolean_fields = ['make_validation_per_media', 'public_gallery']
+        boolean_updates = {}
+        for field in boolean_fields:
+            if field in validated_data:
+                raw_value = validated_data.pop(field)
+                boolean_updates[field] = self._coerce_bool(field, raw_value)
 
         instance = super().update(instance, validated_data)
 
-        if numeric_updates or bool_update is not None:
+        if numeric_updates or boolean_updates:
             parsed_updates = {}
             for field, value in numeric_updates.items():
                 try:
@@ -441,10 +445,14 @@ class EventSerializer(serializers.ModelSerializer):
                 final_values[field] = parsed_updates.get(field, getattr(instance, field))
 
             existing_settings = getattr(instance, 'settings', None)
-            if bool_update is None:
-                make_validation_final = existing_settings.make_validation_per_media if existing_settings else False
-            else:
-                make_validation_final = bool_update
+            final_booleans = {}
+            for field in boolean_fields:
+                if field in boolean_updates:
+                    final_booleans[field] = boolean_updates[field]
+                elif existing_settings:
+                    final_booleans[field] = getattr(existing_settings, field)
+                else:
+                    final_booleans[field] = False
 
             try:
                 EventSettings.validate_media_distribution(
@@ -452,7 +460,7 @@ class EventSerializer(serializers.ModelSerializer):
                     final_values['max_image_per_post'],
                     final_values['max_video_per_post'],
                     final_values['max_voice_per_post'],
-                    make_validation_final
+                    final_booleans.get('make_validation_per_media', False)
                 )
             except ValidationError as exc:
                 message = exc.message if hasattr(exc, 'message') else exc.messages
@@ -461,11 +469,22 @@ class EventSerializer(serializers.ModelSerializer):
             settings, _ = EventSettings.objects.get_or_create(event=instance)
             for field, value in parsed_updates.items():
                 setattr(settings, field, value)
-            if bool_update is not None:
-                setattr(settings, 'make_validation_per_media', make_validation_final)
+            for field, value in final_booleans.items():
+                setattr(settings, field, value)
             settings.save()
+            instance.settings = settings
 
         return instance
+
+    @staticmethod
+    def _coerce_bool(field_name, value):
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            return value.strip().lower() in ['true', '1', 'yes', 'on']
+        if value in [0, 1]:
+            return bool(value)
+        raise serializers.ValidationError({field_name: 'Enter either true or false.'})
 
 class EventCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating events"""

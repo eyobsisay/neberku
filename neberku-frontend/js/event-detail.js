@@ -486,6 +486,10 @@ class EventDetail {
         if (isPublic) {
             isPublic.textContent = this.event.is_public ? 'Yes' : 'No';
         }
+        const publicGalleryDetail = document.getElementById('publicGallery');
+        if (publicGalleryDetail) {
+            publicGalleryDetail.textContent = this.event.public_gallery ? 'Enabled' : 'Disabled';
+        }
         
         const contributorCodeDetail = document.getElementById('contributorCodeDetail');
         if (contributorCodeDetail) {
@@ -543,6 +547,10 @@ class EventDetail {
         if (autoApprove) {
             autoApprove.textContent = `Auto-approve: ${this.event.auto_approve_posts ? 'Yes' : 'No'}`;
         }
+        const publicGallerySetting = document.getElementById('publicGallerySetting');
+        if (publicGallerySetting) {
+            publicGallerySetting.textContent = `Public gallery: ${this.event.public_gallery ? 'Enabled' : 'Disabled'}`;
+        }
 
         this.populateQuickSettingsForm();
 
@@ -569,6 +577,7 @@ class EventDetail {
         setCheckbox('settingsAllowWishes', this.event.allow_wishes);
         setCheckbox('settingsAutoApprove', this.event.auto_approve_posts);
         setCheckbox('settingsMakeValidationPerMedia', this.event.make_validation_per_media);
+        setCheckbox('settingsPublicGallery', this.event.public_gallery);
         this.setPerMediaGroupVisibility('quick', this.event.make_validation_per_media);
 
         const setNumber = (id, value, fallback) => {
@@ -625,6 +634,7 @@ class EventDetail {
         appendBool('settingsAllowWishes', 'allow_wishes');
         appendBool('settingsAutoApprove', 'auto_approve_posts');
         appendBool('settingsMakeValidationPerMedia', 'make_validation_per_media');
+        appendBool('settingsPublicGallery', 'public_gallery');
 
         formData.append('max_posts_per_guest', maxPosts);
         formData.append('max_image_per_post', maxImages);
@@ -1397,6 +1407,10 @@ class EventDetail {
         }
         this.setPerMediaGroupVisibility('edit', this.event.make_validation_per_media);
         document.getElementById('editIsPublic').checked = this.event.is_public || false;
+        const editPublicGallery = document.getElementById('editPublicGallery');
+        if (editPublicGallery) {
+            editPublicGallery.checked = this.event.public_gallery || false;
+        }
         const maxPostsInput = document.getElementById('editMaxPostsPerGuest');
         if (maxPostsInput) {
             const currentMaxPosts = typeof this.event.max_posts_per_guest === 'number'
@@ -1796,6 +1810,7 @@ async function handleEditFormSubmit(event) {
         auto_approve_posts: document.getElementById('editAutoApprove').checked,
         make_validation_per_media: document.getElementById('editMakeValidationPerMedia') ? document.getElementById('editMakeValidationPerMedia').checked : false,
         is_public: document.getElementById('editIsPublic').checked,
+        public_gallery: document.getElementById('editPublicGallery') ? document.getElementById('editPublicGallery').checked : false,
         max_posts_per_guest: document.getElementById('editMaxPostsPerGuest').value || '5',
         max_image_per_post: document.getElementById('editMaxImagesPerPost') ? document.getElementById('editMaxImagesPerPost').value : '3',
         max_video_per_post: document.getElementById('editMaxVideosPerPost') ? document.getElementById('editMaxVideosPerPost').value : '2',

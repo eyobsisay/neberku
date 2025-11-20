@@ -847,6 +847,10 @@
                                                             <p id="isPublic" class="mb-2">Loading...</p>
                                                         </div>
                                                         <div class="mb-3">
+                                                            <strong>Public Gallery:</strong>
+                                                            <p id="publicGallery" class="mb-2">Loading...</p>
+                                                        </div>
+                                                        <div class="mb-3">
                                                             <strong>Contributor Code:</strong>
                                                             <p id="contributorCodeDetail" class="mb-0">Loading...</p>
                                                         </div>
@@ -998,6 +1002,17 @@
                                                                     </label>
                                                                 </div>
                                                             </div>
+                                                        <div class="mb-3">
+                                                            <div class="form-check">
+                                                                <input class="form-check-input" type="checkbox" id="editPublicGallery">
+                                                                <label class="form-check-label" for="editPublicGallery">
+                                                                    Public Gallery
+                                                                </label>
+                                                            </div>
+                                                            <div class="form-text text-muted">
+                                                                Allow guests without login to browse the gallery.
+                                                            </div>
+                                                        </div>
                                                             <div class="mb-3">
                                                                 <label for="editMaxPostsPerGuest" class="form-label">Max Posts per Guest</label>
                                                                 <input type="number" class="form-control" id="editMaxPostsPerGuest" min="1" max="100" value="5">
@@ -1115,6 +1130,7 @@
                                                         <strong>Approval:</strong>
                                                         <ul class="list-unstyled mt-2">
                                                             <li><i class="bi bi-check-circle text-success"></i> <span id="autoApprove">Auto-approve: Loading...</span></li>
+                                                            <li><i class="bi bi-images text-primary"></i> <span id="publicGallerySetting">Public gallery: Loading...</span></li>
                                                         </ul>
                                                     </div>
                                                     <hr class="text-white-50">
@@ -1154,6 +1170,12 @@
                                                             <div class="form-check form-switch">
                                                                 <input class="form-check-input" type="checkbox" id="settingsMakeValidationPerMedia">
                                                                 <label class="form-check-label" for="settingsMakeValidationPerMedia">Validate per media type</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <div class="form-check form-switch">
+                                                                <input class="form-check-input" type="checkbox" id="settingsPublicGallery">
+                                                                <label class="form-check-label" for="settingsPublicGallery">Public Gallery</label>
                                                             </div>
                                                         </div>
                                                         <div class="col-md-6">

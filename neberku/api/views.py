@@ -239,6 +239,9 @@ class EventViewSet(viewsets.ModelViewSet):
                 make_validation_value = request_data.get('make_validation_per_media', False)
                 if isinstance(make_validation_value, str):
                     make_validation_value = make_validation_value.lower() in ['true', '1', 'yes', 'on']
+                public_gallery_value = request_data.get('public_gallery', False)
+                if isinstance(public_gallery_value, str):
+                    public_gallery_value = public_gallery_value.lower() in ['true', '1', 'yes', 'on']
 
                 def to_int(value, default, field_name):
                     if value in [None, '']:
@@ -255,6 +258,7 @@ class EventViewSet(viewsets.ModelViewSet):
                     'max_video_per_post': to_int(request_data.get('max_video_per_post', 2), 2, 'max_video_per_post'),
                     'max_voice_per_post': to_int(request_data.get('max_voice_per_post', 1), 1, 'max_voice_per_post'),
                     'make_validation_per_media': make_validation_value,
+                    'public_gallery': public_gallery_value,
                 }
 
                 try:
@@ -269,6 +273,7 @@ class EventViewSet(viewsets.ModelViewSet):
                     raise serializers.ValidationError({'detail': exc.message if hasattr(exc, 'message') else exc.messages})
                 
                 settings = EventSettings.objects.create(**settings_data)
+                event.settings = settings
                 print(f"EventSettings created for event {event.id}: {settings_data}")
                 
             except Exception as e:
