@@ -13,6 +13,7 @@ class GuestContributionManager {
     init() {
         this.bindEvents();
         this.bindAuthControls();
+        this.bindContributorLogin();
         this.updateAuthNav();
         this.loadPublicEvents();
         
@@ -246,7 +247,296 @@ class GuestContributionManager {
         }
     }
 
+    bindContributorLogin() {
+        const loginBtn = document.getElementById('loginBtn');
+        const contributorLoginModal = document.getElementById('contributorLoginModal');
+        const contributorModalClose = document.getElementById('contributorModalClose');
+        const contributorModalCancel = document.getElementById('contributorModalCancel');
+        const contributorLoginForm = document.getElementById('contributorLoginForm');
+        const contributorOtpForm = document.getElementById('contributorOtpForm');
+        const contributorNameInput = document.getElementById('contributorNameInput');
+        const contributorPhoneInput = document.getElementById('contributorPhoneInput');
+        const contributorOtpInput = document.getElementById('contributorOtpInput');
+        const contributorInfoError = document.getElementById('contributorInfoError');
+        const contributorOtpError = document.getElementById('contributorOtpError');
+        const contributorOtpSuccess = document.getElementById('contributorOtpSuccess');
+        const contributorInfoSubmitBtn = document.getElementById('contributorInfoSubmitBtn');
+        const contributorOtpVerifyBtn = document.getElementById('contributorOtpVerifyBtn');
+        const contributorResendOtpBtn = document.getElementById('contributorResendOtpBtn');
+        const contributorOtpBackBtn = document.getElementById('contributorOtpBackBtn');
+        const contributorLoginStep1 = document.getElementById('contributorLoginStep1');
+        const contributorLoginStep2 = document.getElementById('contributorLoginStep2');
+        
+        if (!contributorLoginModal || !contributorLoginForm || !contributorOtpForm) {
+            return;
+        }
+        
+        let isModalOpen = false;
+        let currentContributorName = '';
+        let currentContributorPhone = '';
+        
+        // Helper functions
+        const showError = (element, message) => {
+            if (element) {
+                element.textContent = message;
+                element.style.display = 'block';
+            }
+        };
+        
+        const hideError = (element) => {
+            if (element) {
+                element.style.display = 'none';
+            }
+        };
+        
+        const showModal = () => {
+            contributorLoginModal.classList.add('show');
+            contributorLoginModal.setAttribute('aria-hidden', 'false');
+            isModalOpen = true;
+            document.body.style.overflow = 'hidden';
+        };
+        
+        const closeModal = () => {
+            contributorLoginModal.classList.remove('show');
+            contributorLoginModal.setAttribute('aria-hidden', 'true');
+            isModalOpen = false;
+            document.body.style.overflow = '';
+            // Reset to step 1
+            contributorLoginStep1.style.display = 'block';
+            contributorLoginStep2.style.display = 'none';
+            contributorLoginForm.reset();
+            contributorOtpForm.reset();
+            hideError(contributorInfoError);
+            hideError(contributorOtpError);
+            contributorOtpSuccess.style.display = 'none';
+            currentContributorName = '';
+            currentContributorPhone = '';
+        };
+        
+        const showStep2 = () => {
+            contributorLoginStep1.style.display = 'none';
+            contributorLoginStep2.style.display = 'block';
+            contributorOtpSuccess.style.display = 'block';
+            hideError(contributorOtpError);
+        };
+        
+        const resetToStep1 = () => {
+            contributorLoginStep1.style.display = 'block';
+            contributorLoginStep2.style.display = 'none';
+            contributorOtpForm.reset();
+            hideError(contributorOtpError);
+            contributorOtpSuccess.style.display = 'none';
+        };
+        
+        // Open modal when login button is clicked
+        if (loginBtn) {
+            loginBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                showModal();
+            });
+        }
+        
+        // Close modal handlers
+        if (contributorModalClose) {
+            contributorModalClose.addEventListener('click', closeModal);
+        }
+        
+        if (contributorModalCancel) {
+            contributorModalCancel.addEventListener('click', closeModal);
+        }
+        
+        // Close modal when clicking outside
+        contributorLoginModal.addEventListener('click', (e) => {
+            if (e.target === contributorLoginModal && isModalOpen) {
+                closeModal();
+            }
+        });
+        
+        // Close modal on ESC key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && isModalOpen) {
+                closeModal();
+            }
+        });
+        
+        // Send OTP
+        if (contributorLoginForm) {
+            contributorLoginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const name = contributorNameInput.value.trim();
+                const phone = contributorPhoneInput.value.trim();
+                
+                // Validate phone format
+                if (!phone.match(/^09\d{8}$/)) {
+                    showError(contributorInfoError, 'Phone number must be in format: 09xxxxxxxx (10 digits starting with 09)');
+                    return;
+                }
+                
+                try {
+                    contributorInfoSubmitBtn.disabled = true;
+                    contributorInfoSubmitBtn.querySelector('.btn-text').style.display = 'none';
+                    contributorInfoSubmitBtn.querySelector('.btn-loading').style.display = 'inline-flex';
+                    hideError(contributorInfoError);
+                    
+                    const response = await fetch(`${API_CONFIG.BASE_URL}/api/auth/phone/send-otp/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            phone_number: phone,
+                            name: name
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok && data.success) {
+                        currentContributorName = name;
+                        currentContributorPhone = phone;
+                        showStep2();
+                        
+                        // In development, show OTP in console
+                        if (data.otp_code) {
+                            console.log(`OTP for ${phone}: ${data.otp_code}`);
+                        }
+                    } else {
+                        showError(contributorInfoError, data.error || 'Failed to send OTP. Please try again.');
+                    }
+                } catch (error) {
+                    console.error('Error sending OTP:', error);
+                    showError(contributorInfoError, 'Network error. Please check your connection and try again.');
+                } finally {
+                    contributorInfoSubmitBtn.disabled = false;
+                    contributorInfoSubmitBtn.querySelector('.btn-text').style.display = 'inline';
+                    contributorInfoSubmitBtn.querySelector('.btn-loading').style.display = 'none';
+                }
+            });
+        }
+        
+        // Verify OTP
+        if (contributorOtpForm) {
+            contributorOtpForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const otpCode = contributorOtpInput.value.trim();
+                
+                if (otpCode.length !== 6) {
+                    showError(contributorOtpError, 'Please enter a 6-digit OTP code.');
+                    return;
+                }
+                
+                try {
+                    contributorOtpVerifyBtn.disabled = true;
+                    contributorOtpVerifyBtn.querySelector('.btn-text').style.display = 'none';
+                    contributorOtpVerifyBtn.querySelector('.btn-loading').style.display = 'inline-flex';
+                    hideError(contributorOtpError);
+                    
+                    const response = await fetch(`${API_CONFIG.BASE_URL}/api/auth/phone/verify-otp/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            phone_number: currentContributorPhone,
+                            otp_code: otpCode,
+                            name: currentContributorName
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok && data.success) {
+                        // Check if there's an existing event owner session - clear it
+                        const existingUserStr = localStorage.getItem('neberku_user');
+                        if (existingUserStr) {
+                            try {
+                                const existingUser = JSON.parse(existingUserStr);
+                                if (existingUser.role === 'event_owner') {
+                                    console.log('🔄 Clearing existing event owner session before contributor OTP login');
+                                    localStorage.removeItem('neberku_user');
+                                    localStorage.removeItem('neberku_access_token');
+                                    localStorage.removeItem('neberku_refresh_token');
+                                }
+                            } catch (e) {
+                                console.error('Error parsing existing user:', e);
+                            }
+                        }
+                        
+                        // Store JWT tokens for contributor
+                        if (data.access && data.refresh) {
+                            localStorage.setItem('neberku_access_token', data.access);
+                            localStorage.setItem('neberku_refresh_token', data.refresh);
+                            if (data.user) {
+                                localStorage.setItem('neberku_user', JSON.stringify(data.user));
+                            }
+                        }
+                        
+                        this.showAlert('Login successful! You are now authenticated.', 'success');
+                        this.updateAuthNav();
+                        closeModal();
+                    } else {
+                        showError(contributorOtpError, data.error || 'Invalid OTP code. Please try again.');
+                    }
+                } catch (error) {
+                    console.error('Error verifying OTP:', error);
+                    showError(contributorOtpError, 'Network error. Please check your connection and try again.');
+                } finally {
+                    contributorOtpVerifyBtn.disabled = false;
+                    contributorOtpVerifyBtn.querySelector('.btn-text').style.display = 'inline';
+                    contributorOtpVerifyBtn.querySelector('.btn-loading').style.display = 'none';
+                }
+            });
+        }
+        
+        // Resend OTP
+        if (contributorResendOtpBtn) {
+            contributorResendOtpBtn.addEventListener('click', async () => {
+                if (!currentContributorPhone || !currentContributorName) {
+                    showError(contributorOtpError, 'Please enter your name and phone number first.');
+                    return;
+                }
+                
+                try {
+                    contributorResendOtpBtn.disabled = true;
+                    
+                    const response = await fetch(`${API_CONFIG.BASE_URL}/api/auth/phone/send-otp/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            phone_number: currentContributorPhone,
+                            name: currentContributorName
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok && data.success) {
+                        contributorOtpSuccess.style.display = 'block';
+                        hideError(contributorOtpError);
+                    } else {
+                        showError(contributorOtpError, data.error || 'Failed to resend OTP. Please try again.');
+                    }
+                } catch (error) {
+                    console.error('Error resending OTP:', error);
+                    showError(contributorOtpError, 'Network error. Please check your connection and try again.');
+                } finally {
+                    contributorResendOtpBtn.disabled = false;
+                }
+            });
+        }
+        
+        // Back to step 1
+        if (contributorOtpBackBtn) {
+            contributorOtpBackBtn.addEventListener('click', resetToStep1);
+        }
+    }
+
     updateAuthNav() {
+        const loginNavItem = document.getElementById('loginNavItem');
         const myPostsNavItem = document.getElementById('myPostsNavItem');
         const logoutNavItem = document.getElementById('logoutNavItem');
         const token = localStorage.getItem('neberku_access_token');
@@ -262,6 +552,8 @@ class GuestContributionManager {
             }
         };
 
+        // Show login button when not authenticated, hide when authenticated
+        toggleItem(loginNavItem, !isAuthenticated);
         toggleItem(myPostsNavItem, isAuthenticated);
         toggleItem(logoutNavItem, isAuthenticated);
     }

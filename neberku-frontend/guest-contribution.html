@@ -297,6 +297,160 @@
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after { animation: none !important; transition: none !important; }
         }
+
+        /* Contributor Login Modal Styles (similar to event-detail-guest.html) */
+        .contact-info-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(7, 5, 12, 0.85);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            backdrop-filter: blur(8px);
+            padding: 1rem;
+        }
+        
+        .contact-info-modal.show {
+            display: flex;
+            animation: fadeIn .2s ease-out;
+        }
+        
+        .contact-modal-panel {
+            background: linear-gradient(135deg, rgba(18,12,27,.95), rgba(26,19,39,.95));
+            border-radius: 20px;
+            border: 1px solid rgba(245,158,11,.2);
+            box-shadow: 0 20px 60px rgba(0,0,0,.6);
+            max-width: 420px;
+            width: 100%;
+            padding: 2rem 1.8rem;
+            position: relative;
+        }
+        
+        .contact-modal-panel h4 {
+            margin-bottom: 0.3rem;
+            color: var(--ink);
+            font-weight: 700;
+        }
+        
+        .contact-modal-panel p {
+            color: var(--muted);
+            margin-bottom: 1.5rem;
+            font-size: 0.95rem;
+        }
+        
+        .contact-modal-close {
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
+            border: none;
+            background: rgba(255,255,255,.08);
+            color: var(--ink);
+            border-radius: 50%;
+            width: 34px;
+            height: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        
+        .contact-modal-close:hover {
+            background: rgba(255,255,255,.18);
+        }
+        
+        .contact-modal-panel .form-field {
+            position: relative;
+            margin-bottom: 1.2rem;
+        }
+        
+        .contact-modal-panel .form-field input {
+            width: 100%;
+            padding: 0.85rem 1rem 0.85rem 3rem;
+            background: rgba(2,6,23,.35);
+            border: 1px solid rgba(148,163,184,.25);
+            border-radius: 12px;
+            color: var(--ink);
+            font-size: 1rem;
+            transition: all .2s ease;
+        }
+        
+        .contact-modal-panel .form-field input:focus {
+            outline: none;
+            border-color: rgba(139,92,246,.65);
+            box-shadow: 0 0 0 2px rgba(139,92,246,.25);
+        }
+        
+        .contact-modal-panel .form-field label {
+            position: absolute;
+            left: 3rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--muted);
+            font-size: 0.9rem;
+            pointer-events: none;
+            transition: all .2s ease;
+        }
+        
+        .contact-modal-panel .form-field input:focus + label,
+        .contact-modal-panel .form-field input:not(:placeholder-shown) + label {
+            top: -0.5rem;
+            left: 0.75rem;
+            font-size: 0.75rem;
+            color: var(--primary-start);
+            background: linear-gradient(135deg, rgba(18,12,27,.95), rgba(26,19,39,.95));
+            padding: 0 0.5rem;
+        }
+        
+        .contact-modal-panel .form-field .field-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--muted);
+            z-index: 1;
+        }
+        
+        .contact-modal-icon {
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+        
+        .contact-modal-icon span {
+            display: inline-flex;
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--primary-start), var(--primary-end));
+            color: white;
+            font-size: 1.5rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,.4);
+        }
+        
+        .contact-modal-actions {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 0.5rem;
+        }
+        
+        .contact-modal-actions .btn {
+            flex: 1;
+            border-radius: 999px;
+            padding: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .contact-modal-actions .btn-outline-secondary {
+            border: 1px solid rgba(255,255,255,.2);
+            color: var(--ink);
+            background: transparent;
+        }
+        
+        .contact-modal-actions .btn-outline-secondary:hover {
+            background: rgba(255,255,255,.08);
+        }
     </style>
 </head>
 <body>
@@ -312,6 +466,11 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
+                    <li class="nav-item d-none" id="loginNavItem">
+                        <button class="nav-link btn btn-link text-white p-0 border-0" id="loginBtn" style="background: none;">
+                            <i class="fas fa-sign-in-alt me-1"></i>Login
+                        </button>
+                    </li>
                     <li class="nav-item d-none" id="myPostsNavItem">
                         <a class="nav-link" href="guest-my-posts.html">
                             <i class="fas fa-bookmark me-1"></i>My Posts
@@ -458,6 +617,82 @@
         </div>
     </div>
 
+
+    <!-- Contributor Login Modal -->
+    <div id="contributorLoginModal" class="contact-info-modal" aria-hidden="true">
+        <div class="contact-modal-panel">
+            <button type="button" class="contact-modal-close" id="contributorModalClose">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="contact-modal-icon">
+                <span>
+                    <i class="fas fa-user-check" id="contributorModalIcon"></i>
+                </span>
+            </div>
+            <h4 id="contributorModalTitle">Contributor Login</h4>
+            <p id="contributorModalDescription">Enter your name and phone number to receive an OTP code for authentication.</p>
+            
+            <!-- Step 1: Name and Phone -->
+            <div id="contributorLoginStep1">
+                <form id="contributorLoginForm">
+                    <div class="form-field">
+                        <div class="field-icon">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <input type="text" id="contributorNameInput" autocomplete="name" required placeholder=" ">
+                        <label for="contributorNameInput">Your Name *</label>
+                    </div>
+                    <div class="form-field">
+                        <div class="field-icon">
+                            <i class="fas fa-phone"></i>
+                        </div>
+                        <input type="tel" id="contributorPhoneInput" autocomplete="tel" pattern="09[0-9]{8}" maxlength="10" required placeholder=" ">
+                        <label for="contributorPhoneInput">Phone Number (09xxxxxxxx) *</label>
+                    </div>
+                    <div id="contributorInfoError" class="text-danger" style="display:none; margin-bottom:1rem; font-size:0.9rem;"></div>
+                    <div class="contact-modal-actions">
+                        <button type="button" class="btn btn-outline-secondary" id="contributorModalCancel">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="contributorInfoSubmitBtn">
+                            <span class="btn-text">Send OTP</span>
+                            <span class="btn-loading" style="display:none;">
+                                <span class="spinner-border spinner-border-sm me-2"></span>Sending...
+                            </span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Step 2: OTP Verification -->
+            <div id="contributorLoginStep2" style="display:none;">
+                <form id="contributorOtpForm">
+                    <div class="form-field">
+                        <div class="field-icon">
+                            <i class="fas fa-key"></i>
+                        </div>
+                        <input type="text" id="contributorOtpInput" pattern="[0-9]{6}" maxlength="6" required autocomplete="off" placeholder=" ">
+                        <label for="contributorOtpInput">Enter 6-digit OTP *</label>
+                    </div>
+                    <div id="contributorOtpError" class="text-danger" style="display:none; margin-bottom:1rem; font-size:0.9rem;"></div>
+                    <div id="contributorOtpSuccess" class="text-success" style="display:none; margin-bottom:1rem; font-size:0.9rem;">
+                        <i class="fas fa-check-circle"></i> OTP sent! Check your phone.
+                    </div>
+                    <div style="margin-bottom:1rem; font-size:0.85rem; color:var(--muted);">
+                        <span id="contributorOtpTimer">OTP expires in <span id="contributorOtpTimerValue">5:00</span></span>
+                        <button type="button" id="contributorResendOtpBtn" class="btn btn-link" style="display:none; padding:0; font-size:0.85rem; color:var(--primary-start);">Resend OTP</button>
+                    </div>
+                    <div class="contact-modal-actions">
+                        <button type="button" class="btn btn-outline-secondary" id="contributorOtpBackBtn">Back</button>
+                        <button type="submit" class="btn btn-primary" id="contributorOtpVerifyBtn">
+                            <span class="btn-text">Verify OTP</span>
+                            <span class="btn-loading" style="display:none;">
+                                <span class="spinner-border spinner-border-sm me-2"></span>Verifying...
+                            </span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <!-- Footer -->
     <footer class="bg-dark text-light py-4 mt-5">
