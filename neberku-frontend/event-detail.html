@@ -776,17 +776,21 @@
                                                             <strong>Max Posts per Guest:</strong>
                                                             <p id="maxPostsPerGuestDetail" class="mb-2">Loading...</p>
                                                         </div>
-                                                        <div class="mb-3">
+                                                        <div class="mb-3" data-per-media-group="summary">
                                                             <strong>Max Images per Post:</strong>
                                                             <p id="maxImagesPerPostDetail" class="mb-2">Loading...</p>
                                                         </div>
-                                                        <div class="mb-3">
+                                                        <div class="mb-3" data-per-media-group="summary">
                                                             <strong>Max Videos per Post:</strong>
                                                             <p id="maxVideosPerPostDetail" class="mb-2">Loading...</p>
                                                         </div>
-                                                        <div class="mb-3">
+                                                        <div class="mb-3" data-per-media-group="summary">
                                                             <strong>Max Voice per Post:</strong>
                                                             <p id="maxVoicePerPostDetail" class="mb-0">Loading...</p>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <strong>Validation Mode:</strong>
+                                                            <p id="validationModeDetail" class="mb-0">Loading...</p>
                                                         </div>
                                                         <div class="mb-3">
                                                             <strong>Created:</strong>
@@ -975,6 +979,17 @@
                                                                     </label>
                                                                 </div>
                                                             </div>
+                                                        <div class="mb-3">
+                                                            <div class="form-check">
+                                                                <input class="form-check-input" type="checkbox" id="editMakeValidationPerMedia">
+                                                                <label class="form-check-label" for="editMakeValidationPerMedia">
+                                                                    Validate per media type
+                                                                </label>
+                                                            </div>
+                                                            <div class="form-text text-muted">
+                                                                Enforce image, video, and voice limits separately per post.
+                                                            </div>
+                                                        </div>
                                                             <div class="mb-3">
                                                                 <div class="form-check">
                                                                     <input class="form-check-input" type="checkbox" id="editIsPublic">
@@ -988,7 +1003,7 @@
                                                                 <input type="number" class="form-control" id="editMaxPostsPerGuest" min="1" max="100" value="5">
                                                                 <div class="form-text">Maximum number of posts a single guest can make</div>
                                                             </div>
-                                                            <div class="row">
+                                                            <div class="row" data-per-media-group="edit">
                                                                 <div class="col-md-4 mb-3">
                                                                     <label for="editMaxImagesPerPost" class="form-label">Max Images per Post</label>
                                                                     <input type="number" class="form-control" id="editMaxImagesPerPost" min="1" max="50" value="3">
@@ -1090,9 +1105,10 @@
                                                     <div class="mb-3">
                                                         <strong>Media Limits:</strong>
                                                         <ul class="list-unstyled mt-2">
-                                                            <li><i class="bi bi-image text-info"></i> <span id="maxImagesSetting">Images per post: Loading...</span></li>
-                                                            <li><i class="bi bi-camera-video text-info"></i> <span id="maxVideosSetting">Videos per post: Loading...</span></li>
-                                                            <li><i class="bi bi-mic text-info"></i> <span id="maxVoiceSetting">Voice per post: Loading...</span></li>
+                                                            <li data-per-media-group="summary"><i class="bi bi-image text-info"></i> <span id="maxImagesSetting">Images per post: Loading...</span></li>
+                                                            <li data-per-media-group="summary"><i class="bi bi-camera-video text-info"></i> <span id="maxVideosSetting">Videos per post: Loading...</span></li>
+                                                            <li data-per-media-group="summary"><i class="bi bi-mic text-info"></i> <span id="maxVoiceSetting">Voice per post: Loading...</span></li>
+                                                            <li><i class="bi bi-shield-check text-warning"></i> <span id="makeValidationSetting">Validation: Loading...</span></li>
                                                         </ul>
                                                     </div>
                                                     <div class="mb-3">
@@ -1135,18 +1151,24 @@
                                                             </div>
                                                         </div>
                                                         <div class="col-md-6">
+                                                            <div class="form-check form-switch">
+                                                                <input class="form-check-input" type="checkbox" id="settingsMakeValidationPerMedia">
+                                                                <label class="form-check-label" for="settingsMakeValidationPerMedia">Validate per media type</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6">
                                                             <label class="form-label" for="settingsMaxPostsPerGuest">Max Posts per Guest</label>
                                                             <input type="number" class="form-control" id="settingsMaxPostsPerGuest" min="1" max="100">
                                                         </div>
-                                                        <div class="col-md-4">
+                                                        <div class="col-md-4" data-per-media-group="quick">
                                                             <label class="form-label" for="settingsMaxImagesPerPost">Images per Post</label>
                                                             <input type="number" class="form-control" id="settingsMaxImagesPerPost" min="1" max="50">
                                                         </div>
-                                                        <div class="col-md-4">
+                                                        <div class="col-md-4" data-per-media-group="quick">
                                                             <label class="form-label" for="settingsMaxVideosPerPost">Videos per Post</label>
                                                             <input type="number" class="form-control" id="settingsMaxVideosPerPost" min="1" max="50">
                                                         </div>
-                                                        <div class="col-md-4">
+                                                        <div class="col-md-4" data-per-media-group="quick">
                                                             <label class="form-label" for="settingsMaxVoicePerPost">Voice per Post</label>
                                                             <input type="number" class="form-control" id="settingsMaxVoicePerPost" min="1" max="50">
                                                         </div>

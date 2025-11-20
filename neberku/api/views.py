@@ -235,13 +235,17 @@ class EventViewSet(viewsets.ModelViewSet):
             try:
                 # Get user-provided settings from the request data
                 request_data = self.request.data
+                make_validation_value = request_data.get('make_validation_per_media', False)
+                if isinstance(make_validation_value, str):
+                    make_validation_value = make_validation_value.lower() in ['true', '1', 'yes', 'on']
                 
                 settings_data = {
                     'event': event,
                     'max_posts_per_guest': request_data.get('max_posts_per_guest', 5),
                     'max_image_per_post': request_data.get('max_image_per_post', 3),
                     'max_video_per_post': request_data.get('max_video_per_post', 2),
-                    'max_voice_per_post': request_data.get('max_voice_per_post', 1)
+                    'max_voice_per_post': request_data.get('max_voice_per_post', 1),
+                    'make_validation_per_media': make_validation_value,
                 }
                 
                 settings = EventSettings.objects.create(**settings_data)

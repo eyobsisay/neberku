@@ -93,6 +93,40 @@ class EventDetail {
                 this.populateQuickSettingsForm();
             });
         }
+
+        const quickValidationToggle = document.getElementById('settingsMakeValidationPerMedia');
+        if (quickValidationToggle) {
+            quickValidationToggle.addEventListener('change', (e) => {
+                this.setPerMediaGroupVisibility('quick', e.target.checked);
+                if (!e.target.checked) {
+                    this.clearMediaDistributionErrors({
+                        totalField: 'settingsMaxPostsPerGuest',
+                        fields: {
+                            images: 'settingsMaxImagesPerPost',
+                            videos: 'settingsMaxVideosPerPost',
+                            voice: 'settingsMaxVoicePerPost'
+                        }
+                    });
+                }
+            });
+        }
+
+        const editValidationToggle = document.getElementById('editMakeValidationPerMedia');
+        if (editValidationToggle) {
+            editValidationToggle.addEventListener('change', (e) => {
+                this.setPerMediaGroupVisibility('edit', e.target.checked);
+                if (!e.target.checked) {
+                    this.clearMediaDistributionErrors({
+                        totalField: 'editMaxPostsPerGuest',
+                        fields: {
+                            images: 'editMaxImagesPerPost',
+                            videos: 'editMaxVideosPerPost',
+                            voice: 'editMaxVoicePerPost'
+                        }
+                    });
+                }
+            });
+        }
     }
 
     async loadEventDetail() {
@@ -414,6 +448,15 @@ class EventDetail {
             maxVoiceDetail.textContent = `${maxVoiceValue}`;
         }
         
+        const validationModeDetail = document.getElementById('validationModeDetail');
+        const validationText = this.event.make_validation_per_media
+            ? 'Per media type (photos, videos, voice are counted separately)'
+            : 'Shared max posts (all media share the same limit)';
+        if (validationModeDetail) {
+            validationModeDetail.textContent = validationText;
+        }
+        this.updatePerMediaVisibility(this.event.make_validation_per_media);
+        
         // Payment status - update both header and detail tab
         const paymentStatus = document.getElementById('paymentStatus');
         if (paymentStatus) {
@@ -468,6 +511,10 @@ class EventDetail {
         if (maxVoiceSetting) {
             maxVoiceSetting.textContent = `Voice per post: ${maxVoiceValue}`;
         }
+        const makeValidationSetting = document.getElementById('makeValidationSetting');
+        if (makeValidationSetting) {
+            makeValidationSetting.textContent = `Validation: ${this.event.make_validation_per_media ? 'Per media type' : 'Combined limit'}`;
+        }
         
         // Event media previews
         this.renderEventMediaPreviews();
@@ -521,6 +568,8 @@ class EventDetail {
         setCheckbox('settingsAllowVoice', this.event.allow_voice);
         setCheckbox('settingsAllowWishes', this.event.allow_wishes);
         setCheckbox('settingsAutoApprove', this.event.auto_approve_posts);
+        setCheckbox('settingsMakeValidationPerMedia', this.event.make_validation_per_media);
+        this.setPerMediaGroupVisibility('quick', this.event.make_validation_per_media);
 
         const setNumber = (id, value, fallback) => {
             const el = document.getElementById(id);
@@ -575,11 +624,31 @@ class EventDetail {
         appendBool('settingsAllowVoice', 'allow_voice');
         appendBool('settingsAllowWishes', 'allow_wishes');
         appendBool('settingsAutoApprove', 'auto_approve_posts');
+        appendBool('settingsMakeValidationPerMedia', 'make_validation_per_media');
 
         formData.append('max_posts_per_guest', maxPosts);
         formData.append('max_image_per_post', maxImages);
         formData.append('max_video_per_post', maxVideos);
         formData.append('max_voice_per_post', maxVoice);
+
+        const perMediaEnabled = document.getElementById('settingsMakeValidationPerMedia')?.checked;
+        if (perMediaEnabled) {
+            const limits = {
+                images: maxImages,
+                videos: maxVideos,
+                voice: maxVoice
+            };
+            if (!this.validateMediaDistribution(maxPosts, limits, {
+                totalField: 'settingsMaxPostsPerGuest',
+                fields: {
+                    images: 'settingsMaxImagesPerPost',
+                    videos: 'settingsMaxVideosPerPost',
+                    voice: 'settingsMaxVoicePerPost'
+                }
+            })) {
+                return;
+            }
+        }
 
         if (saveBtn) {
             saveBtn.disabled = true;
@@ -603,6 +672,96 @@ class EventDetail {
                 saveBtn.disabled = false;
                 saveBtn.innerHTML = originalText || '<i class="bi bi-save"></i> Save Settings';
             }
+        }
+    }
+
+    setPerMediaGroupVisibility(group, enabled) {
+        const selector = group ? `[data-per-media-group="${group}"]` : '[data-per-media-group]';
+        document.querySelectorAll(selector).forEach(element => {
+            if (enabled) {
+                element.style.removeProperty('display');
+            } else {
+                element.style.display = 'none';
+                element.querySelectorAll('input').forEach(input => {
+                    this.clearInputError(input.id);
+                });
+            }
+        });
+    }
+
+    updatePerMediaVisibility(enabled) {
+        this.setPerMediaGroupVisibility(null, enabled);
+    }
+
+    validateMediaDistribution(maxPostsAllowed, limits, context = {}) {
+        this.clearMediaDistributionErrors(context);
+
+        if (!maxPostsAllowed || maxPostsAllowed <= 0) {
+            this.showError('Max Posts per Guest must be greater than zero.');
+            if (context.totalField) {
+                this.setInputError(context.totalField, 'Provide a value greater than zero.');
+            }
+            return false;
+        }
+
+        const sum = Object.values(limits).reduce((acc, value) => acc + value, 0);
+        if (sum > maxPostsAllowed) {
+            this.showError(`Distribute at most ${maxPostsAllowed} posts across photos, videos, and voice. Currently allocated: ${sum}.`);
+            if (context.totalField) {
+                this.setInputError(context.totalField, `Combined media limits exceed ${maxPostsAllowed}.`);
+            }
+            if (context.fields) {
+                Object.values(context.fields).forEach(fieldId => {
+                    this.setInputError(fieldId, 'Reduce this value to stay within the combined limit.');
+                });
+            }
+            return false;
+        }
+
+        if (sum === 0) {
+            this.showError('At least one media type must have a value greater than zero when per-media validation is enabled.');
+            if (context.fields) {
+                Object.values(context.fields).forEach(fieldId => {
+                    this.setInputError(fieldId, 'Set this to at least 1 when per-media validation is enabled.');
+                });
+            }
+            return false;
+        }
+
+        return true;
+    }
+
+    clearMediaDistributionErrors(context = {}) {
+        if (context.totalField) {
+            this.clearInputError(context.totalField);
+        }
+        if (context.fields) {
+            Object.values(context.fields).forEach(fieldId => this.clearInputError(fieldId));
+        }
+    }
+
+    setInputError(inputId, message) {
+        if (!inputId) return;
+        const field = document.getElementById(inputId);
+        if (!field) return;
+        field.classList.add('is-invalid');
+        let feedback = field.parentNode.querySelector('.invalid-feedback');
+        if (!feedback) {
+            feedback = document.createElement('div');
+            feedback.className = 'invalid-feedback';
+            field.parentNode.appendChild(feedback);
+        }
+        feedback.textContent = message;
+    }
+
+    clearInputError(inputId) {
+        if (!inputId) return;
+        const field = document.getElementById(inputId);
+        if (!field) return;
+        field.classList.remove('is-invalid');
+        const feedback = field.parentNode.querySelector('.invalid-feedback');
+        if (feedback) {
+            feedback.textContent = '';
         }
     }
 
@@ -1232,6 +1391,11 @@ class EventDetail {
         }
         document.getElementById('editAllowWishes').checked = this.event.allow_wishes || false;
         document.getElementById('editAutoApprove').checked = this.event.auto_approve_posts || false;
+        const editValidationCheckbox = document.getElementById('editMakeValidationPerMedia');
+        if (editValidationCheckbox) {
+            editValidationCheckbox.checked = this.event.make_validation_per_media || false;
+        }
+        this.setPerMediaGroupVisibility('edit', this.event.make_validation_per_media);
         document.getElementById('editIsPublic').checked = this.event.is_public || false;
         const maxPostsInput = document.getElementById('editMaxPostsPerGuest');
         if (maxPostsInput) {
@@ -1630,6 +1794,7 @@ async function handleEditFormSubmit(event) {
         allow_voice: document.getElementById('editAllowVoice') ? document.getElementById('editAllowVoice').checked : true,
         allow_wishes: document.getElementById('editAllowWishes').checked,
         auto_approve_posts: document.getElementById('editAutoApprove').checked,
+        make_validation_per_media: document.getElementById('editMakeValidationPerMedia') ? document.getElementById('editMakeValidationPerMedia').checked : false,
         is_public: document.getElementById('editIsPublic').checked,
         max_posts_per_guest: document.getElementById('editMaxPostsPerGuest').value || '5',
         max_image_per_post: document.getElementById('editMaxImagesPerPost') ? document.getElementById('editMaxImagesPerPost').value : '3',
@@ -1764,6 +1929,24 @@ async function handleEditFormSubmit(event) {
         return;
     }
     formData.max_voice_per_post = maxVoiceValue.toString();
+
+    if (formData.make_validation_per_media) {
+        const distributionLimits = {
+            images: maxImagesValue,
+            videos: maxVideosValue,
+            voice: maxVoiceValue
+        };
+        if (!window.eventDetail.validateMediaDistribution(maxPostsValue, distributionLimits, {
+            totalField: 'editMaxPostsPerGuest',
+            fields: {
+                images: 'editMaxImagesPerPost',
+                videos: 'editMaxVideosPerPost',
+                voice: 'editMaxVoicePerPost'
+            }
+        })) {
+            return;
+        }
+    }
     
     // Show loading state
     const submitBtn = event.target.querySelector('button[type="submit"]');

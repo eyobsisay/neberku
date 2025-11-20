@@ -329,6 +329,7 @@ class EventSerializer(serializers.ModelSerializer):
     max_image_per_post = serializers.IntegerField(required=False, min_value=1, max_value=50)
     max_video_per_post = serializers.IntegerField(required=False, min_value=1, max_value=50)
     max_voice_per_post = serializers.IntegerField(required=False, min_value=1, max_value=50)
+    make_validation_per_media = serializers.BooleanField(required=False)
     
     class Meta:
         model = Event
@@ -339,7 +340,8 @@ class EventSerializer(serializers.ModelSerializer):
             'qr_code', 'share_link', 'created_at', 'updated_at', 'published_at',
             'settings', 'total_guest_posts', 'total_media_files', 'photo_count', 'video_count', 'voice_count', 'is_live',
             'is_public', 'contributor_code', 'non_approved_guest_posts',
-            'max_posts_per_guest', 'max_image_per_post', 'max_video_per_post', 'max_voice_per_post'
+            'max_posts_per_guest', 'max_image_per_post', 'max_video_per_post', 'max_voice_per_post',
+            'make_validation_per_media'
         ]
         read_only_fields = ['id', 'host', 'status', 'payment_status', 'qr_code', 
                            'share_link', 'created_at', 'updated_at', 'published_at',
@@ -413,6 +415,7 @@ class EventSerializer(serializers.ModelSerializer):
             'max_image_per_post',
             'max_video_per_post',
             'max_voice_per_post',
+            'make_validation_per_media',
         ]
         settings_data = {}
         for field in settings_fields:

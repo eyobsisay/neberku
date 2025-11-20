@@ -215,6 +215,10 @@ class Event(models.Model):
     def max_voice_per_post(self):
         return self._get_setting_value('max_voice_per_post', 1)
     
+    @property
+    def make_validation_per_media(self):
+        return self._get_setting_value('make_validation_per_media', False)
+    
     def generate_share_link(self):
         """Generate share link for the event"""
         try:
