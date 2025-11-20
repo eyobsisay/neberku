@@ -19,6 +19,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from core.models import EventType, Package, Event, Payment, Guest, GuestPost, MediaFile, EventSettings, PaymentMethod, PhoneOTP
 from core.utils import (
     send_telegram_message, 
@@ -238,15 +239,34 @@ class EventViewSet(viewsets.ModelViewSet):
                 make_validation_value = request_data.get('make_validation_per_media', False)
                 if isinstance(make_validation_value, str):
                     make_validation_value = make_validation_value.lower() in ['true', '1', 'yes', 'on']
+
+                def to_int(value, default, field_name):
+                    if value in [None, '']:
+                        return default
+                    try:
+                        return int(value)
+                    except (TypeError, ValueError):
+                        raise serializers.ValidationError({field_name: 'Enter a valid integer.'})
                 
                 settings_data = {
                     'event': event,
-                    'max_posts_per_guest': request_data.get('max_posts_per_guest', 5),
-                    'max_image_per_post': request_data.get('max_image_per_post', 3),
-                    'max_video_per_post': request_data.get('max_video_per_post', 2),
-                    'max_voice_per_post': request_data.get('max_voice_per_post', 1),
+                    'max_posts_per_guest': to_int(request_data.get('max_posts_per_guest', 5), 5, 'max_posts_per_guest'),
+                    'max_image_per_post': to_int(request_data.get('max_image_per_post', 3), 3, 'max_image_per_post'),
+                    'max_video_per_post': to_int(request_data.get('max_video_per_post', 2), 2, 'max_video_per_post'),
+                    'max_voice_per_post': to_int(request_data.get('max_voice_per_post', 1), 1, 'max_voice_per_post'),
                     'make_validation_per_media': make_validation_value,
                 }
+
+                try:
+                    EventSettings.validate_media_distribution(
+                        settings_data['max_posts_per_guest'],
+                        settings_data['max_image_per_post'],
+                        settings_data['max_video_per_post'],
+                        settings_data['max_voice_per_post'],
+                        make_validation_value
+                    )
+                except ValidationError as exc:
+                    raise serializers.ValidationError({'detail': exc.message if hasattr(exc, 'message') else exc.messages})
                 
                 settings = EventSettings.objects.create(**settings_data)
                 print(f"EventSettings created for event {event.id}: {settings_data}")

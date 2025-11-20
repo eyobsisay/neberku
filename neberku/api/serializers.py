@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.core.exceptions import ValidationError
 from core.models import EventType, Package, Event, Payment, Guest, GuestPost, MediaFile, EventSettings, PaymentMethod
 from django.contrib.auth.models import User
 
@@ -410,25 +411,58 @@ class EventSerializer(serializers.ModelSerializer):
             return obj.media_files.filter(media_type='voice', post__is_approved=True).count()
 
     def update(self, instance, validated_data):
-        settings_fields = [
+        numeric_fields = [
             'max_posts_per_guest',
             'max_image_per_post',
             'max_video_per_post',
             'max_voice_per_post',
-            'make_validation_per_media',
         ]
-        settings_data = {}
-        for field in settings_fields:
+        numeric_updates = {}
+        for field in numeric_fields:
             if field in validated_data:
-                settings_data[field] = validated_data.pop(field)
+                numeric_updates[field] = validated_data.pop(field)
+
+        bool_update = None
+        if 'make_validation_per_media' in validated_data:
+            bool_update = validated_data.pop('make_validation_per_media')
 
         instance = super().update(instance, validated_data)
 
-        if settings_data:
+        if numeric_updates or bool_update is not None:
+            parsed_updates = {}
+            for field, value in numeric_updates.items():
+                try:
+                    parsed_updates[field] = int(value)
+                except (TypeError, ValueError):
+                    raise serializers.ValidationError({field: 'Enter a valid integer.'})
+
+            final_values = {}
+            for field in numeric_fields:
+                final_values[field] = parsed_updates.get(field, getattr(instance, field))
+
+            existing_settings = getattr(instance, 'settings', None)
+            if bool_update is None:
+                make_validation_final = existing_settings.make_validation_per_media if existing_settings else False
+            else:
+                make_validation_final = bool_update
+
+            try:
+                EventSettings.validate_media_distribution(
+                    final_values['max_posts_per_guest'],
+                    final_values['max_image_per_post'],
+                    final_values['max_video_per_post'],
+                    final_values['max_voice_per_post'],
+                    make_validation_final
+                )
+            except ValidationError as exc:
+                message = exc.message if hasattr(exc, 'message') else exc.messages
+                raise serializers.ValidationError({'detail': message})
+
             settings, _ = EventSettings.objects.get_or_create(event=instance)
-            for field, value in settings_data.items():
-                if value is not None:
-                    setattr(settings, field, value)
+            for field, value in parsed_updates.items():
+                setattr(settings, field, value)
+            if bool_update is not None:
+                setattr(settings, 'make_validation_per_media', make_validation_final)
             settings.save()
 
         return instance

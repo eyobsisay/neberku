@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
+from django.core.exceptions import ValidationError
 import uuid
 import qrcode
 from io import BytesIO
@@ -552,6 +553,36 @@ class EventSettings(models.Model):
     
     class Meta:
         verbose_name_plural = "Event Settings"
+
+    @staticmethod
+    def validate_media_distribution(max_posts, image_limit, video_limit, voice_limit, per_media_enabled):
+        """
+        Ensure that when per-media validation is enabled, the sum of individual media limits
+        does not exceed the overall max posts per guest and that the inputs are valid.
+        """
+        if not per_media_enabled:
+            return
+
+        try:
+            max_posts = int(max_posts)
+            image_limit = int(image_limit)
+            video_limit = int(video_limit)
+            voice_limit = int(voice_limit)
+        except (TypeError, ValueError):
+            raise ValidationError("Media limits must be whole numbers.")
+
+        if max_posts <= 0:
+            raise ValidationError("Max posts per guest must be greater than zero when per-media validation is enabled.")
+
+        if any(limit < 0 for limit in (image_limit, video_limit, voice_limit)):
+            raise ValidationError("Media limits cannot be negative.")
+
+        total_media_slots = image_limit + video_limit + voice_limit
+        if total_media_slots == 0:
+            raise ValidationError("Allocate at least one slot to photos, videos, or voice when per-media validation is enabled.")
+
+        if total_media_slots > max_posts:
+            raise ValidationError("Combined media limits cannot exceed Max Posts per Guest when per-media validation is enabled.")
 
 
 class PhoneOTP(models.Model):
