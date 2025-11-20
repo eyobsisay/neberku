@@ -48,9 +48,7 @@
             margin: 0 auto;
             padding: 0.5rem 1rem;
             height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow-y: auto;
+            overflow: hidden;
         }
         
         .post-card {
@@ -64,7 +62,7 @@
             transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             animation: cardEntrance 0.8s ease-out;
             position: relative;
-            height: 100%;
+            height: 100vh;
             display: flex;
             flex-direction: column;
         }
@@ -482,6 +480,68 @@
             transform: scale(1.05);
         }
         
+        /* Desktop viewport fit */
+        @media (min-width: 1024px) {
+            body {
+                overflow: hidden;
+            }
+
+            .post-container {
+                padding: 0.25rem 0.75rem;
+            }
+
+            .post-card {
+                height: calc(100vh - 0.5rem);
+            }
+
+            .post-header {
+                padding: 0.5rem 0.75rem;
+                min-height: 16vh;
+            }
+
+            .post-header h1 {
+                font-size: 1.1rem;
+            }
+
+            .post-content {
+                flex: 1;
+                min-height: 0;
+                padding: 0.5rem 0.75rem;
+                overflow: hidden;
+            }
+
+            .wish-text {
+                max-height: 16vh;
+                overflow: hidden;
+                margin-bottom: 0.5rem;
+                padding: 0.45rem 0.6rem;
+                font-size: 0.85rem;
+            }
+
+            .media-gallery {
+                flex: 1;
+                min-height: 0;
+                margin-top: 0.4rem;
+            }
+
+            .media-carousel,
+            .media-carousel .carousel-inner,
+            .media-carousel .carousel-item {
+                height: 100%;
+            }
+
+            .media-carousel .carousel-item img,
+            .media-carousel .carousel-item video {
+                height: 100%;
+                object-fit: cover;
+            }
+
+            .neberku-watermark {
+                margin-top: 0.4rem;
+                padding: 0.25rem 0 0 0;
+            }
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .post-header h1 {

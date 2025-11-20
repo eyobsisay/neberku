@@ -425,6 +425,62 @@
             animation: none;
         }
         
+        /* Desktop viewport fit */
+        @media (min-width: 1024px) {
+            body {
+                overflow: hidden;
+            }
+
+            .media-container {
+                padding: 0.25rem 0.75rem;
+            }
+
+            .media-card {
+                height: calc(100vh - 0.5rem);
+            }
+
+            .media-header {
+                padding: 0.5rem 0.75rem;
+                min-height: 16vh;
+            }
+
+            .media-header h1 {
+                font-size: 1.1rem;
+            }
+
+            .media-content {
+                flex: 1;
+                min-height: 0;
+                padding: 0.5rem 0.75rem;
+                overflow: hidden;
+            }
+
+            .wish-text {
+                max-height: 16vh;
+                overflow: hidden;
+                margin-bottom: 0.5rem;
+                padding: 0.45rem 0.6rem;
+                font-size: 0.85rem;
+            }
+
+            .media-display {
+                flex: 1;
+                min-height: 0;
+                margin: 0.4rem 0;
+            }
+
+            .media-display img,
+            .media-display video {
+                height: 100%;
+                object-fit: contain;
+            }
+
+            .neberku-watermark {
+                margin-top: 0.4rem;
+                padding: 0.25rem 0 0 0;
+            }
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .media-header {
